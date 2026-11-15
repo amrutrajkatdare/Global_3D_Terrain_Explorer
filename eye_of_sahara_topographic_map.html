@@ -3,832 +3,683 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Eye of the Sahara (Richat Structure) - 2D & 3D Topographic Viewer</title>
+<title>Global 3D Real-Elevation Topographic Explorer</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: system-ui, -apple-system, sans-serif; overflow: hidden; background: #0f172a; color: #f8fafc; user-select: none; }
-  
-  #map-canvas, #canvas-3d {
-    position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; display: block;
-  }
-  #map-canvas { cursor: grab; }
-  #map-canvas:active { cursor: grabbing; }
-  #canvas-3d { display: none; cursor: grab; background: radial-gradient(circle at center, #1e293b 0%, #090d16 100%); }
-  #canvas-3d:active { cursor: grabbing; }
+  html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #f8fafc; }
+  #viewport { position: relative; width: 100%; height: 100%; cursor: grab; user-select: none; }
+  #viewport:active { cursor: grabbing; }
+  canvas { display: block; width: 100%; height: 100%; }
 
   .panel {
-    position: absolute; z-index: 10; background: rgba(15, 23, 42, 0.88);
-    backdrop-filter: blur(8px); border: 1px solid rgba(148, 163, 184, 0.25);
-    border-radius: 10px; padding: 14px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    position: absolute; top: 14px; left: 14px; z-index: 10;
+    background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(8px);
+    border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 10px;
+    padding: 14px; width: 315px; max-height: calc(100vh - 28px); overflow-y: auto;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.45);
   }
+  .panel h1 { font-size: 15px; font-weight: 700; color: #38bdf8; margin-bottom: 4px; }
+  .panel p.sub { font-size: 11px; color: #94a3b8; margin-bottom: 12px; line-height: 1.4; }
 
-  #controls-panel { top: 16px; left: 16px; width: 290px; }
-  h1 { font-size: 15px; font-weight: 700; color: #38bdf8; margin-bottom: 4px; }
-  .subtitle { font-size: 11px; color: #94a3b8; margin-bottom: 12px; }
+  .control-group { margin-bottom: 11px; }
+  .control-group label { display: flex; justify-content: space-between; font-size: 11.5px; font-weight: 600; color: #cbd5e1; margin-bottom: 5px; }
+  .control-group label span.val { color: #38bdf8; font-family: monospace; }
 
-  .mode-switch {
-    display: flex; background: #1e293b; border-radius: 6px; padding: 3px; margin-bottom: 12px;
-    border: 1px solid rgba(148, 163, 184, 0.2);
+  select, input[type="text"], button {
+    width: 100%; padding: 7px 10px; border-radius: 6px;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    background: #1e293b; color: #f8fafc; font-size: 12.5px;
   }
-  .mode-btn {
-    flex: 1; padding: 6px 8px; border: none; background: transparent; color: #94a3b8;
-    font-size: 12px; font-weight: 600; border-radius: 4px; cursor: pointer; transition: all 0.2s;
+  select:focus, input:focus { outline: none; border-color: #38bdf8; }
+
+  .row { display: flex; gap: 6px; }
+  .row input { flex: 1; }
+  .row button { width: auto; background: #0284c7; border-color: #0284c7; font-weight: 600; cursor: pointer; }
+  .row button:hover { background: #0369a1; }
+
+  input[type="range"] { width: 100%; accent-color: #38bdf8; cursor: pointer; }
+
+  .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+  .btn-secondary {
+    background: #1e293b; border: 1px solid rgba(148, 163, 184, 0.3);
+    color: #e2e8f0; font-size: 11.5px; padding: 6px 8px; cursor: pointer; font-weight: 500;
   }
-  .mode-btn.active { background: #0284c7; color: #fff; }
+  .btn-secondary:hover { background: #334155; }
+  .btn-secondary.active { background: #0284c7; border-color: #38bdf8; color: #fff; }
 
-  label { display: block; font-size: 11px; font-weight: 600; color: #cbd5e1; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
-  select, input[type="range"] { width: 100%; margin-bottom: 10px; }
-  select {
-    background: #1e293b; color: #f8fafc; border: 1px solid #475569;
-    padding: 7px 10px; border-radius: 6px; font-size: 12px; outline: none; cursor: pointer;
+  .presets { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+  .preset-btn {
+    width: auto; padding: 4px 8px; font-size: 11px; border-radius: 5px;
+    background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35);
+    color: #7dd3fc; cursor: pointer;
   }
+  .preset-btn:hover { background: rgba(56, 189, 248, 0.25); }
 
-  .checkbox-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #e2e8f0; margin-bottom: 8px; cursor: pointer; }
-  .checkbox-row input { accent-color: #38bdf8; width: 15px; height: 15px; cursor: pointer; }
-
-  .btn-group { display: flex; gap: 6px; margin-top: 6px; }
-  .btn {
-    flex: 1; background: #1e293b; color: #e2e8f0; border: 1px solid #475569;
-    padding: 6px 8px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 500;
+  .hud {
+    position: absolute; bottom: 14px; left: 14px; z-index: 10;
+    background: rgba(15, 23, 42, 0.88); border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: 8px; padding: 8px 12px; font-size: 11.5px; color: #cbd5e1;
+    display: flex; gap: 14px; flex-wrap: wrap; pointer-events: none;
   }
-  .btn:hover { background: #334155; border-color: #38bdf8; }
+  .hud strong { color: #38bdf8; }
 
-  #info-panel { bottom: 16px; left: 16px; width: 290px; font-size: 12px; }
-  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
-  .stat-box { background: rgba(30, 41, 59, 0.7); padding: 7px 9px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.15); }
-  .stat-label { font-size: 10px; color: #94a3b8; }
-  .stat-val { font-size: 13px; font-weight: 600; color: #f1f5f9; margin-top: 2px; }
-
-  #coords-bar {
-    position: absolute; bottom: 16px; right: 16px; z-index: 10;
-    background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(148, 163, 184, 0.25);
-    padding: 6px 12px; border-radius: 6px; font-size: 11px; color: #cbd5e1;
+  .zoom-controls {
+    position: absolute; top: 14px; right: 14px; z-index: 10;
+    display: flex; flex-direction: column; gap: 6px;
   }
-
-  #status-banner {
-    display: none; position: absolute; top: 16px; right: 16px; z-index: 20;
-    background: rgba(185, 28, 28, 0.92); color: #fff; padding: 10px 14px;
-    border-radius: 8px; font-size: 12px; max-width: 300px; border: 1px solid #fca5a5;
+  .zoom-controls button {
+    width: 36px; height: 36px; font-size: 18px; font-weight: bold;
+    background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(148, 163, 184, 0.3);
+    border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;
   }
-  #status-banner a { color: #fde047; font-weight: 600; }
+  .zoom-controls button:hover { background: #1e293b; border-color: #38bdf8; }
 
-  #controls-3d-extra { display: none; border-top: 1px solid rgba(148,163,184,0.2); padding-top: 10px; margin-top: 6px; }
-  .hint { font-size: 11px; color: #94a3b8; margin-top: 6px; line-height: 1.4; }
+  .badge {
+    display: inline-block; font-size: 10px; padding: 2px 6px; border-radius: 4px;
+    background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35);
+    margin-bottom: 8px;
+  }
+  .help-box {
+    margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(148, 163, 184, 0.2);
+    font-size: 11px; color: #94a3b8; line-height: 1.45;
+  }
 </style>
 </head>
 <body>
 
-<canvas id="map-canvas"></canvas>
-<canvas id="canvas-3d"></canvas>
+<div id="viewport">
+  <canvas id="mapCanvas"></canvas>
 
-<div id="status-banner">
-  Map tiles are blocked or offline. Check internet connection or view online:
-  <a href="https://en-us.topographic-map.com/map-mq718/Richat-Structure/" target="_blank">Open Topographic Map</a>
-</div>
+  <div class="panel">
+    <h1>Global Real-DEM 3D Terrain Map</h1>
+    <div class="badge" id="demStatus">Live Global AWS Terrarium DEM Active</div>
+    <p class="sub">True 3D elevation mesh streamed globally from real Digital Elevation Model (DEM) tiles. Pan anywhere on Earth and tilt into 3D.</p>
 
-<div id="controls-panel" class="panel">
-  <h1>Eye of the Sahara</h1>
-  <div class="subtitle">Richat Structure &bull; Adrar Plateau, Mauritania</div>
+    <div class="control-group">
+      <label>Jump to Any Location (Name or Lat, Lon)</label>
+      <div class="row">
+        <input type="text" id="searchInput" placeholder="e.g. Everest, Grand Canyon, 21.11, -11.39">
+        <button id="searchBtn">Go</button>
+      </div>
+      <div class="presets">
+        <button class="preset-btn" data-lat="21.1147" data-lon="-11.3942" data-z="10.5">Eye of Sahara</button>
+        <button class="preset-btn" data-lat="27.9881" data-lon="86.9250" data-z="11.2">Mt. Everest</button>
+        <button class="preset-btn" data-lat="36.1069" data-lon="-112.1129" data-z="11.5">Grand Canyon</button>
+        <button class="preset-btn" data-lat="35.3606" data-lon="138.7274" data-z="11.5">Mt. Fuji</button>
+        <button class="preset-btn" data-lat="45.9766" data-lon="7.6585" data-z="12.0">Matterhorn</button>
+      </div>
+    </div>
 
-  <div class="mode-switch">
-    <button id="btn-mode-2d" class="mode-btn active">2D Map View</button>
-    <button id="btn-mode-3d" class="mode-btn">3D Terrain View</button>
-  </div>
+    <div class="control-group">
+      <label>Base Map Imagery Layer</label>
+      <select id="layerSelect">
+        <option value="esri_sat">Esri World Satellite Imagery</option>
+        <option value="esri_topo">Esri World Topographic</option>
+        <option value="opentopo">OpenTopoMap (Contours)</option>
+        <option value="esri_street">Esri World Street Map</option>
+        <option value="esri_hillshade">Esri Hillshade Relief</option>
+      </select>
+    </div>
 
-  <label for="layer-select">Map Layer / Texture</label>
-  <select id="layer-select">
-    <option value="esri_topo">Esri World Topographic</option>
-    <option value="opentopo">OpenTopoMap (Contours)</option>
-    <option value="esri_sat">Esri World Imagery (Satellite)</option>
-    <option value="esri_street">Esri World Street Map</option>
-    <option value="esri_hillshade">Esri Shaded Relief (Hillshade)</option>
-  </select>
+    <div class="control-group">
+      <label>3D Camera Tilt (Pitch) <span class="val" id="pitchVal">52°</span></label>
+      <input type="range" id="pitchSlider" min="0" max="72" value="52">
+    </div>
 
-  <label class="checkbox-row">
-    <input type="checkbox" id="toggle-rings" checked>
-    Show Geological Ring Overlays
-  </label>
+    <div class="control-group">
+      <label>3D Rotation (Bearing) <span class="val" id="bearingVal">25°</span></label>
+      <input type="range" id="bearingSlider" min="-180" max="180" value="25">
+    </div>
 
-  <div id="controls-2d-extra">
-    <div class="btn-group">
-      <button class="btn" id="zoom-in">+ Zoom In</button>
-      <button class="btn" id="zoom-out">- Zoom Out</button>
-      <button class="btn" id="reset-2d">Reset</button>
+    <div class="control-group">
+      <label>Elevation Exaggeration <span class="val" id="exagVal">2.5x</span></label>
+      <input type="range" id="exagSlider" min="0" max="8" step="0.2" value="2.5">
+    </div>
+
+    <div class="btn-grid">
+      <button class="btn-secondary active" id="toggleWire">Terrain Mesh: Smooth</button>
+      <button class="btn-secondary" id="toggleRing">Richat Ring: On</button>
+      <button class="btn-secondary" id="resetViewBtn">Reset 3D Angle</button>
+      <button class="btn-secondary" id="flat2dBtn">Flat 2D Top-Down</button>
+    </div>
+
+    <div class="help-box">
+      <strong>Controls:</strong><br>
+      • <strong>Left-Drag:</strong> Pan across the entire globe<br>
+      • <strong>Right-Drag (or Shift + Drag):</strong> Tilt & rotate 3D camera<br>
+      • <strong>Mouse Wheel:</strong> Zoom in / out
     </div>
   </div>
 
-  <div id="controls-3d-extra">
-    <label for="exaggeration">Vertical Elevation Exaggeration: <span id="exag-val">3.5x</span></label>
-    <input type="range" id="exaggeration" min="1" max="8" step="0.5" value="3.5">
-
-    <label for="render-style">3D Surface Style</label>
-    <select id="render-style">
-      <option value="textured">Map Tile Draped + Relief Shading</option>
-      <option value="hypsometric">Hypsometric Elevation Tint + Contours</option>
-      <option value="wireframe">3D Topographic Wireframe Mesh</option>
-    </select>
-
-    <div class="btn-group">
-      <button class="btn" id="toggle-spin">Auto-Rotate: Off</button>
-      <button class="btn" id="reset-3d">Reset 3D Angle</button>
-    </div>
-    <div class="hint">Drag to orbit &bull; Scroll to zoom &bull; Right-drag to tilt</div>
+  <div class="zoom-controls">
+    <button id="zoomIn" title="Zoom In">+</button>
+    <button id="zoomOut" title="Zoom Out">−</button>
   </div>
-</div>
 
-<div id="info-panel" class="panel">
-  <div style="font-weight: 600; color: #38bdf8;">Topographic & Geological Data</div>
-  <div class="stat-grid">
-    <div class="stat-box">
-      <div class="stat-label">Outer Diameter</div>
-      <div class="stat-val">40 &ndash; 50 km</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-label">Elevation Range</div>
-      <div class="stat-val">349 &ndash; 605 m</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-label">Ridge Relief</div>
-      <div class="stat-val">Up to ~80 m</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-label">Center Coords</div>
-      <div class="stat-val">21.11&deg;N, 11.39&deg;W</div>
-    </div>
+  <div class="hud">
+    <div>Center: <strong id="hudCoords">21.1147° N, 11.3942° W</strong></div>
+    <div>Cursor Elev: <strong id="hudElev">-- m</strong></div>
+    <div>Zoom: <strong id="hudZoom">10.5</strong></div>
+    <div>Pitch: <strong id="hudPitch">52°</strong></div>
   </div>
 </div>
-
-<div id="coords-bar">Lat: 21.1147&deg; N | Lon: 11.3942&deg; W | Zoom: 11</div>
 
 <script>
-// Core Coordinates
-const CENTER_LAT = 21.1147;
-const CENTER_LON = -11.3942;
+(() => {
+  const canvas = document.getElementById('mapCanvas');
+  const ctx = canvas.getContext('2d');
 
-// Reliable Key-Free Tile Providers
-const LAYERS = {
-  esri_topo: {
-    name: 'Esri World Topographic',
-    url: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/${z}/${y}/${x}`
-  },
-  opentopo: {
-    name: 'OpenTopoMap',
-    url: (z, x, y) => `https://a.tile.opentopomap.org/${z}/${x}/${y}.png`
-  },
-  esri_sat: {
-    name: 'Esri Satellite',
-    url: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`
-  },
-  esri_street: {
-    name: 'Esri World Street Map',
-    url: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${z}/${y}/${x}`
-  },
-  esri_hillshade: {
-    name: 'Esri Hillshade Relief',
-    url: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/${z}/${y}/${x}`
-  }
-};
-
-// State
-let mode = '2d';
-let currentLayer = 'esri_topo';
-let showRings = true;
-let zoom = 11;
-let centerLat = CENTER_LAT;
-let centerLon = CENTER_LON;
-let tileErrors = 0;
-let tileLoads = 0;
-
-const tileCache = new Map();
-
-function lon2tileX(lon, z) { return ((lon + 180) / 360) * Math.pow(2, z); }
-function lat2tileY(lat, z) {
-  const rad = lat * Math.PI / 180;
-  return (1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2 * Math.pow(2, z);
-}
-function tileX2lon(x, z) { return (x / Math.pow(2, z)) * 360 - 180; }
-function tileY2lat(y, z) {
-  const n = Math.PI - (2 * Math.PI * y) / Math.pow(2, z);
-  return (180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
-}
-
-function getTile(layerKey, z, x, y, onLoadCallback) {
-  const maxTile = Math.pow(2, z);
-  const wrappedX = ((x % maxTile) + maxTile) % maxTile;
-  if (y < 0 || y >= maxTile) return null;
-
-  const key = `${layerKey}_${z}_${wrappedX}_${y}`;
-  if (tileCache.has(key)) return tileCache.get(key);
-
-  const img = new Image();
-  img.crossOrigin = "Anonymous";
-  const record = { img, loaded: false, error: false };
-  tileCache.set(key, record);
-
-  img.onload = () => {
-    record.loaded = true;
-    tileLoads++;
-    document.getElementById('status-banner').style.display = 'none';
-    if (onLoadCallback) onLoadCallback();
+  // Map state (Web Mercator normalized world coordinates [0..1])
+  const state = {
+    lat: 21.1147,
+    lon: -11.3942,
+    zoom: 10.5,
+    pitch: 52,      // degrees (0 = flat 2D, up to 72 = steep 3D)
+    bearing: 25,    // degrees
+    exag: 2.5,      // vertical exaggeration multiplier
+    layer: 'esri_sat',
+    wireframe: false,
+    showRichatRing: true,
+    cursorElev: null
   };
-  img.onerror = () => {
-    record.error = true;
-    tileErrors++;
-    if (tileErrors > 4 && tileLoads === 0) {
-      document.getElementById('status-banner').style.display = 'block';
-    }
+
+  // Tile sources (Zero API keys, CORS enabled for DEM canvas sampling)
+  const IMAGERY_SOURCES = {
+    esri_sat: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`,
+    esri_topo: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/${z}/${y}/${x}`,
+    opentopo: (z, x, y) => `https://a.tile.opentopomap.org/${z}/${x}/${y}.png`,
+    esri_street: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${z}/${y}/${x}`,
+    esri_hillshade: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/${z}/${y}/${x}`
   };
-  img.src = LAYERS[layerKey].url(z, wrappedX, y);
-  return record;
-}
 
-// ==========================================
-// 2D MAP ENGINE
-// ==========================================
-const canvas2d = document.getElementById('map-canvas');
-const ctx2d = canvas2d.getContext('2d');
+  // AWS Open Data Terrarium Global Elevation Tiles (CORS enabled, RGB encodes meters)
+  const DEM_SOURCE = (z, x, y) => `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${x}/${y}.png`;
 
-function resizeCanvases() {
-  canvas2d.width = window.innerWidth;
-  canvas2d.height = window.innerHeight;
-  canvas3d.width = window.innerWidth;
-  canvas3d.height = window.innerHeight;
-  if (mode === '2d') draw2D();
-  else draw3D();
-}
+  const imgCache = new Map();
+  const demCache = new Map();
+  let renderScheduled = false;
 
-function draw2D() {
-  if (mode !== '2d') return;
-  const w = canvas2d.width;
-  const h = canvas2d.height;
-  ctx2d.fillStyle = '#0f172a';
-  ctx2d.fillRect(0, 0, w, h);
-
-  const tileSize = 256;
-  const cx = lon2tileX(centerLon, zoom);
-  const cy = lat2tileY(centerLat, zoom);
-
-  const startX = Math.floor(cx - w / (2 * tileSize));
-  const endX = Math.floor(cx + w / (2 * tileSize)) + 1;
-  const startY = Math.floor(cy - h / (2 * tileSize));
-  const endY = Math.floor(cy + h / (2 * tileSize)) + 1;
-
-  for (let tx = startX; tx <= endX; tx++) {
-    for (let ty = startY; ty <= endY; ty++) {
-      const px = Math.floor(w / 2 + (tx - cx) * tileSize);
-      const py = Math.floor(h / 2 + (ty - cy) * tileSize);
-      const tile = getTile(currentLayer, zoom, tx, ty, draw2D);
-      if (tile && tile.loaded) {
-        ctx2d.drawImage(tile.img, px, py, tileSize, tileSize);
-      } else {
-        ctx2d.strokeStyle = '#1e293b';
-        ctx2d.strokeRect(px, py, tileSize, tileSize);
-      }
-    }
-  }
-
-  // Draw Geological Ring Overlays
-  if (showRings) {
-    const scx = w / 2 + (lon2tileX(CENTER_LON, zoom) - cx) * tileSize;
-    const scy = h / 2 + (lat2tileY(CENTER_LAT, zoom) - cy) * tileSize;
-    const metersPerPixel = (156543.03392 * Math.cos(CENTER_LAT * Math.PI / 180)) / Math.pow(2, zoom);
-
-    const rings = [
-      { rMeters: 22000, label: 'Outer Rim (~44 km)', color: '#38bdf8', dash: [8, 6] },
-      { rMeters: 12000, label: 'Middle Cuesta Ridge (~24 km)', color: '#f59e0b', dash: [5, 5] },
-      { rMeters: 4500,  label: 'Inner Core Dome (~9 km)', color: '#f43f5e', dash: [] }
-    ];
-
-    rings.forEach(ring => {
-      const rPx = ring.rMeters / metersPerPixel;
-      ctx2d.save();
-      ctx2d.beginPath();
-      ctx2d.arc(scx, scy, rPx, 0, Math.PI * 2);
-      ctx2d.strokeStyle = ring.color;
-      ctx2d.lineWidth = 2;
-      ctx2d.setLineDash(ring.dash);
-      ctx2d.stroke();
-
-      if (rPx > 35) {
-        ctx2d.fillStyle = 'rgba(15, 23, 42, 0.8)';
-        ctx2d.font = 'bold 11px system-ui';
-        const tw = ctx2d.measureText(ring.label).width;
-        ctx2d.fillRect(scx - tw/2 - 5, scy - rPx - 18, tw + 10, 16);
-        ctx2d.fillStyle = ring.color;
-        ctx2d.fillText(ring.label, scx - tw/2, scy - rPx - 6);
-      }
-      ctx2d.restore();
-    });
-
-    // Center marker
-    ctx2d.fillStyle = '#f43f5e';
-    ctx2d.beginPath();
-    ctx2d.arc(scx, scy, 4, 0, Math.PI * 2);
-    ctx2d.fill();
-  }
-}
-
-// 2D Interaction
-let isDragging2D = false;
-let lastMouse2D = { x: 0, y: 0 };
-
-canvas2d.addEventListener('mousedown', e => {
-  isDragging2D = true;
-  lastMouse2D = { x: e.clientX, y: e.clientY };
-});
-window.addEventListener('mouseup', () => { isDragging2D = false; isDragging3D = false; });
-canvas2d.addEventListener('mousemove', e => {
-  const rect = canvas2d.getBoundingClientRect();
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
-  const tileSize = 256;
-  const cx = lon2tileX(centerLon, zoom);
-  const cy = lat2tileY(centerLat, zoom);
-  const hoverLon = tileX2lon(cx + (mx - canvas2d.width / 2) / tileSize, zoom);
-  const hoverLat = tileY2lat(cy + (my - canvas2d.height / 2) / tileSize, zoom);
-  document.getElementById('coords-bar').textContent =
-    `Lat: ${hoverLat.toFixed(4)}° N | Lon: ${Math.abs(hoverLon).toFixed(4)}° W | Zoom: ${zoom}`;
-
-  if (!isDragging2D) return;
-  const dx = e.clientX - lastMouse2D.x;
-  const dy = e.clientY - lastMouse2D.y;
-  lastMouse2D = { x: e.clientX, y: e.clientY };
-
-  centerLon = tileX2lon(cx - dx / tileSize, zoom);
-  centerLat = Math.max(-85, Math.min(85, tileY2lat(cy - dy / tileSize, zoom)));
-  draw2D();
-});
-
-canvas2d.addEventListener('wheel', e => {
-  e.preventDefault();
-  const delta = e.deltaY < 0 ? 1 : -1;
-  zoom = Math.max(6, Math.min(15, zoom + delta));
-  document.getElementById('coords-bar').textContent =
-    `Lat: ${centerLat.toFixed(4)}° N | Lon: ${Math.abs(centerLon).toFixed(4)}° W | Zoom: ${zoom}`;
-  draw2D();
-}, { passive: false });
-
-document.getElementById('zoom-in').onclick = () => { zoom = Math.min(15, zoom + 1); draw2D(); };
-document.getElementById('zoom-out').onclick = () => { zoom = Math.max(6, zoom - 1); draw2D(); };
-document.getElementById('reset-2d').onclick = () => { centerLat = CENTER_LAT; centerLon = CENTER_LON; zoom = 11; draw2D(); };
-
-
-// ==========================================
-// 3D TERRAIN ENGINE (Self-Contained DEM + Map Texture)
-// ==========================================
-const canvas3d = document.getElementById('canvas-3d');
-const ctx3d = canvas3d.getContext('2d');
-
-// Composite offscreen texture of the Richat Structure from live map tiles
-const texCanvas = document.createElement('canvas');
-const texSize = 768; // 3x3 tiles at zoom 11
-texCanvas.width = texSize;
-texCanvas.height = texSize;
-const texCtx = texCanvas.getContext('2d');
-let texReady = false;
-
-function build3DTexture() {
-  texReady = false;
-  const z3d = 11;
-  const cx = Math.floor(lon2tileX(CENTER_LON, z3d));
-  const cy = Math.floor(lat2tileY(CENTER_LAT, z3d));
-  let loadedCount = 0;
-
-  texCtx.fillStyle = '#334155';
-  texCtx.fillRect(0, 0, texSize, texSize);
-
-  for (let dx = -1; dx <= 1; dx++) {
-    for (let dy = -1; dy <= 1; dy++) {
-      const tile = getTile(currentLayer, z3d, cx + dx, cy + dy, () => {
-        drawTextureGrid(z3d, cx, cy);
+  function scheduleRender() {
+    if (!renderScheduled) {
+      renderScheduled = true;
+      requestAnimationFrame(() => {
+        renderScheduled = false;
+        render();
       });
-      if (tile && tile.loaded) loadedCount++;
     }
   }
-  drawTextureGrid(z3d, cx, cy);
-}
 
-function drawTextureGrid(z3d, cx, cy) {
-  for (let dx = -1; dx <= 1; dx++) {
-    for (let dy = -1; dy <= 1; dy++) {
-      const tile = getTile(currentLayer, z3d, cx + dx, cy + dy, null);
-      if (tile && tile.loaded) {
-        texCtx.drawImage(tile.img, (dx + 1) * 256, (dy + 1) * 256, 256, 256);
-        texReady = true;
+  // Geo <-> Web Mercator [0..1] helpers
+  function lonToX(lon) { return (lon + 180) / 360; }
+  function latToY(lat) {
+    const rad = Math.max(-85.0511, Math.min(85.0511, lat)) * Math.PI / 180;
+    return (1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2;
+  }
+  function xToLon(x) { return x * 360 - 180; }
+  function yToLat(y) {
+    const n = Math.PI - 2 * Math.PI * y;
+    return 180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+  }
+
+  // Load imagery tile
+  function getImageryTile(layer, z, x, y) {
+    const maxT = 1 << z;
+    const wx = ((x % maxT) + maxT) % maxT;
+    if (y < 0 || y >= maxT) return null;
+    const key = `${layer}/${z}/${wx}/${y}`;
+    if (imgCache.has(key)) return imgCache.get(key);
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    const entry = { img, loaded: false, error: false };
+    imgCache.set(key, entry);
+
+    img.onload = () => { entry.loaded = true; scheduleRender(); };
+    img.onerror = () => { entry.error = true; };
+    img.src = IMAGERY_SOURCES[layer](z, wx, y);
+    return entry;
+  }
+
+  // Load & decode Terrarium DEM elevation tile into Float32Array (256x256)
+  function getDemTile(z, x, y) {
+    const maxT = 1 << z;
+    const wx = ((x % maxT) + maxT) % maxT;
+    if (y < 0 || y >= maxT) return null;
+    const key = `${z}/${wx}/${y}`;
+    if (demCache.has(key)) return demCache.get(key);
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    const entry = { loaded: false, heights: null };
+    demCache.set(key, entry);
+
+    img.onload = () => {
+      try {
+        const off = document.createElement('canvas');
+        off.width = 256; off.height = 256;
+        const octx = off.getContext('2d', { willReadFrequently: true });
+        octx.drawImage(img, 0, 0);
+        const data = octx.getImageData(0, 0, 256, 256).data;
+        const heights = new Float32Array(256 * 256);
+        for (let i = 0, p = 0; i < heights.length; i++, p += 4) {
+          // Terrarium formula: (R * 256 + G + B / 256) - 32768
+          const h = (data[p] * 256 + data[p + 1] + data[p + 2] / 256) - 32768;
+          heights[i] = h < -11000 ? 0 : h;
+        }
+        entry.heights = heights;
+        entry.loaded = true;
+        document.getElementById('demStatus').textContent = 'Live Global AWS Terrarium DEM Active';
+        scheduleRender();
+      } catch (e) {
+        document.getElementById('demStatus').textContent = 'DEM Canvas Fallback Mode';
+      }
+    };
+    img.onerror = () => {
+      document.getElementById('demStatus').textContent = 'DEM Tile Unavailable at Zoom';
+    };
+    img.src = DEM_SOURCE(z, wx, y);
+    return entry;
+  }
+
+  // Sample real elevation in meters at normalized Mercator (nx, ny)
+  function sampleElevation(nx, ny, demZ) {
+    const maxT = 1 << demZ;
+    const tx = Math.floor(nx * maxT);
+    const ty = Math.floor(ny * maxT);
+    const entry = getDemTile(demZ, tx, ty);
+    if (!entry || !entry.loaded) return 0;
+
+    const fx = (nx * maxT - tx) * 255;
+    const fy = (ny * maxT - ty) * 255;
+    const x0 = Math.max(0, Math.min(255, Math.floor(fx)));
+    const y0 = Math.max(0, Math.min(255, Math.floor(fy)));
+    const x1 = Math.min(255, x0 + 1);
+    const y1 = Math.min(255, y0 + 1);
+    const dx = fx - x0;
+    const dy = fy - y0;
+
+    const h = entry.heights;
+    const h00 = h[y0 * 256 + x0];
+    const h10 = h[y0 * 256 + x1];
+    const h01 = h[y1 * 256 + x0];
+    const h11 = h[y1 * 256 + x1];
+    return (h00 * (1 - dx) + h10 * dx) * (1 - dy) + (h01 * (1 - dx) + h11 * dx) * dy;
+  }
+
+  // Project 3D world offset (dx, dy in screen-scale pixels, dz in vertical pixels) to 2D screen
+  function project3D(dx, dy, dz, w, h) {
+    const radB = -state.bearing * Math.PI / 180;
+    const cosB = Math.cos(radB), sinB = Math.sin(radB);
+    // Rotate around Z (bearing)
+    const rx = dx * cosB - dy * sinB;
+    const ry = dx * sinB + dy * cosB;
+
+    // Tilt around X (pitch)
+    const radP = state.pitch * Math.PI / 180;
+    const cosP = Math.cos(radP), sinP = Math.sin(radP);
+    const ty = ry * cosP - dz * sinP;
+    const tz = ry * sinP + dz * cosP;
+
+    // Perspective foreshortening
+    const fov = Math.max(w, h) * 1.15;
+    const depth = fov + tz;
+    const scale = fov / Math.max(120, depth);
+
+    return {
+      sx: w / 2 + rx * scale,
+      sy: h / 2 + ty * scale,
+      depth: tz,
+      scale
+    };
+  }
+
+  // Draw textured triangle (affine UV mapping onto canvas)
+  function drawTexturedTriangle(img, sx0, sy0, sx1, sy1, sx2, sy2, u0, v0, u1, v1, u2, v2, shade) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(sx0, sy0);
+    ctx.lineTo(sx1, sy1);
+    ctx.lineTo(sx2, sy2);
+    ctx.closePath();
+    ctx.clip();
+
+    const denom = (u0 * (v1 - v2) + u1 * (v2 - v0) + u2 * (v0 - v1));
+    if (Math.abs(denom) > 1e-6) {
+      const a = (sx0 * (v1 - v2) + sx1 * (v2 - v0) + sx2 * (v0 - v1)) / denom;
+      const b = (sy0 * (v1 - v2) + sy1 * (v2 - v0) + sy2 * (v0 - v1)) / denom;
+      const c = (sx0 * (u2 - u1) + sx1 * (u0 - u2) + sx2 * (u1 - u0)) / denom;
+      const d = (sy0 * (u2 - u1) + sy1 * (u0 - u2) + sy2 * (u1 - u0)) / denom;
+      const e = sx0 - a * u0 - c * v0;
+      const f = sy0 - b * u0 - d * v0;
+
+      ctx.transform(a, b, c, d, e, f);
+      ctx.drawImage(img, 0, 0, 256, 256);
+
+      // Apply subtle directional relief shading
+      if (shade !== 0) {
+        ctx.fillStyle = shade > 0 ? `rgba(255,255,255,${Math.min(0.28, shade)})` : `rgba(0,0,0,${Math.min(0.45, -shade)})`;
+        ctx.fillRect(0, 0, 256, 256);
       }
     }
+    ctx.restore();
   }
-  if (mode === '3d') draw3D();
-}
 
-// High-detail Synthetic Digital Elevation Model (DEM) calibrated to Richat Structure topography
-// Models the Adrar Plateau escarpment (~200m drop to SE), outer 44km cuesta rim,
-// concentric quartzite/sandstone ridges (~80m relief), eroded shale valleys, and central dome.
-const GRID_N = 96;
-const demData = new Float32Array(GRID_N * GRID_N);
+  function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    scheduleRender();
+  }
+  window.addEventListener('resize', resize);
 
-function generateRichatDEM() {
-  for (let j = 0; j < GRID_N; j++) {
-    for (let i = 0; i < GRID_N; i++) {
-      // Normalized coords [-1, 1] covering ~65km x 65km
-      const nx = (i / (GRID_N - 1)) * 2 - 1;
-      const ny = (j / (GRID_N - 1)) * 2 - 1;
+  function render() {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
 
-      // Slight elliptical stretch (NE-SW axis) matching actual Richat geometry
-      const angle = -0.45;
-      const rx = nx * Math.cos(angle) - ny * Math.sin(angle);
-      const ry = (nx * Math.sin(angle) + ny * Math.cos(angle)) * 1.08;
-      const r = Math.sqrt(rx * rx + ry * ry);
-      const theta = Math.atan2(ry, rx);
+    // Sky / background gradient when pitched
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, '#09111e');
+    grad.addColorStop(1, '#162338');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
 
-      // Base Adrar plateau elevation (~420m) sloping down toward Erg Ouarane dunes in SE
-      let elev = 430 - 55 * (nx * 0.6 + ny * 0.8);
+    const tileZ = Math.max(2, Math.min(16, Math.round(state.zoom)));
+    const demZ = Math.max(2, Math.min(13, tileZ - 1));
+    const scaleFactor = Math.pow(2, state.zoom) * 256;
 
-      // Asymmetric escarpment drop in far southeast
-      if (nx + ny > 0.85) {
-        elev -= Math.min(90, (nx + ny - 0.85) * 140);
+    const cx = lonToX(state.lon);
+    const cy = latToY(state.lat);
+
+    // Meters per pixel at current latitude & zoom
+    const metersPerPixel = (156543.03392 * Math.cos(state.lat * Math.PI / 180)) / Math.pow(2, state.zoom);
+    const elevScale = (state.exag / Math.max(1, metersPerPixel));
+
+    // Determine visible tile range around center
+    const viewRadiusTiles = Math.ceil((Math.max(w, h) * 0.85) / (256 * Math.pow(2, state.zoom - tileZ))) + 1;
+    const centerTx = Math.floor(cx * (1 << tileZ));
+    const centerTy = Math.floor(cy * (1 << tileZ));
+    const maxT = 1 << tileZ;
+
+    // Subdivision grid per tile (higher when pitched in 3D, faster 2x2 when flat 2D)
+    const sub = state.pitch > 4 ? 8 : 2;
+    const tris = [];
+
+    for (let dyT = -viewRadiusTiles; dyT <= viewRadiusTiles; dyT++) {
+      const ty = centerTy + dyT;
+      if (ty < 0 || ty >= maxT) continue;
+
+      for (let dxT = -viewRadiusTiles; dxT <= viewRadiusTiles; dxT++) {
+        const tx = centerTx + dxT;
+        const tileEntry = getImageryTile(state.layer, tileZ, tx, ty);
+        const imgReady = tileEntry && tileEntry.loaded;
+
+        // Build vertex grid for this tile
+        const grid = new Array((sub + 1) * (sub + 1));
+        for (let gy = 0; gy <= sub; gy++) {
+          const vFrac = gy / sub;
+          const ny = (ty + vFrac) / maxT;
+          for (let gx = 0; gx <= sub; gx++) {
+            const uFrac = gx / sub;
+            const nx = (tx + uFrac) / maxT;
+
+            const wx = (nx - cx) * scaleFactor;
+            const wy = (ny - cy) * scaleFactor;
+            const elevM = state.pitch > 0.5 && state.exag > 0 ? sampleElevation(nx, ny, demZ) : 0;
+            const wz = elevM * elevScale;
+
+            const proj = project3D(wx, wy, wz, w, h);
+            grid[gy * (sub + 1) + gx] = {
+              sx: proj.sx, sy: proj.sy, depth: proj.depth,
+              u: uFrac * 256, v: vFrac * 256, elev: elevM
+            };
+          }
+        }
+
+        // Emit 2 triangles per grid cell
+        for (let gy = 0; gy < sub; gy++) {
+          for (let gx = 0; gx < sub; gx++) {
+            const p00 = grid[gy * (sub + 1) + gx];
+            const p10 = grid[gy * (sub + 1) + (gx + 1)];
+            const p01 = grid[(gy + 1) * (sub + 1) + gx];
+            const p11 = grid[(gy + 1) * (sub + 1) + (gx + 1)];
+
+            // Quick offscreen cull
+            const minX = Math.min(p00.sx, p10.sx, p01.sx, p11.sx);
+            const maxX = Math.max(p00.sx, p10.sx, p01.sx, p11.sx);
+            const minY = Math.min(p00.sy, p10.sy, p01.sy, p11.sy);
+            const maxY = Math.max(p00.sy, p10.sy, p01.sy, p11.sy);
+            if (maxX < -50 || minX > w + 50 || maxY < -50 || minY > h + 50) continue;
+
+            // Directional hillshade from NW light source
+            const slopeX = (p10.elev - p00.elev) / Math.max(1, metersPerPixel * (256 / sub));
+            const slopeY = (p01.elev - p00.elev) / Math.max(1, metersPerPixel * (256 / sub));
+            const shade = state.pitch > 4 ? (-slopeX * 0.45 - slopeY * 0.45) * Math.min(1.5, state.exag * 0.4) : 0;
+
+            const avgDepth = (p00.depth + p10.depth + p01.depth + p11.depth) * 0.25;
+            tris.push({
+              depth: avgDepth,
+              img: imgReady ? tileEntry.img : null,
+              p00, p10, p01, p11,
+              shade
+            });
+          }
+        }
+      }
+    }
+
+    // Painter's algorithm: sort far-to-near so mountains properly occlude valleys behind them
+    tris.sort((a, b) => b.depth - a.depth);
+
+    for (let i = 0; i < tris.length; i++) {
+      const t = tris[i];
+      const { p00, p10, p01, p11, img, shade } = t;
+
+      if (img) {
+        drawTexturedTriangle(img, p00.sx, p00.sy, p10.sx, p10.sy, p01.sx, p01.sy, p00.u, p00.v, p10.u, p10.v, p01.u, p01.v, shade);
+        drawTexturedTriangle(img, p10.sx, p10.sy, p11.sx, p11.sy, p01.sx, p01.sy, p10.u, p10.v, p11.u, p11.v, p01.u, p01.v, shade);
+      } else {
+        ctx.fillStyle = '#1e293b';
+        ctx.beginPath();
+        ctx.moveTo(p00.sx, p00.sy); ctx.lineTo(p10.sx, p10.sy);
+        ctx.lineTo(p11.sx, p11.sy); ctx.lineTo(p01.sx, p01.sy);
+        ctx.closePath(); ctx.fill();
       }
 
-      // Concentric geological rings (Cuestas & Valleys)
-      // Outer rim at r ~ 0.68 (~22km radius)
-      const outerRim = Math.exp(-Math.pow((r - 0.68) / 0.055, 2)) * 115;
-      // Outer annular valley at r ~ 0.56
-      const outerValley = -Math.exp(-Math.pow((r - 0.56) / 0.05, 2)) * 55;
-      // Middle prominent quartzite ridge at r ~ 0.44 (~14km radius)
-      const midRidge = Math.exp(-Math.pow((r - 0.44) / 0.045, 2)) * 135;
-      // Inner depression at r ~ 0.31
-      const innerValley = -Math.exp(-Math.pow((r - 0.31) / 0.045, 2)) * 65;
-      // Inner ring cuesta at r ~ 0.20 (~6.5km radius)
-      const innerRidge = Math.exp(-Math.pow((r - 0.20) / 0.038, 2)) * 110;
-      // Central breccia/carbonatite dome & moat
-      const coreMoat = -Math.exp(-Math.pow((r - 0.10) / 0.03, 2)) * 45;
-      const centralDome = Math.exp(-Math.pow(r / 0.065, 2)) * 85;
-
-      // Radial gullies / wadi erosion channels cutting across rings
-      const wadi = Math.sin(theta * 9 + r * 6) * Math.cos(theta * 5 - r * 4) * 14 * Math.min(1, r * 2);
-      // Fine desert sand dune ripples outside structure
-      const dunes = (r > 0.72) ? Math.sin((nx * 18 + ny * 12)) * 8 : 0;
-
-      elev += outerRim + outerValley + midRidge + innerValley + innerRidge + coreMoat + centralDome + wadi + dunes;
-      demData[j * GRID_N + i] = elev;
-    }
-  }
-}
-generateRichatDEM();
-
-// 3D Camera & Projection State
-let yaw = -0.65;
-let pitch = 0.62;
-let camZoom = 1.05;
-let exaggeration = 3.5;
-let renderStyle = 'textured';
-let autoSpin = false;
-let isDragging3D = false;
-let dragButton = 0;
-let lastMouse3D = { x: 0, y: 0 };
-
-function project3D(x, y, z, w, h) {
-  // Rotate around Y (yaw)
-  const cosY = Math.cos(yaw), sinY = Math.sin(yaw);
-  const x1 = x * cosY - z * sinY;
-  const z1 = x * sinY + z * cosY;
-
-  // Rotate around X (pitch)
-  const cosP = Math.cos(pitch), sinP = Math.sin(pitch);
-  const y2 = y * cosP - z1 * sinP;
-  const z2 = y * sinP + z1 * cosP;
-
-  const fov = 720 * camZoom;
-  const dist = 3.2;
-  const scale = fov / (dist + z2);
-  return {
-    sx: w / 2 + x1 * scale,
-    sy: h / 2 - y2 * scale + 35,
-    depth: z2
-  };
-}
-
-function getHypsometricColor(elev) {
-  // Maps 340m - 610m to topographic relief palette
-  const t = Math.max(0, Math.min(1, (elev - 340) / 260));
-  if (t < 0.25) {
-    // Low desert sands: warm tan
-    return [214, 185, 138];
-  } else if (t < 0.5) {
-    // Valley floor: ochre / muted olive-sand
-    return [188, 152, 102];
-  } else if (t < 0.75) {
-    // Cuesta slopes: terracotta / burnt sienna
-    return [168, 108, 72];
-  } else {
-    // High quartzite ridges: dark iron-brown / pale crest highlight
-    return [135, 82, 58];
-  }
-}
-
-function draw3D() {
-  if (mode !== '3d') return;
-  const w = canvas3d.width;
-  const h = canvas3d.height;
-  ctx3d.clearRect(0, 0, w, h);
-
-  // Build projected vertex grid
-  const verts = new Array(GRID_N * GRID_N);
-  const scaleXZ = 1.65;
-  const scaleY = 0.00055 * exaggeration;
-
-  for (let j = 0; j < GRID_N; j++) {
-    for (let i = 0; i < GRID_N; i++) {
-      const idx = j * GRID_N + i;
-      const vx = ((i / (GRID_N - 1)) * 2 - 1) * scaleXZ;
-      const vz = ((j / (GRID_N - 1)) * 2 - 1) * scaleXZ;
-      const elev = demData[idx];
-      const vy = (elev - 410) * scaleY;
-      const proj = project3D(vx, vy, vz, w, h);
-      verts[idx] = { sx: proj.sx, sy: proj.sy, depth: proj.depth, elev, i, j };
-    }
-  }
-
-  // Create quad cells and depth-sort (Painter's algorithm)
-  const quads = [];
-  for (let j = 0; j < GRID_N - 1; j++) {
-    for (let i = 0; i < GRID_N - 1; i++) {
-      const v00 = verts[j * GRID_N + i];
-      const v10 = verts[j * GRID_N + (i + 1)];
-      const v11 = verts[(j + 1) * GRID_N + (i + 1)];
-      const v01 = verts[(j + 1) * GRID_N + i];
-      const avgDepth = (v00.depth + v10.depth + v11.depth + v01.depth) * 0.25;
-      quads.push({ v00, v10, v11, v01, avgDepth, i, j });
-    }
-  }
-  quads.sort((a, b) => b.avgDepth - a.avgDepth);
-
-  // Sun light vector for hillshading
-  const lightDir = { x: -0.65, y: 0.55, z: -0.52 };
-
-  for (let q = 0; q < quads.length; q++) {
-    const { v00, v10, v11, v01, i, j } = quads[q];
-
-    // Compute surface normal for directional hillshading
-    const dzdx = (v10.elev - v00.elev) * 0.035 * exaggeration;
-    const dzdz = (v01.elev - v00.elev) * 0.035 * exaggeration;
-    const nx = -dzdx, ny = 1.0, nz = -dzdz;
-    const nLen = Math.sqrt(nx * nx + ny * ny + nz * nz);
-    const shade = Math.max(0.35, Math.min(1.35, ((nx * lightDir.x + ny * lightDir.y + nz * lightDir.z) / nLen) + 0.65));
-
-    ctx3d.beginPath();
-    ctx3d.moveTo(v00.sx, v00.sy);
-    ctx3d.lineTo(v10.sx, v10.sy);
-    ctx3d.lineTo(v11.sx, v11.sy);
-    ctx3d.lineTo(v01.sx, v01.sy);
-    ctx3d.closePath();
-
-    if (renderStyle === 'wireframe') {
-      const t = Math.max(0, Math.min(1, (v00.elev - 350) / 240));
-      ctx3d.fillStyle = 'rgba(15, 23, 42, 0.75)';
-      ctx3d.fill();
-      ctx3d.strokeStyle = `hsl(${200 - t * 165}, 85%, 55%)`;
-      ctx3d.lineWidth = 0.7;
-      ctx3d.stroke();
-    } else if (renderStyle === 'hypsometric') {
-      const [r, g, b] = getHypsometricColor(v00.elev);
-      ctx3d.fillStyle = `rgb(${Math.min(255, r * shade)|0}, ${Math.min(255, g * shade)|0}, ${Math.min(255, b * shade)|0})`;
-      ctx3d.fill();
-
-      // Contour lines every 25m
-      if (Math.floor(v00.elev / 25) !== Math.floor(v10.elev / 25) || Math.floor(v00.elev / 25) !== Math.floor(v01.elev / 25)) {
-        ctx3d.strokeStyle = 'rgba(30, 20, 10, 0.45)';
-        ctx3d.lineWidth = 0.8;
-        ctx3d.stroke();
+      if (state.wireframe) {
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.28)';
+        ctx.lineWidth = 0.7;
+        ctx.beginPath();
+        ctx.moveTo(p00.sx, p00.sy); ctx.lineTo(p10.sx, p10.sy);
+        ctx.lineTo(p11.sx, p11.sy); ctx.lineTo(p01.sx, p01.sy);
+        ctx.closePath(); ctx.stroke();
       }
+    }
+
+    // Draw Richat Structure 3D draped reference rings when near Mauritania
+    if (state.showRichatRing && Math.abs(state.lat - 21.1147) < 2 && Math.abs(state.lon - (-11.3942)) < 2) {
+      drawGeoRing(21.1147, -11.3942, 22, 'rgba(56, 189, 248, 0.85)', 2, demZ, cx, cy, scaleFactor, elevScale, w, h);
+      drawGeoRing(21.1147, -11.3942, 10, 'rgba(250, 204, 21, 0.85)', 1.5, demZ, cx, cy, scaleFactor, elevScale, w, h);
+    }
+
+    // Update HUD
+    const latDir = state.lat >= 0 ? 'N' : 'S';
+    const lonDir = state.lon >= 0 ? 'E' : 'W';
+    document.getElementById('hudCoords').textContent = `${Math.abs(state.lat).toFixed(4)}° ${latDir}, ${Math.abs(state.lon).toFixed(4)}° ${lonDir}`;
+    document.getElementById('hudZoom').textContent = state.zoom.toFixed(1);
+    document.getElementById('hudPitch').textContent = `${Math.round(state.pitch)}°`;
+  }
+
+  function drawGeoRing(lat0, lon0, radiusKm, color, lineWidth, demZ, cx, cy, scaleFactor, elevScale, w, h) {
+    const steps = 64;
+    const dLat = radiusKm / 111.32;
+    const dLon = radiusKm / (111.32 * Math.cos(lat0 * Math.PI / 180));
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth;
+    ctx.beginPath();
+    for (let i = 0; i <= steps; i++) {
+      const a = (i / steps) * Math.PI * 2;
+      const lat = lat0 + Math.sin(a) * dLat;
+      const lon = lon0 + Math.cos(a) * dLon;
+      const nx = lonToX(lon);
+      const ny = latToY(lat);
+      const elevM = state.pitch > 0.5 ? sampleElevation(nx, ny, demZ) : 0;
+      const p = project3D((nx - cx) * scaleFactor, (ny - cy) * scaleFactor, elevM * elevScale + 2, w, h);
+      if (i === 0) ctx.moveTo(p.sx, p.sy);
+      else ctx.lineTo(p.sx, p.sy);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Mouse & Touch Interaction (Left-drag = Pan, Right-drag or Shift+Drag = 3D Tilt/Rotate)
+  let dragging = false;
+  let dragMode = 'pan';
+  let lastX = 0, lastY = 0;
+
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+  canvas.addEventListener('mousedown', e => {
+    dragging = true;
+    lastX = e.clientX;
+    lastY = e.clientY;
+    dragMode = (e.button === 2 || e.shiftKey) ? 'orbit' : 'pan';
+  });
+
+  window.addEventListener('mousemove', e => {
+    // Sample live elevation under cursor
+    const demZ = Math.max(2, Math.min(13, Math.round(state.zoom) - 1));
+    const centerElev = sampleElevation(lonToX(state.lon), latToY(state.lat), demZ);
+    document.getElementById('hudElev').textContent = `${Math.round(centerElev)} m`;
+
+    if (!dragging) return;
+    const dx = e.clientX - lastX;
+    const dy = e.clientY - lastY;
+    lastX = e.clientX;
+    lastY = e.clientY;
+
+    if (dragMode === 'orbit') {
+      state.bearing = ((state.bearing + dx * 0.35 + 180) % 360 + 360) % 360 - 180;
+      state.pitch = Math.max(0, Math.min(72, state.pitch - dy * 0.3));
+      syncSliders();
     } else {
-      // Textured with hillshading
-      const [r, g, b] = getHypsometricColor(v00.elev);
-      ctx3d.fillStyle = `rgb(${Math.min(255, r * shade)|0}, ${Math.min(255, g * shade)|0}, ${Math.min(255, b * shade)|0})`;
-      ctx3d.fill();
+      // Pan adjusted by current bearing and pitch foreshortening
+      const radB = state.bearing * Math.PI / 180;
+      const pitchFactor = Math.max(0.35, Math.cos(state.pitch * Math.PI / 180));
+      const adjDy = dy / pitchFactor;
+      const worldDx = dx * Math.cos(radB) - adjDy * Math.sin(radB);
+      const worldDy = dx * Math.sin(radB) + adjDy * Math.cos(radB);
+
+      const scaleFactor = Math.pow(2, state.zoom) * 256;
+      const nx = (lonToX(state.lon) - worldDx / scaleFactor + 1) % 1;
+      const ny = Math.max(0.01, Math.min(0.99, latToY(state.lat) - worldDy / scaleFactor));
+      state.lon = xToLon(nx);
+      state.lat = yToLat(ny);
+    }
+    scheduleRender();
+  });
+
+  window.addEventListener('mouseup', () => { dragging = false; });
+
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 0.45 : -0.45;
+    state.zoom = Math.max(2.5, Math.min(16, state.zoom + delta));
+    scheduleRender();
+  }, { passive: false });
+
+  // UI Controls
+  const pitchSlider = document.getElementById('pitchSlider');
+  const bearingSlider = document.getElementById('bearingSlider');
+  const exagSlider = document.getElementById('exagSlider');
+
+  function syncSliders() {
+    pitchSlider.value = Math.round(state.pitch);
+    bearingSlider.value = Math.round(state.bearing);
+    exagSlider.value = state.exag;
+    document.getElementById('pitchVal').textContent = `${Math.round(state.pitch)}°`;
+    document.getElementById('bearingVal').textContent = `${Math.round(state.bearing)}°`;
+    document.getElementById('exagVal').textContent = `${state.exag.toFixed(1)}x`;
+  }
+
+  pitchSlider.addEventListener('input', () => { state.pitch = parseFloat(pitchSlider.value); syncSliders(); scheduleRender(); });
+  bearingSlider.addEventListener('input', () => { state.bearing = parseFloat(bearingSlider.value); syncSliders(); scheduleRender(); });
+  exagSlider.addEventListener('input', () => { state.exag = parseFloat(exagSlider.value); syncSliders(); scheduleRender(); });
+
+  document.getElementById('layerSelect').addEventListener('change', e => {
+    state.layer = e.target.value;
+    scheduleRender();
+  });
+
+  document.getElementById('zoomIn').addEventListener('click', () => { state.zoom = Math.min(16, state.zoom + 0.7); scheduleRender(); });
+  document.getElementById('zoomOut').addEventListener('click', () => { state.zoom = Math.max(2.5, state.zoom - 0.7); scheduleRender(); });
+
+  document.getElementById('toggleWire').addEventListener('click', e => {
+    state.wireframe = !state.wireframe;
+    e.target.textContent = state.wireframe ? 'Terrain Mesh: Wireframe' : 'Terrain Mesh: Smooth';
+    e.target.classList.toggle('active', !state.wireframe);
+    scheduleRender();
+  });
+
+  document.getElementById('toggleRing').addEventListener('click', e => {
+    state.showRichatRing = !state.showRichatRing;
+    e.target.textContent = state.showRichatRing ? 'Richat Ring: On' : 'Richat Ring: Off';
+    e.target.classList.toggle('active', state.showRichatRing);
+    scheduleRender();
+  });
+
+  document.getElementById('resetViewBtn').addEventListener('click', () => {
+    state.pitch = 52; state.bearing = 25; state.exag = 2.5;
+    syncSliders(); scheduleRender();
+  });
+
+  document.getElementById('flat2dBtn').addEventListener('click', () => {
+    state.pitch = 0; state.bearing = 0;
+    syncSliders(); scheduleRender();
+  });
+
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.lat = parseFloat(btn.dataset.lat);
+      state.lon = parseFloat(btn.dataset.lon);
+      state.zoom = parseFloat(btn.dataset.z);
+      scheduleRender();
+    });
+  });
+
+  // Global Geocoder (Open-Meteo Geocoding API - CORS enabled, zero API key) + Lat,Lon parser
+  async function jumpToQuery() {
+    const q = document.getElementById('searchInput').value.trim();
+    if (!q) return;
+
+    const coordMatch = q.match(/^(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)$/);
+    if (coordMatch) {
+      state.lat = Math.max(-85, Math.min(85, parseFloat(coordMatch[1])));
+      state.lon = Math.max(-180, Math.min(180, parseFloat(coordMatch[2])));
+      state.zoom = 11;
+      scheduleRender();
+      return;
     }
 
-    // Geological Ring Highlight Overlay in 3D
-    if (showRings && renderStyle !== 'wireframe') {
-      const nxGrid = (i / (GRID_N - 1)) * 2 - 1;
-      const nyGrid = (j / (GRID_N - 1)) * 2 - 1;
-      const dist = Math.sqrt(nxGrid * nxGrid + nyGrid * nyGrid);
-      if (Math.abs(dist - 0.68) < 0.014) {
-        ctx3d.fillStyle = 'rgba(56, 189, 248, 0.55)';
-        ctx3d.fill();
-      } else if (Math.abs(dist - 0.44) < 0.012) {
-        ctx3d.fillStyle = 'rgba(245, 158, 11, 0.55)';
-        ctx3d.fill();
+    try {
+      const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=en&format=json`);
+      const data = await res.json();
+      if (data.results && data.results.length > 0) {
+        state.lat = data.results[0].latitude;
+        state.lon = data.results[0].longitude;
+        state.zoom = 11;
+        scheduleRender();
       }
+    } catch (err) {
+      console.warn('Search lookup failed', err);
     }
   }
 
-  // Project live map texture onto 3D mesh using affine triangle mapping when textured & ready
-  if (renderStyle === 'textured' && texReady) {
-    renderTexturedOverlay(verts);
-  }
+  document.getElementById('searchBtn').addEventListener('click', jumpToQuery);
+  document.getElementById('searchInput').addEventListener('keydown', e => { if (e.key === 'Enter') jumpToQuery(); });
 
-  // Draw 3D Compass & Elevation Scale Legend
-  draw3DHUD(w, h);
-}
-
-function renderTexturedOverlay(verts) {
-  ctx3d.save();
-  ctx3d.globalAlpha = 0.72;
-  ctx3d.globalCompositeOperation = 'multiply';
-
-  // Use coarser 32x32 step for fast smooth affine texture mapping
-  const step = 3;
-  for (let j = 0; j < GRID_N - step; j += step) {
-    for (let i = 0; i < GRID_N - step; i += step) {
-      const v00 = verts[j * GRID_N + i];
-      const v10 = verts[j * GRID_N + (i + step)];
-      const v11 = verts[(j + step) * GRID_N + (i + step)];
-      const v01 = verts[(j + step) * GRID_N + i];
-
-      // Cull backfacing / extreme edge
-      const u0 = (i / (GRID_N - 1)) * texSize;
-      const v0 = (j / (GRID_N - 1)) * texSize;
-      const u1 = ((i + step) / (GRID_N - 1)) * texSize;
-      const v1 = ((j + step) / (GRID_N - 1)) * texSize;
-
-      drawTexturedTriangle(texCanvas, u0, v0, u1, v0, u1, v1, v00.sx, v00.sy, v10.sx, v10.sy, v11.sx, v11.sy);
-      drawTexturedTriangle(texCanvas, u0, v0, u1, v1, u0, v1, v00.sx, v00.sy, v11.sx, v11.sy, v01.sx, v01.sy);
-    }
-  }
-  ctx3d.restore();
-}
-
-function drawTexturedTriangle(img, u0, v0, u1, v1, u2, v2, x0, y0, x1, y1, x2, y2) {
-  ctx3d.save();
-  ctx3d.beginPath();
-  ctx3d.moveTo(x0, y0);
-  ctx3d.lineTo(x1, y1);
-  ctx3d.lineTo(x2, y2);
-  ctx3d.closePath();
-  ctx3d.clip();
-
-  const denom = u0 * (v1 - v2) - v0 * (u1 - u2) + (u1 * v2 - u2 * v1);
-  if (Math.abs(denom) < 0.001) { ctx3d.restore(); return; }
-
-  const m11 = -(v0 * (x2 - x1) - v1 * x2 + v2 * x1 + (v1 - v2) * x0) / denom;
-  const m12 = (v0 * (y2 - y1) - v1 * y2 + v2 * y1 + (v1 - v2) * y0) / denom;
-  const m21 = (u0 * (x2 - x1) - u1 * x2 + u2 * x1 + (u1 - u2) * x0) / denom;
-  const m22 = -(u0 * (y2 - y1) - u1 * y2 + u2 * y1 + (u1 - u2) * y0) / denom;
-  const dx = (u0 * (v2 * x1 - v1 * x2) + v0 * (u1 * x2 - u2 * x1) + (u2 * v1 - u1 * v2) * x0) / denom;
-  const dy = (u0 * (v2 * y1 - v1 * y2) + v0 * (u1 * y2 - u2 * y1) + (u2 * v1 - u1 * v2) * y0) / denom;
-
-  ctx3d.transform(m11, -m12, m21, -m22, dx, dy);
-  ctx3d.drawImage(img, 0, 0);
-  ctx3d.restore();
-}
-
-function draw3DHUD(w, h) {
-  // Elevation Peak Label
-  const centerProj = project3D(0, (520 - 410) * 0.00055 * exaggeration, 0, w, h);
-  ctx3d.fillStyle = 'rgba(15, 23, 42, 0.85)';
-  ctx3d.strokeStyle = '#38bdf8';
-  ctx3d.lineWidth = 1;
-  ctx3d.beginPath();
-  ctx3d.roundRect(centerProj.sx - 68, centerProj.sy - 46, 136, 22, 5);
-  ctx3d.fill();
-  ctx3d.stroke();
-
-  ctx3d.fillStyle = '#f8fafc';
-  ctx3d.font = 'bold 11px system-ui';
-  ctx3d.textAlign = 'center';
-  ctx3d.fillText('Central Dome (~485 m)', centerProj.sx, centerProj.sy - 31);
-  ctx3d.textAlign = 'left';
-
-  // Compass Indicator in top-right
-  const cx = w - 48, cy = 48, r = 24;
-  ctx3d.save();
-  ctx3d.beginPath();
-  ctx3d.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx3d.fillStyle = 'rgba(15, 23, 42, 0.85)';
-  ctx3d.fill();
-  ctx3d.strokeStyle = 'rgba(148, 163, 184, 0.35)';
-  ctx3d.stroke();
-
-  const nx = cx - Math.sin(yaw) * (r - 6);
-  const ny = cy - Math.cos(yaw) * (r - 6);
-  ctx3d.beginPath();
-  ctx3d.moveTo(cx, cy);
-  ctx3d.lineTo(nx, ny);
-  ctx3d.strokeStyle = '#f43f5e';
-  ctx3d.lineWidth = 2.5;
-  ctx3d.stroke();
-
-  ctx3d.fillStyle = '#f43f5e';
-  ctx3d.font = 'bold 10px system-ui';
-  ctx3d.fillText('N', nx - 3, ny - 3);
-  ctx3d.restore();
-}
-
-// 3D Mouse & Touch Controls
-canvas3d.addEventListener('mousedown', e => {
-  isDragging3D = true;
-  dragButton = e.button;
-  lastMouse3D = { x: e.clientX, y: e.clientY };
-});
-canvas3d.addEventListener('contextmenu', e => e.preventDefault());
-canvas3d.addEventListener('mousemove', e => {
-  if (!isDragging3D) return;
-  const dx = e.clientX - lastMouse3D.x;
-  const dy = e.clientY - lastMouse3D.y;
-  lastMouse3D = { x: e.clientX, y: e.clientY };
-
-  yaw += dx * 0.007;
-  pitch = Math.max(0.15, Math.min(1.45, pitch + dy * 0.007));
-  draw3D();
-});
-canvas3d.addEventListener('wheel', e => {
-  e.preventDefault();
-  camZoom = Math.max(0.55, Math.min(2.4, camZoom * (e.deltaY < 0 ? 1.08 : 0.92)));
-  draw3D();
-}, { passive: false });
-
-// Animation loop for Auto-Rotate
-function animate() {
-  if (mode === '3d' && autoSpin && !isDragging3D) {
-    yaw += 0.005;
-    draw3D();
-  }
-  requestAnimationFrame(animate);
-}
-animate();
-
-// ==========================================
-// UI EVENT LISTENERS
-// ==========================================
-const btn2d = document.getElementById('btn-mode-2d');
-const btn3d = document.getElementById('btn-mode-3d');
-const extra2d = document.getElementById('controls-2d-extra');
-const extra3d = document.getElementById('controls-3d-extra');
-
-btn2d.onclick = () => {
-  mode = '2d';
-  btn2d.classList.add('active');
-  btn3d.classList.remove('active');
-  canvas2d.style.display = 'block';
-  canvas3d.style.display = 'none';
-  extra2d.style.display = 'block';
-  extra3d.style.display = 'none';
-  draw2D();
-};
-
-btn3d.onclick = () => {
-  mode = '3d';
-  btn3d.classList.add('active');
-  btn2d.classList.remove('active');
-  canvas2d.style.display = 'none';
-  canvas3d.style.display = 'block';
-  extra2d.style.display = 'none';
-  extra3d.style.display = 'block';
-  build3DTexture();
-  draw3D();
-};
-
-document.getElementById('layer-select').onchange = e => {
-  currentLayer = e.target.value;
-  if (mode === '2d') draw2D();
-  else build3DTexture();
-};
-
-document.getElementById('toggle-rings').onchange = e => {
-  showRings = e.target.checked;
-  if (mode === '2d') draw2D();
-  else draw3D();
-};
-
-document.getElementById('exaggeration').oninput = e => {
-  exaggeration = parseFloat(e.target.value);
-  document.getElementById('exag-val').textContent = exaggeration.toFixed(1) + 'x';
-  draw3D();
-};
-
-document.getElementById('render-style').onchange = e => {
-  renderStyle = e.target.value;
-  draw3D();
-};
-
-document.getElementById('toggle-spin').onclick = e => {
-  autoSpin = !autoSpin;
-  e.target.textContent = `Auto-Rotate: ${autoSpin ? 'On' : 'Off'}`;
-};
-
-document.getElementById('reset-3d').onclick = () => {
-  yaw = -0.65;
-  pitch = 0.62;
-  camZoom = 1.05;
-  exaggeration = 3.5;
-  document.getElementById('exaggeration').value = 3.5;
-  document.getElementById('exag-val').textContent = '3.5x';
-  draw3D();
-};
-
-window.addEventListener('resize', resizeCanvases);
-resizeCanvases();
+  resize();
+})();
 </script>
 </body>
 </html>
