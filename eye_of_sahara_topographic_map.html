@@ -6,91 +6,98 @@
 <title>Eye of the Sahara (Richat Structure) - Topographic Map</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body, html { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #1a1a1a; }
+  body, html { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #1e2229; }
   
   #header {
-    position: fixed; top: 0; left: 0; right: 0; height: 48px;
-    background: #141923; color: #f8fafc; display: flex; align-items: center;
-    justify-content: space-between; padding: 0 16px; z-index: 100;
-    border-bottom: 1px solid #2d3748; box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    position: absolute; top: 0; left: 0; right: 0; height: 48px;
+    background: rgba(20, 24, 31, 0.92); color: #fff;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 16px; z-index: 100; border-bottom: 1px solid rgba(255,255,255,0.12);
+    backdrop-filter: blur(6px);
   }
   #header h1 { font-size: 15px; font-weight: 600; letter-spacing: 0.2px; }
-  #header span.sub { font-size: 12px; color: #94a3b8; margin-left: 8px; font-weight: 400; }
+  #header span.sub { font-size: 12px; color: #9aa5b1; margin-left: 8px; font-weight: 400; }
 
-  #controls { display: flex; align-items: center; gap: 8px; }
+  .controls { display: flex; gap: 8px; align-items: center; }
   select, button {
-    background: #1e293b; color: #f8fafc; border: 1px solid #475569;
+    background: #2c333f; color: #fff; border: 1px solid #454f5e;
     padding: 5px 10px; border-radius: 5px; font-size: 12px; cursor: pointer;
+    outline: none;
   }
-  select:hover, button:hover { background: #334155; }
+  select:hover, button:hover { background: #384150; }
 
   #map-container {
-    position: fixed; top: 48px; left: 0; right: 0; bottom: 0;
-    cursor: grab; user-select: none; overflow: hidden; background: #e5e3df;
+    position: absolute; top: 48px; left: 0; right: 0; bottom: 0;
+    cursor: grab; user-select: none; overflow: hidden; background: #e8e4d8;
   }
   #map-container:active { cursor: grabbing; }
-  #tile-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-  .tile {
-    position: absolute; width: 256px; height: 256px;
-    pointer-events: none; image-rendering: auto;
-  }
-  #overlay-svg {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    pointer-events: none; z-index: 10;
-  }
+  canvas { display: block; width: 100%; height: 100%; }
 
   #info-card {
-    position: fixed; bottom: 20px; left: 20px; width: 295px;
-    background: rgba(255, 255, 255, 0.95); color: #1e293b;
-    padding: 14px 16px; border-radius: 8px; z-index: 50;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.25); border: 1px solid #cbd5e1;
-    font-size: 12.5px; line-height: 1.5;
+    position: absolute; bottom: 20px; left: 20px; width: 290px;
+    background: rgba(255, 255, 255, 0.95); color: #1f2933;
+    border-radius: 8px; padding: 14px 16px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.22); z-index: 90;
+    font-size: 12px; line-height: 1.5;
+    border: 1px solid rgba(0,0,0,0.08);
   }
-  #info-card h2 { font-size: 14px; font-weight: 700; margin-bottom: 6px; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
+  #info-card h2 { font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #102a43; border-bottom: 1px solid #e4e7eb; padding-bottom: 4px; }
   .stat-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
-  .stat-label { color: #475569; font-weight: 600; }
-  .stat-val { color: #0f172a; font-weight: 500; text-align: right; }
+  .stat-label { color: #616e7c; font-weight: 500; }
+  .stat-val { font-weight: 600; color: #102a43; }
 
-  #coords-badge {
-    position: fixed; top: 60px; right: 16px;
-    background: rgba(15, 23, 42, 0.85); color: #f8fafc;
-    padding: 6px 10px; border-radius: 5px; font-size: 11.5px;
-    font-family: monospace; z-index: 50; pointer-events: none;
+  #coords-box {
+    position: absolute; top: 60px; right: 16px;
+    background: rgba(20, 24, 31, 0.85); color: #e4e7eb;
+    padding: 5px 10px; border-radius: 4px; font-size: 11px;
+    font-family: monospace; z-index: 90; pointer-events: none;
   }
 
   #attribution {
-    position: fixed; bottom: 4px; right: 8px;
-    background: rgba(255,255,255,0.85); color: #334155;
-    padding: 2px 6px; border-radius: 3px; font-size: 10.5px; z-index: 50;
+    position: absolute; bottom: 4px; right: 8px;
+    background: rgba(255,255,255,0.85); color: #333;
+    padding: 2px 6px; border-radius: 3px; font-size: 10px; z-index: 90;
   }
-  #attribution a { color: #0284c7; text-decoration: none; }
+  #attribution a { color: #0066cc; text-decoration: none; }
+
+  #status-banner {
+    display: none; position: absolute; top: 58px; left: 50%; transform: translateX(-50%);
+    background: #9b1c1c; color: #fff; padding: 8px 14px; border-radius: 6px;
+    font-size: 12px; z-index: 110; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  #status-banner a { color: #fde8e8; font-weight: bold; }
 </style>
 </head>
 <body>
 
 <div id="header">
   <div>
-    <h1>Eye of the Sahara (Richat Structure)<span class="sub">Adrar Plateau, Mauritania</span></h1>
+    <h1>Eye of the Sahara (Richat Structure) <span class="sub">Adrar Plateau, Mauritania</span></h1>
   </div>
-  <div id="controls">
-    <select id="layer-select" title="Select Map Layer">
+  <div class="controls">
+    <select id="layer-select" title="Choose Map Layer">
       <option value="esri_topo">Esri World Topographic</option>
-      <option value="opentopo">OpenTopoMap (Contours & Relief)</option>
-      <option value="esri_sat">Esri World Satellite Imagery</option>
-      <option value="carto_voyager">Carto Voyager (OSM Street Data)</option>
+      <option value="opentopo">OpenTopoMap (Contours)</option>
+      <option value="esri_imagery">Esri Satellite Imagery</option>
+      <option value="esri_street">Esri World Street Map</option>
+      <option value="esri_shaded">Esri Hillshade Relief</option>
     </select>
     <button id="zoom-in" title="Zoom In">+</button>
     <button id="zoom-out" title="Zoom Out">&minus;</button>
-    <button id="reset-btn" title="Center on Richat Structure">Reset</button>
+    <button id="reset-btn" title="Reset View">Reset</button>
   </div>
 </div>
 
-<div id="map-container">
-  <div id="tile-layer"></div>
-  <svg id="overlay-svg"></svg>
+<div id="status-banner">
+  Unable to fetch map tiles (offline or blocked). 
+  <a href="https://en-us.topographic-map.com/map-mq718/Richat-Structure/" target="_blank">Open Online Topographic Map &nearr;</a>
 </div>
 
-<div id="coords-badge">21.1147° N, 11.3942° W | Zoom: 11</div>
+<div id="coords-box">21.1147° N, 11.3942° W | Zoom: 11</div>
+
+<div id="map-container">
+  <canvas id="map-canvas"></canvas>
+</div>
 
 <div id="info-card">
   <h2>Topographic Profile</h2>
@@ -103,172 +110,285 @@
 </div>
 
 <div id="attribution">
-  Tiles: <span id="attr-text">Esri World Topographic</span> |
-  <a href="https://en-us.topographic-map.com/map-mq718/Richat-Structure/" target="_blank" rel="noopener">Open Online Topo Viewer</a>
+  Tiles: <span id="attr-text">Esri World Topographic</span> | 
+  <a href="https://en-us.topographic-map.com/map-mq718/Richat-Structure/" target="_blank">Open Online Topo Viewer</a>
 </div>
 
 <script>
 (function() {
-  const TARGET_LAT = 21.114722;
-  const TARGET_LON = -11.394167;
+  const CENTER_LAT = 21.114722;
+  const CENTER_LON = -11.394167;
   const DEFAULT_ZOOM = 11;
 
-  let centerLat = TARGET_LAT;
-  let centerLon = TARGET_LON;
+  let centerLat = CENTER_LAT;
+  let centerLon = CENTER_LON;
   let zoom = DEFAULT_ZOOM;
-  let currentLayer = "esri_topo";
+  let currentLayer = 'esri_topo';
 
-  const layers = {
+  const LAYERS = {
     esri_topo: {
-      name: "Esri World Topographic",
-      url: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/${z}/${y}/${x}`
+      name: 'Esri World Topographic',
+      maxZoom: 16,
+      getUrl: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/${z}/${y}/${x}`
     },
     opentopo: {
-      name: "OpenTopoMap (CC-BY-SA)",
-      url: (z, x, y) => `https://${["a","b","c"][(x + y) % 3]}.tile.opentopomap.org/${z}/${x}/${y}.png`
+      name: 'OpenTopoMap',
+      maxZoom: 15,
+      getUrl: (z, x, y) => `https://a.tile.opentopomap.org/${z}/${x}/${y}.png`
     },
-    esri_sat: {
-      name: "Esri World Imagery",
-      url: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`
+    esri_imagery: {
+      name: 'Esri World Imagery',
+      maxZoom: 16,
+      getUrl: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`
     },
-    carto_voyager: {
-      name: "Carto Voyager (OpenStreetMap Data)",
-      url: (z, x, y) => `https://${["a","b","c","d"][(x + y) % 4]}.basemaps.cartocdn.com/rastertiles/voyager/${z}/${x}/${y}.png`
+    esri_street: {
+      name: 'Esri World Street Map',
+      maxZoom: 16,
+      getUrl: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${z}/${y}/${x}`
+    },
+    esri_shaded: {
+      name: 'Esri World Shaded Relief',
+      maxZoom: 13,
+      getUrl: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/${z}/${y}/${x}`
     }
   };
 
-  const container = document.getElementById("map-container");
-  const tileLayer = document.getElementById("tile-layer");
-  const overlaySvg = document.getElementById("overlay-svg");
-  const coordsBadge = document.getElementById("coords-badge");
-  const attrText = document.getElementById("attr-text");
+  const canvas = document.getElementById('map-canvas');
+  const ctx = canvas.getContext('2d');
+  const container = document.getElementById('map-container');
+  const coordsBox = document.getElementById('coords-box');
+  const attrText = document.getElementById('attr-text');
+  const statusBanner = document.getElementById('status-banner');
+
+  const tileCache = new Map();
+  let failedTiles = 0;
+  let loadedTiles = 0;
 
   function lonToTileX(lon, z) {
     return ((lon + 180) / 360) * Math.pow(2, z);
   }
+
   function latToTileY(lat, z) {
     const rad = lat * Math.PI / 180;
     return (1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2 * Math.pow(2, z);
   }
+
   function tileXToLon(x, z) {
-    return (x / Math.pow(2, z)) * 360 - 180;
+    return x / Math.pow(2, z) * 360 - 180;
   }
+
   function tileYToLat(y, z) {
-    const n = Math.PI - (2 * Math.PI * y) / Math.pow(2, z);
-    return (180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+    const n = Math.PI - 2 * Math.PI * y / Math.pow(2, z);
+    return 180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+  }
+
+  function resize() {
+    canvas.width = container.clientWidth;
+    canvas.height = container.clientHeight;
+    render();
+  }
+
+  function getTile(layerKey, z, x, y) {
+    const maxTile = Math.pow(2, z);
+    const wrappedX = ((x % maxTile) + maxTile) % maxTile;
+    if (y < 0 || y >= maxTile) return null;
+
+    const key = `${layerKey}_${z}_${wrappedX}_${y}`;
+    if (tileCache.has(key)) {
+      return tileCache.get(key);
+    }
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    const entry = { img, loaded: false, error: false };
+    tileCache.set(key, entry);
+
+    img.onload = () => {
+      entry.loaded = true;
+      loadedTiles++;
+      statusBanner.style.display = 'none';
+      render();
+    };
+    img.onerror = () => {
+      entry.error = true;
+      failedTiles++;
+      if (loadedTiles === 0 && failedTiles >= 4) {
+        statusBanner.style.display = 'block';
+      }
+      render();
+    };
+    img.src = LAYERS[layerKey].getUrl(z, wrappedX, y);
+    return entry;
   }
 
   function render() {
-    const width = container.clientWidth;
-    const height = container.clientHeight;
-    const n = Math.pow(2, zoom);
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
 
+    const tileSize = 256;
     const centerTileX = lonToTileX(centerLon, zoom);
     const centerTileY = latToTileY(centerLat, zoom);
 
-    const centerPxX = centerTileX * 256;
-    const centerPxY = centerTileY * 256;
-
-    const topLeftPxX = centerPxX - width / 2;
-    const topLeftPxY = centerPxY - height / 2;
-
-    const startCol = Math.floor(topLeftPxX / 256);
-    const endCol = Math.floor((topLeftPxX + width) / 256);
-    const startRow = Math.floor(topLeftPxY / 256);
-    const endRow = Math.floor((topLeftPxY + height) / 256);
-
-    tileLayer.innerHTML = "";
-    const layerDef = layers[currentLayer];
+    const startCol = Math.floor(centerTileX - (w / 2) / tileSize);
+    const endCol = Math.floor(centerTileX + (w / 2) / tileSize);
+    const startRow = Math.floor(centerTileY - (h / 2) / tileSize);
+    const endRow = Math.floor(centerTileY + (h / 2) / tileSize);
 
     for (let col = startCol; col <= endCol; col++) {
       for (let row = startRow; row <= endRow; row++) {
-        if (row < 0 || row >= n) continue;
-        const wrappedCol = ((col % n) + n) % n;
-        const img = document.createElement("img");
-        img.className = "tile";
-        img.src = layerDef.url(zoom, wrappedCol, row);
-        img.style.left = Math.round(col * 256 - topLeftPxX) + "px";
-        img.style.top = Math.round(row * 256 - topLeftPxY) + "px";
-        tileLayer.appendChild(img);
+        const screenX = Math.round((w / 2) + (col - centerTileX) * tileSize);
+        const screenY = Math.round((h / 2) + (row - centerTileY) * tileSize);
+
+        const tile = getTile(currentLayer, zoom, col, row);
+        if (tile && tile.loaded) {
+          ctx.drawImage(tile.img, screenX, screenY, tileSize, tileSize);
+        } else {
+          ctx.fillStyle = '#dfe3e8';
+          ctx.fillRect(screenX, screenY, tileSize, tileSize);
+          ctx.strokeStyle = '#cbd2d9';
+          ctx.strokeRect(screenX, screenY, tileSize, tileSize);
+        }
       }
     }
 
-    // Render Richat Structure marker & rings
-    const targetPxX = lonToTileX(TARGET_LON, zoom) * 256 - topLeftPxX;
-    const targetPxY = latToTileY(TARGET_LAT, zoom) * 256 - topLeftPxY;
+    // Draw Richat Structure center marker and approximate 44km diameter outer ring
+    const structTileX = lonToTileX(CENTER_LON, zoom);
+    const structTileY = latToTileY(CENTER_LAT, zoom);
+    const structScreenX = (w / 2) + (structTileX - centerTileX) * tileSize;
+    const structScreenY = (h / 2) + (structTileY - centerTileY) * tileSize;
 
-    const metersPerPixel = (156543.03392 * Math.cos(TARGET_LAT * Math.PI / 180)) / Math.pow(2, zoom);
+    // Meters per pixel at latitude
+    const metersPerPixel = 156543.03392 * Math.cos(CENTER_LAT * Math.PI / 180) / Math.pow(2, zoom);
     const outerRadiusPx = 22000 / metersPerPixel; // ~44 km diameter
     const innerRadiusPx = 10000 / metersPerPixel; // ~20 km inner ring
 
-    overlaySvg.innerHTML = `
-      <circle cx="${targetPxX}" cy="${targetPxY}" r="${outerRadiusPx}" fill="none" stroke="#dc2626" stroke-width="2" stroke-dasharray="6,5" opacity="0.85"/>
-      <circle cx="${targetPxX}" cy="${targetPxY}" r="${innerRadiusPx}" fill="none" stroke="#ea580c" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.75"/>
-      <line x1="${targetPxX - 10}" y1="${targetPxY}" x2="${targetPxX + 10}" y2="${targetPxY}" stroke="#dc2626" stroke-width="2"/>
-      <line x1="${targetPxX}" y1="${targetPxY - 10}" x2="${targetPxX}" y2="${targetPxY + 10}" stroke="#dc2626" stroke-width="2"/>
-      <text x="${targetPxX + 12}" y="${targetPxY - 8}" fill="#991b1b" font-size="12" font-weight="bold" font-family="sans-serif" style="text-shadow: 0 0 3px #fff, 0 0 3px #fff;">Richat Structure (~44 km)</text>
-    `;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(structScreenX, structScreenY, outerRadiusPx, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(214, 48, 49, 0.85)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.stroke();
 
-    coordsBadge.textContent = `${Math.abs(centerLat).toFixed(4)}° ${centerLat >= 0 ? "N" : "S"}, ${Math.abs(centerLon).toFixed(4)}° ${centerLon >= 0 ? "E" : "W"} | Zoom: ${zoom}`;
+    ctx.beginPath();
+    ctx.arc(structScreenX, structScreenY, innerRadiusPx, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(214, 48, 49, 0.55)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Center crosshair
+    ctx.strokeStyle = '#d63031';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(structScreenX - 8, structScreenY);
+    ctx.lineTo(structScreenX + 8, structScreenY);
+    ctx.moveTo(structScreenX, structScreenY - 8);
+    ctx.lineTo(structScreenX, structScreenY + 8);
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
+    ctx.fillRect(structScreenX + 10, structScreenY - 22, 146, 18);
+    ctx.fillStyle = '#b91c1c';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.fillText('Richat Structure (~44 km)', structScreenX + 14, structScreenY - 9);
+    ctx.restore();
+
+    coordsBox.textContent = `${centerLat.toFixed(4)}° N, ${Math.abs(centerLon).toFixed(4)}° W | Zoom: ${zoom}`;
   }
 
+  // Panning logic
   let isDragging = false;
-  let dragStartX = 0;
-  let dragStartY = 0;
-  let startCenterPxX = 0;
-  let startCenterPxY = 0;
+  let lastX = 0;
+  let lastY = 0;
 
-  container.addEventListener("mousedown", (e) => {
+  container.addEventListener('mousedown', (e) => {
     isDragging = true;
-    dragStartX = e.clientX;
-    dragStartY = e.clientY;
-    startCenterPxX = lonToTileX(centerLon, zoom) * 256;
-    startCenterPxY = latToTileY(centerLat, zoom) * 256;
+    lastX = e.clientX;
+    lastY = e.clientY;
   });
 
-  window.addEventListener("mousemove", (e) => {
+  window.addEventListener('mousemove', (e) => {
     if (!isDragging) return;
-    const dx = e.clientX - dragStartX;
-    const dy = e.clientY - dragStartY;
-    const newCenterTileX = (startCenterPxX - dx) / 256;
-    const newCenterTileY = (startCenterPxY - dy) / 256;
-    centerLon = tileXToLon(newCenterTileX, zoom);
-    centerLat = Math.max(-85, Math.min(85, tileYToLat(newCenterTileY, zoom)));
+    const dx = e.clientX - lastX;
+    const dy = e.clientY - lastY;
+    lastX = e.clientX;
+    lastY = e.clientY;
+
+    const tileSize = 256;
+    const currentTileX = lonToTileX(centerLon, zoom) - dx / tileSize;
+    const currentTileY = latToTileY(centerLat, zoom) - dy / tileSize;
+
+    centerLon = tileXToLon(currentTileX, zoom);
+    centerLat = Math.max(-85, Math.min(85, tileYToLat(currentTileY, zoom)));
     render();
   });
 
-  window.addEventListener("mouseup", () => { isDragging = false; });
+  window.addEventListener('mouseup', () => { isDragging = false; });
 
-  container.addEventListener("wheel", (e) => {
-    e.preventDefault();
-    const delta = e.deltaY < 0 ? 1 : -1;
-    const nextZoom = Math.max(3, Math.min(16, zoom + delta));
-    if (nextZoom !== zoom) {
-      zoom = nextZoom;
-      render();
+  // Touch panning
+  container.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+      isDragging = true;
+      lastX = e.touches[0].clientX;
+      lastY = e.touches[0].clientY;
     }
+  }, { passive: true });
+
+  container.addEventListener('touchmove', (e) => {
+    if (!isDragging || e.touches.length !== 1) return;
+    const dx = e.touches[0].clientX - lastX;
+    const dy = e.touches[0].clientY - lastY;
+    lastX = e.touches[0].clientX;
+    lastY = e.touches[0].clientY;
+
+    const tileSize = 256;
+    const currentTileX = lonToTileX(centerLon, zoom) - dx / tileSize;
+    const currentTileY = latToTileY(centerLat, zoom) - dy / tileSize;
+
+    centerLon = tileXToLon(currentTileX, zoom);
+    centerLat = Math.max(-85, Math.min(85, tileYToLat(currentTileY, zoom)));
+    render();
+  }, { passive: true });
+
+  container.addEventListener('touchend', () => { isDragging = false; });
+
+  // Zoom logic
+  function setZoom(newZoom) {
+    const maxZ = LAYERS[currentLayer].maxZoom;
+    zoom = Math.max(3, Math.min(maxZ, newZoom));
+    render();
+  }
+
+  container.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    if (e.deltaY < 0) setZoom(zoom + 1);
+    else setZoom(zoom - 1);
   }, { passive: false });
 
-  document.getElementById("zoom-in").addEventListener("click", () => {
-    if (zoom < 16) { zoom++; render(); }
-  });
-  document.getElementById("zoom-out").addEventListener("click", () => {
-    if (zoom > 3) { zoom--; render(); }
-  });
-  document.getElementById("reset-btn").addEventListener("click", () => {
-    centerLat = TARGET_LAT;
-    centerLon = TARGET_LON;
+  document.getElementById('zoom-in').addEventListener('click', () => setZoom(zoom + 1));
+  document.getElementById('zoom-out').addEventListener('click', () => setZoom(zoom - 1));
+  document.getElementById('reset-btn').addEventListener('click', () => {
+    centerLat = CENTER_LAT;
+    centerLon = CENTER_LON;
     zoom = DEFAULT_ZOOM;
     render();
   });
-  document.getElementById("layer-select").addEventListener("change", (e) => {
+
+  document.getElementById('layer-select').addEventListener('change', (e) => {
     currentLayer = e.target.value;
-    attrText.textContent = layers[currentLayer].name;
+    attrText.textContent = LAYERS[currentLayer].name;
+    failedTiles = 0;
+    loadedTiles = 0;
+    if (zoom > LAYERS[currentLayer].maxZoom) {
+      zoom = LAYERS[currentLayer].maxZoom;
+    }
     render();
   });
 
-  window.addEventListener("resize", render);
-  render();
+  window.addEventListener('resize', resize);
+  resize();
 })();
 </script>
 </body>
