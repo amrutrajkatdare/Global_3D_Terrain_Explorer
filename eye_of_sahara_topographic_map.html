@@ -3,67 +3,67 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Global 3D Topographic Map Explorer</title>
+<title>Global 3D Topographic & Terrain Explorer (WebGL DEM)</title>
 <style>
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    user-select: none;
-  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body {
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background: #070b14;
+    background: #060b14;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    color: #f1f5f9;
+    color: #e2e8f0;
+    user-select: none;
   }
-  #glcanvas {
+  #glCanvas {
     position: fixed;
-    inset: 0;
+    top: 0;
+    left: 0;
     width: 100vw;
     height: 100vh;
     display: block;
     cursor: grab;
+    z-index: 1;
   }
-  #glcanvas:active {
+  #glCanvas:active {
     cursor: grabbing;
   }
-  #controls-panel {
+  #controlPanel {
     position: fixed;
     top: 14px;
     left: 14px;
-    width: 310px;
-    max-height: calc(100vh - 70px);
+    width: 280px;
+    max-height: calc(100vh - 28px);
     overflow-y: auto;
-    background: rgba(13, 19, 33, 0.88);
+    background: rgba(11, 18, 32, 0.88);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(148, 163, 184, 0.22);
-    border-radius: 14px;
+    border-radius: 12px;
     padding: 14px;
     z-index: 20;
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
   }
-  .panel-header {
+  #controlPanel::-webkit-scrollbar { width: 5px; }
+  #controlPanel::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); border-radius: 3px; }
+  .header-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin-bottom: 10px;
   }
-  .panel-title {
+  .title {
     font-size: 14px;
     font-weight: 700;
-    letter-spacing: 0.2px;
     color: #f8fafc;
+    letter-spacing: 0.2px;
   }
   .badge {
     font-size: 10px;
     font-weight: 600;
     padding: 2px 7px;
     border-radius: 999px;
-    background: rgba(14, 165, 233, 0.2);
+    background: rgba(56, 189, 248, 0.16);
     color: #38bdf8;
     border: 1px solid rgba(56, 189, 248, 0.35);
   }
@@ -72,35 +72,32 @@
     gap: 6px;
     margin-bottom: 8px;
   }
-  .search-row input {
+  input[type="text"] {
     flex: 1;
     min-width: 0;
     background: rgba(15, 23, 42, 0.9);
     border: 1px solid rgba(148, 163, 184, 0.28);
-    border-radius: 8px;
-    padding: 7px 10px;
-    font-size: 12px;
+    border-radius: 7px;
+    padding: 6px 9px;
     color: #f8fafc;
+    font-size: 12px;
     outline: none;
-    user-select: text;
   }
-  .search-row input:focus {
+  input[type="text"]:focus {
     border-color: #38bdf8;
   }
-  .btn-primary {
+  .btn-go {
     background: #0284c7;
     color: #fff;
     border: none;
-    border-radius: 8px;
-    padding: 7px 12px;
+    border-radius: 7px;
+    padding: 6px 11px;
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     transition: background 0.15s;
   }
-  .btn-primary:hover {
-    background: #0369a1;
-  }
+  .btn-go:hover { background: #0369a1; }
   .presets {
     display: flex;
     flex-wrap: wrap;
@@ -109,18 +106,18 @@
   }
   .preset-btn {
     background: rgba(30, 41, 59, 0.85);
-    color: #cbd5e1;
     border: 1px solid rgba(148, 163, 184, 0.22);
+    color: #cbd5e1;
     border-radius: 6px;
-    padding: 4px 8px;
+    padding: 4px 7px;
     font-size: 11px;
     cursor: pointer;
     transition: all 0.15s;
   }
   .preset-btn:hover {
-    background: rgba(51, 65, 85, 0.95);
+    background: rgba(56, 189, 248, 0.2);
+    border-color: #38bdf8;
     color: #fff;
-    border-color: rgba(56, 189, 248, 0.5);
   }
   .section-label {
     font-size: 11px;
@@ -130,38 +127,37 @@
     display: flex;
     justify-content: space-between;
   }
-  .section-label span.val {
+  .section-val {
     color: #38bdf8;
     font-variant-numeric: tabular-nums;
   }
   select {
     width: 100%;
     background: rgba(15, 23, 42, 0.92);
-    color: #f1f5f9;
     border: 1px solid rgba(148, 163, 184, 0.28);
-    border-radius: 8px;
-    padding: 7px 9px;
+    border-radius: 7px;
+    padding: 6px 8px;
+    color: #f8fafc;
     font-size: 12px;
-    margin-bottom: 12px;
+    margin-bottom: 11px;
     outline: none;
     cursor: pointer;
   }
   .slider-group {
-    margin-bottom: 11px;
+    margin-bottom: 10px;
   }
   input[type="range"] {
     width: 100%;
     accent-color: #38bdf8;
     cursor: pointer;
     height: 5px;
-    background: rgba(51, 65, 85, 0.8);
-    border-radius: 4px;
   }
   .tools-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 6px;
-    margin-top: 4px;
+    margin-top: 6px;
+    margin-bottom: 6px;
   }
   .tools-grid-3 {
     display: grid;
@@ -171,11 +167,11 @@
   }
   .tool-btn {
     background: rgba(30, 41, 59, 0.9);
-    color: #e2e8f0;
     border: 1px solid rgba(148, 163, 184, 0.25);
-    border-radius: 8px;
-    padding: 7px 6px;
-    font-size: 11.5px;
+    color: #e2e8f0;
+    border-radius: 7px;
+    padding: 6px 6px;
+    font-size: 11px;
     font-weight: 600;
     cursor: pointer;
     text-align: center;
@@ -186,378 +182,364 @@
     border-color: #38bdf8;
     color: #fff;
   }
-  .tool-btn.active {
-    background: #0284c7;
-    border-color: #38bdf8;
-    color: #fff;
+  .tool-btn.primary {
+    background: rgba(2, 132, 199, 0.35);
+    border-color: rgba(56, 189, 248, 0.55);
+    color: #e0f2fe;
   }
-  .hud-pill {
+  .tool-btn.primary:hover {
+    background: rgba(2, 132, 199, 0.55);
+  }
+  #hudBottomLeft {
     position: fixed;
     bottom: 12px;
-    background: rgba(13, 19, 33, 0.85);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(148, 163, 184, 0.22);
-    border-radius: 999px;
-    padding: 6px 13px;
+    left: 14px;
+    background: rgba(11, 18, 32, 0.84);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 8px;
+    padding: 6px 11px;
     font-size: 11px;
     color: #cbd5e1;
     z-index: 20;
-    pointer-events: none;
-    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
   }
-  #hud-coords {
-    left: 14px;
-  }
-  #hud-help {
+  #hudBottomCenter {
+    position: fixed;
+    bottom: 12px;
     left: 50%;
     transform: translateX(-50%);
+    background: rgba(11, 18, 32, 0.84);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 11px;
+    color: #94a3b8;
+    z-index: 20;
+    white-space: nowrap;
   }
-  #hud-status {
+  #hudBottomRight {
+    position: fixed;
+    bottom: 12px;
     right: 14px;
+    background: rgba(11, 18, 32, 0.84);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 8px;
+    padding: 6px 11px;
+    font-size: 11px;
+    color: #38bdf8;
+    z-index: 20;
+    font-variant-numeric: tabular-nums;
   }
   @media (max-width: 900px) {
-    #hud-help { display: none; }
+    #hudBottomCenter { display: none; }
   }
 </style>
 </head>
 <body>
 
-<canvas id="glcanvas"></canvas>
+<canvas id="glCanvas"></canvas>
 
-<div id="controls-panel">
-  <div class="panel-header">
-    <span class="panel-title">Global 3D Terrain Explorer</span>
-    <span class="badge">WebGL DEM</span>
+<div id="controlPanel">
+  <div class="header-row">
+    <div class="title">Global 3D Terrain Explorer</div>
+    <div class="badge">WebGL DEM</div>
   </div>
 
   <div class="search-row">
-    <input id="search-input" type="text" placeholder="Place or Lat, Lon (e.g. 21.11, -11.39)" />
-    <button id="search-btn" class="btn-primary">Go</button>
+    <input type="text" id="searchInput" placeholder="Place or Lat, Lon (e.g. 21.11, -11.39)">
+    <button class="btn-go" id="searchBtn">Go</button>
   </div>
 
   <div class="presets">
-    <button class="preset-btn" data-lat="21.1147" data-lon="-11.3942" data-zoom="10.2" data-pitch="54" data-bearing="18">Eye of Sahara</button>
-    <button class="preset-btn" data-lat="27.9881" data-lon="86.9250" data-zoom="11.0" data-pitch="62" data-bearing="32">Mt. Everest</button>
-    <button class="preset-btn" data-lat="36.1069" data-lon="-112.1129" data-zoom="11.2" data-pitch="58" data-bearing="-25">Grand Canyon</button>
-    <button class="preset-btn" data-lat="35.3606" data-lon="138.7274" data-zoom="11.4" data-pitch="60" data-bearing="15">Mt. Fuji</button>
-    <button class="preset-btn" data-lat="45.9766" data-lon="7.6585" data-zoom="11.8" data-pitch="62" data-bearing="-18">Matterhorn</button>
+    <button class="preset-btn" data-lat="21.1147" data-lon="-11.3942" data-z="10.2" data-p="52" data-b="18">Eye of Sahara</button>
+    <button class="preset-btn" data-lat="27.9881" data-lon="86.9250" data-z="11.2" data-p="60" data-b="-25">Mt. Everest</button>
+    <button class="preset-btn" data-lat="36.1069" data-lon="-112.1129" data-z="11.5" data-p="58" data-b="35">Grand Canyon</button>
+    <button class="preset-btn" data-lat="35.3606" data-lon="138.7274" data-z="11.3" data-p="56" data-b="-15">Mt. Fuji</button>
+    <button class="preset-btn" data-lat="45.9766" data-lon="7.6585" data-z="12.0" data-p="62" data-b="22">Matterhorn</button>
   </div>
 
   <div class="section-label"><span>Surface Map Layer</span></div>
-  <select id="layer-select">
+  <select id="layerSelect">
     <option value="esri_topo">Esri World Topographic</option>
     <option value="opentopo">OpenTopoMap (Contours + Relief)</option>
-    <option value="esri_sat">Esri World Satellite Imagery</option>
+    <option value="esri_sat" selected>Esri Satellite Imagery</option>
     <option value="esri_street">Esri World Street Map</option>
-    <option value="esri_hillshade">Esri Shaded Hillshade Relief</option>
+    <option value="esri_hillshade">Esri Shaded Hillshade</option>
   </select>
 
   <div class="slider-group">
     <div class="section-label">
       <span>3D Camera Pitch (Tilt)</span>
-      <span class="val" id="pitch-val">54°</span>
+      <span class="section-val" id="pitchVal">48°</span>
     </div>
-    <input id="pitch-slider" type="range" min="0" max="72" step="1" value="54" />
+    <input type="range" id="pitchSlider" min="0" max="72" step="1" value="48">
   </div>
 
   <div class="slider-group">
     <div class="section-label">
       <span>Camera Rotation (Bearing)</span>
-      <span class="val" id="bearing-val">18°</span>
+      <span class="section-val" id="bearingVal">15°</span>
     </div>
-    <input id="bearing-slider" type="range" min="-180" max="180" step="1" value="18" />
+    <input type="range" id="bearingSlider" min="-180" max="180" step="1" value="15">
   </div>
 
   <div class="slider-group">
     <div class="section-label">
       <span>Elevation Exaggeration</span>
-      <span class="val" id="exag-val">2.4x</span>
+      <span class="section-val" id="exagVal">2.2x</span>
     </div>
-    <input id="exag-slider" type="range" min="0.5" max="6.0" step="0.1" value="2.4" />
+    <input type="range" id="exagSlider" min="0.5" max="6.0" step="0.1" value="2.2">
   </div>
 
   <div class="section-label"><span>Map &amp; Camera Tools</span></div>
   <div class="tools-grid">
-    <button id="zoom-in-btn" class="tool-btn active">+ Zoom In</button>
-    <button id="zoom-out-btn" class="tool-btn">− Zoom Out</button>
+    <button class="tool-btn primary" id="zoomInBtn">+ Zoom In</button>
+    <button class="tool-btn" id="zoomOutBtn">&minus; Zoom Out</button>
   </div>
   <div class="tools-grid-3">
-    <button id="view-2d-btn" class="tool-btn">2D Top View</button>
-    <button id="view-3d-btn" class="tool-btn">3D Oblique</button>
-    <button id="orbit-btn" class="tool-btn">Auto-Orbit: Off</button>
+    <button class="tool-btn" id="btn2D">2D Top View</button>
+    <button class="tool-btn" id="btn3D">3D Oblique</button>
+    <button class="tool-btn" id="btnOrbit">Auto-Orbit: Off</button>
   </div>
 </div>
 
-<div id="hud-coords" class="hud-pill">Center: 21.1147° N, 11.3942° W | Zoom: 10.2</div>
-<div id="hud-help" class="hud-pill">Left-Drag: Pan | Right-Drag / Shift+Drag: 3D Tilt &amp; Rotate | Scroll: Zoom</div>
-<div id="hud-status" class="hud-pill">Initializing WebGL...</div>
+<div id="hudBottomLeft">Center: 21.1147° N, 11.3942° W | Zoom: 10.2</div>
+<div id="hudBottomCenter">Left-Drag: Pan | Right-Drag / Shift-Drag: 3D Tilt &amp; Rotate | Scroll / +/-: Zoom</div>
+<div id="hudBottomRight">Initializing WebGL...</div>
 
 <script>
 (function() {
-  const canvas = document.getElementById("glcanvas");
-  const statusEl = document.getElementById("hud-status");
-  const coordsEl = document.getElementById("hud-coords");
+  const canvas = document.getElementById("glCanvas");
+  const statusEl = document.getElementById("hudBottomRight");
+  const coordEl = document.getElementById("hudBottomLeft");
 
-  const gl = canvas.getContext("webgl", { antialias: true, alpha: false }) ||
-             canvas.getContext("experimental-webgl", { antialias: true, alpha: false });
-
+  const gl = canvas.getContext("webgl", { antialias: true, alpha: false });
   if (!gl) {
-    statusEl.textContent = "WebGL unavailable in this browser.";
+    statusEl.textContent = "WebGL unavailable in this browser";
     return;
   }
 
-  // Strictly matched GLSL ES 1.00 Vertex & Fragment Shaders
-  const VS_SOURCE = [
-    "attribute vec2 aPos;",
-    "attribute vec2 aUV;",
+  // Strictly compliant GLSL ES 1.00 shaders (no loops, matching precisions)
+  const vsSource = [
+    "precision highp float;",
+    "attribute vec2 aGrid;",
     "attribute float aElev;",
     "uniform mat4 uMVP;",
-    "uniform vec2 uTileOffset;",
-    "uniform float uTileScale;",
+    "uniform vec2 uTileOrigin;",
+    "uniform float uTileSize;",
     "uniform float uElevScale;",
-    "varying vec2 vUV;",
+    "uniform vec2 uUvOffset;",
+    "uniform float uUvScale;",
+    "varying vec2 vUv;",
     "varying float vElev;",
-    "varying float vDepth;",
-    "void main(void) {",
-    "  vec2 worldXY = uTileOffset + aPos * uTileScale;",
+    "varying float vDist;",
+    "void main() {",
+    "  vec2 worldXY = uTileOrigin + aGrid * uTileSize;",
     "  float worldZ = aElev * uElevScale;",
-    "  vec4 clipPos = uMVP * vec4(worldXY.x, worldXY.y, worldZ, 1.0);",
+    "  vec4 pos = vec4(worldXY.x, worldXY.y, worldZ, 1.0);",
+    "  vec4 clipPos = uMVP * pos;",
     "  gl_Position = clipPos;",
-    "  vUV = aUV;",
+    "  vUv = uUvOffset + vec2(aGrid.x, 1.0 - aGrid.y) * uUvScale;",
     "  vElev = aElev;",
-    "  vDepth = clipPos.w;",
+    "  vDist = clipPos.w;",
     "}"
-  ].join("
-");
+  ].join("\n");
 
-  const FS_SOURCE = [
+  const fsSource = [
     "precision mediump float;",
     "uniform sampler2D uTex;",
     "uniform float uHasTex;",
-    "uniform float uSunAngle;",
-    "varying vec2 vUV;",
+    "uniform vec3 uSkyColor;",
+    "uniform float uFogDensity;",
+    "varying vec2 vUv;",
     "varying float vElev;",
-    "varying float vDepth;",
-    "vec3 hypsometric(float h) {",
-    "  if (h < 1.0) return vec3(0.06, 0.22, 0.42);",
-    "  if (h < 250.0) return mix(vec3(0.24, 0.47, 0.28), vec3(0.68, 0.65, 0.42), h / 250.0);",
-    "  if (h < 1200.0) return mix(vec3(0.68, 0.65, 0.42), vec3(0.62, 0.42, 0.28), (h - 250.0) / 950.0);",
-    "  if (h < 3500.0) return mix(vec3(0.62, 0.42, 0.28), vec3(0.55, 0.52, 0.50), (h - 1200.0) / 2300.0);",
-    "  return mix(vec3(0.55, 0.52, 0.50), vec3(0.95, 0.96, 0.98), clamp((h - 3500.0) / 3000.0, 0.0, 1.0));",
-    "}",
-    "void main(void) {",
-    "  vec3 baseCol = hypsometric(vElev);",
-    "  if (uHasTex > 0.5) {",
-    "    baseCol = texture2D(uTex, vUV).rgb;",
-    "  }",
-    "  float shade = clamp(0.84 + 0.16 * sin(vElev * 0.015 + uSunAngle), 0.72, 1.15);",
-    "  vec3 litCol = baseCol * shade;",
-    "  float fogFactor = clamp((vDepth - 1.6) / 2.8, 0.0, 0.65);",
-    "  vec3 skyCol = vec3(0.06, 0.10, 0.18);",
-    "  vec3 finalCol = mix(litCol, skyCol, fogFactor);",
+    "varying float vDist;",
+    "void main() {",
+    "  vec3 hypsoLow = vec3(0.16, 0.34, 0.24);",
+    "  vec3 hypsoMid = vec3(0.68, 0.58, 0.42);",
+    "  vec3 hypsoHigh = vec3(0.92, 0.90, 0.88);",
+    "  float hNorm = clamp((vElev + 200.0) / 4200.0, 0.0, 1.0);",
+    "  vec3 fallbackCol = mix(hypsoLow, hypsoMid, clamp(hNorm * 2.0, 0.0, 1.0));",
+    "  fallbackCol = mix(fallbackCol, hypsoHigh, clamp((hNorm - 0.5) * 2.0, 0.0, 1.0));",
+    "  vec4 texCol = texture2D(uTex, vUv);",
+    "  vec3 baseCol = mix(fallbackCol, texCol.rgb, uHasTex);",
+    "  float fogFactor = clamp(1.0 - exp(-pow(vDist * uFogDensity, 2.0)), 0.0, 0.82);",
+    "  vec3 finalCol = mix(baseCol, uSkyColor, fogFactor);",
     "  gl_FragColor = vec4(finalCol, 1.0);",
     "}"
-  ].join("
-");
+  ].join("\n");
 
   function compileShader(type, src) {
     const sh = gl.createShader(type);
     gl.shaderSource(sh, src);
     gl.compileShader(sh);
     if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
-      const err = gl.getShaderInfoLog(sh) || "Unknown shader error";
-      statusEl.textContent = "Shader compile error: " + err;
+      const err = gl.getShaderInfoLog(sh);
       gl.deleteShader(sh);
-      return null;
+      throw new Error("Shader compile error: " + err);
     }
     return sh;
   }
 
-  const vs = compileShader(gl.VERTEX_SHADER, VS_SOURCE);
-  const fs = compileShader(gl.FRAGMENT_SHADER, FS_SOURCE);
-  if (!vs || !fs) return;
-
-  const prog = gl.createProgram();
-  gl.attachShader(prog, vs);
-  gl.attachShader(prog, fs);
-  gl.linkProgram(prog);
-  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-    const err = gl.getProgramInfoLog(prog) || "Unknown link error";
-    statusEl.textContent = "Shader link error: " + err;
+  let program;
+  try {
+    const vs = compileShader(gl.VERTEX_SHADER, vsSource);
+    const fs = compileShader(gl.FRAGMENT_SHADER, fsSource);
+    program = gl.createProgram();
+    gl.attachShader(program, vs);
+    gl.attachShader(program, fs);
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      throw new Error("Shader link error: " + gl.getProgramInfoLog(program));
+    }
+  } catch (e) {
+    statusEl.textContent = e.message;
+    statusEl.style.color = "#f87171";
     return;
   }
-  gl.useProgram(prog);
 
-  const aPosLoc = gl.getAttribLocation(prog, "aPos");
-  const aUVLoc = gl.getAttribLocation(prog, "aUV");
-  const aElevLoc = gl.getAttribLocation(prog, "aElev");
-  const uMVPLoc = gl.getUniformLocation(prog, "uMVP");
-  const uTileOffsetLoc = gl.getUniformLocation(prog, "uTileOffset");
-  const uTileScaleLoc = gl.getUniformLocation(prog, "uTileScale");
-  const uElevScaleLoc = gl.getUniformLocation(prog, "uElevScale");
-  const uTexLoc = gl.getUniformLocation(prog, "uTex");
-  const uHasTexLoc = gl.getUniformLocation(prog, "uHasTex");
-  const uSunAngleLoc = gl.getUniformLocation(prog, "uSunAngle");
+  gl.useProgram(program);
 
-  // Build shared grid mesh (GRID x GRID) + perimeter skirts to seal all tile seams
-  const GRID = 40;
-  const SKIRT_DROP = -450.0;
-  const positions = [];
-  const uvs = [];
+  const loc = {
+    aGrid: gl.getAttribLocation(program, "aGrid"),
+    aElev: gl.getAttribLocation(program, "aElev"),
+    uMVP: gl.getUniformLocation(program, "uMVP"),
+    uTileOrigin: gl.getUniformLocation(program, "uTileOrigin"),
+    uTileSize: gl.getUniformLocation(program, "uTileSize"),
+    uElevScale: gl.getUniformLocation(program, "uElevScale"),
+    uUvOffset: gl.getUniformLocation(program, "uUvOffset"),
+    uUvScale: gl.getUniformLocation(program, "uUvScale"),
+    uTex: gl.getUniformLocation(program, "uTex"),
+    uHasTex: gl.getUniformLocation(program, "uHasTex"),
+    uSkyColor: gl.getUniformLocation(program, "uSkyColor"),
+    uFogDensity: gl.getUniformLocation(program, "uFogDensity")
+  };
+
+  // Build shared 48x48 terrain grid + downward skirts to seal tile borders
+  const GRID_N = 48;
+  const vertsPerRow = GRID_N + 1;
+  const mainVertCount = vertsPerRow * vertsPerRow;
+  const skirtVertCount = vertsPerRow * 4;
+  const totalVerts = mainVertCount + skirtVertCount;
+
+  const gridCoords = new Float32Array(totalVerts * 2);
+  let ptr = 0;
+  for (let r = 0; r <= GRID_N; r++) {
+    const y = 1.0 - (r / GRID_N); // r=0 is North (y=1), r=GRID_N is South (y=0)
+    for (let c = 0; c <= GRID_N; c++) {
+      const x = c / GRID_N; // c=0 is West (x=0), c=GRID_N is East (x=1)
+      gridCoords[ptr++] = x;
+      gridCoords[ptr++] = y;
+    }
+  }
+  // Skirt vertices around all 4 edges: top (r=0), bottom (r=GRID_N), left (c=0), right (c=GRID_N)
+  const skirtEdges = [];
+  for (let c = 0; c <= GRID_N; c++) skirtEdges.push([c / GRID_N, 1.0, c]);
+  for (let c = 0; c <= GRID_N; c++) skirtEdges.push([c / GRID_N, 0.0, GRID_N * vertsPerRow + c]);
+  for (let r = 0; r <= GRID_N; r++) skirtEdges.push([0.0, 1.0 - r / GRID_N, r * vertsPerRow]);
+  for (let r = 0; r <= GRID_N; r++) skirtEdges.push([1.0, 1.0 - r / GRID_N, r * vertsPerRow + GRID_N]);
+
+  for (let i = 0; i < skirtEdges.length; i++) {
+    gridCoords[ptr++] = skirtEdges[i][0];
+    gridCoords[ptr++] = skirtEdges[i][1];
+  }
+
   const indices = [];
-
-  // Main surface grid: row 0 = North (v=0, y=+1), row GRID = South (v=1, y=0)
-  for (let r = 0; r <= GRID; r++) {
-    const v = r / GRID;
-    const y = 1.0 - v;
-    for (let c = 0; c <= GRID; c++) {
-      const u = c / GRID;
-      const x = u;
-      positions.push(x, y);
-      uvs.push(u, v);
-    }
-  }
-
-  const rowStride = GRID + 1;
-  for (let r = 0; r < GRID; r++) {
-    for (let c = 0; c < GRID; c++) {
-      const i0 = r * rowStride + c;
+  for (let r = 0; r < GRID_N; r++) {
+    for (let c = 0; c < GRID_N; c++) {
+      const i0 = r * vertsPerRow + c;
       const i1 = i0 + 1;
-      const i2 = i0 + rowStride;
+      const i2 = i0 + vertsPerRow;
       const i3 = i2 + 1;
-      indices.push(i0, i2, i1);
-      indices.push(i1, i2, i3);
+      indices.push(i0, i2, i1, i1, i2, i3);
+    }
+  }
+  // Stitch skirts
+  for (let e = 0; e < 4; e++) {
+    const baseSkirt = mainVertCount + e * vertsPerRow;
+    for (let k = 0; k < GRID_N; k++) {
+      const top0 = skirtEdges[e * vertsPerRow + k][2];
+      const top1 = skirtEdges[e * vertsPerRow + k + 1][2];
+      const bot0 = baseSkirt + k;
+      const bot1 = baseSkirt + k + 1;
+      indices.push(top0, bot0, top1, top1, bot0, bot1);
     }
   }
 
-  // Append 4 skirt strips around perimeter
-  const surfaceVertCount = rowStride * rowStride;
-  const skirtSourceIndices = [];
+  const gridBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, gridBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, gridCoords, gl.STATIC_DRAW);
 
-  function addSkirtEdge(edgeIndices) {
-    const startIdx = positions.length / 2;
-    for (let k = 0; k < edgeIndices.length; k++) {
-      const srcIdx = edgeIndices[k];
-      positions.push(positions[srcIdx * 2], positions[srcIdx * 2 + 1]);
-      uvs.push(uvs[srcIdx * 2], uvs[srcIdx * 2 + 1]);
-      skirtSourceIndices.push(srcIdx);
-    }
-    for (let k = 0; k < edgeIndices.length - 1; k++) {
-      const topA = edgeIndices[k];
-      const topB = edgeIndices[k + 1];
-      const botA = startIdx + k;
-      const botB = startIdx + k + 1;
-      indices.push(topA, botA, topB);
-      indices.push(topB, botA, botB);
-    }
-  }
-
-  const northEdge = [], southEdge = [], westEdge = [], eastEdge = [];
-  for (let c = 0; c <= GRID; c++) northEdge.push(c);
-  for (let c = GRID; c >= 0; c--) southEdge.push(GRID * rowStride + c);
-  for (let r = GRID; r >= 0; r--) westEdge.push(r * rowStride);
-  for (let r = 0; r <= GRID; r++) eastEdge.push(r * rowStride + GRID);
-
-  addSkirtEdge(northEdge);
-  addSkirtEdge(southEdge);
-  addSkirtEdge(westEdge);
-  addSkirtEdge(eastEdge);
-
-  const totalVertCount = positions.length / 2;
-
-  const posBuf = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
-
-  const uvBuf = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, uvBuf);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(uvs), gl.STATIC_DRAW);
-
-  const idxBuf = gl.createBuffer();
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idxBuf);
+  const indexBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuf);
   gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+  const indexCount = indices.length;
 
-  const flatElevArray = new Float32Array(totalVertCount);
-  for (let i = surfaceVertCount; i < totalVertCount; i++) {
-    flatElevArray[i] = SKIRT_DROP;
-  }
-  const defaultElevBuf = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, defaultElevBuf);
+  const flatElevArray = new Float32Array(totalVerts);
+  const flatElevBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, flatElevBuf);
   gl.bufferData(gl.ARRAY_BUFFER, flatElevArray, gl.STATIC_DRAW);
 
-  gl.enable(gl.DEPTH_TEST);
-  gl.depthFunc(gl.LEQUAL);
+  const dummyTex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, dummyTex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([30, 58, 95, 255]));
 
-  // Map State (Default: Eye of the Sahara)
+  // Map state (Eye of Sahara default)
   const state = {
     lat: 21.1147,
     lon: -11.3942,
     zoom: 10.2,
-    pitch: 54,
-    bearing: 18,
-    exag: 2.4,
-    layer: "esri_topo",
+    pitch: 48,
+    bearing: 15,
+    exag: 2.2,
+    layer: "esri_sat",
     autoOrbit: false
   };
 
-  const TILE_LAYERS = {
+  const layerUrls = {
     esri_topo: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/${z}/${y}/${x}`,
-    opentopo: (z, x, y) => {
-      const sub = ["a", "b", "c"][(x + y) % 3];
-      return `https://${sub}.tile.opentopomap.org/${z}/${x}/${y}.png`;
-    },
+    opentopo: (z, x, y) => `https://a.tile.opentopomap.org/${z}/${x}/${y}.png`,
     esri_sat: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`,
     esri_street: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${z}/${y}/${x}`,
     esri_hillshade: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/${z}/${y}/${x}`
   };
 
-  function getDemUrl(z, x, y) {
-    const dz = Math.min(z, 14);
-    const scale = Math.pow(2, z - dz);
-    const dx = Math.floor(x / scale);
-    const dy = Math.floor(y / scale);
-    return {
-      url: `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${dz}/${dx}/${dy}.png`,
-      dz, dx, dy
-    };
-  }
-
-  // Mercator projection helpers in normalized [0..1] world space
-  // +X = East (0 to 1), +Y = North (0 at South Pole, 1 at North Pole)
-  function lonToNormX(lon) {
+  // Web Mercator helpers: X in [0, 1] West->East, Y in [0, 1] South->North
+  function lonToMercX(lon) {
     return (lon + 180.0) / 360.0;
   }
-  function latToNormY(lat) {
-    const clamped = Math.max(-85.05112878, Math.min(85.05112878, lat));
+  function latToMercYNorthUp(lat) {
+    const clamped = Math.max(-85.0511, Math.min(85.0511, lat));
     const rad = clamped * Math.PI / 180.0;
-    const merc = Math.log(Math.tan(Math.PI / 4.0 + rad / 2.0));
-    return 0.5 + merc / (2.0 * Math.PI);
+    const mercN = Math.log(Math.tan(Math.PI / 4.0 + rad / 2.0));
+    return 0.5 + mercN / (2.0 * Math.PI);
   }
-  function normXToLon(nx) {
-    return nx * 360.0 - 180.0;
+  function mercXToLon(mx) {
+    return mx * 360.0 - 180.0;
   }
-  function normYToLat(ny) {
-    const merc = (ny - 0.5) * 2.0 * Math.PI;
-    return (2.0 * Math.atan(Math.exp(merc)) - Math.PI / 2.0) * 180.0 / Math.PI;
+  function mercYNorthUpToLat(my) {
+    const mercN = (my - 0.5) * 2.0 * Math.PI;
+    return (2.0 * Math.atan(Math.exp(mercN)) - Math.PI / 2.0) * 180.0 / Math.PI;
   }
 
-  // Tile & DEM caches
+  // Tile caches
   const imgCache = new Map();
   const demCache = new Map();
-  const demCanvas = document.createElement("canvas");
-  demCanvas.width = 256;
-  demCanvas.height = 256;
-  const demCtx = demCanvas.getContext("2d", { willReadFrequently: true });
+  let imgLoadedCount = 0;
+  let demLoadedCount = 0;
 
-  let loadedImgCount = 0;
-  let loadedDemCount = 0;
+  const offCanvas = document.createElement("canvas");
+  offCanvas.width = 256;
+  offCanvas.height = 256;
+  const offCtx = offCanvas.getContext("2d", { willReadFrequently: true });
 
-  function requestImageryTile(layerKey, z, x, y) {
-    const key = `${layerKey}:${z}/${x}/${y}`;
+  function getImageTile(layer, z, x, y) {
+    const key = `${layer}/${z}/${x}/${y}`;
     if (imgCache.has(key)) return imgCache.get(key);
-
-    const entry = { tex: null, ready: false, failed: false };
+    const entry = { status: "loading", tex: null };
     imgCache.set(key, entry);
 
     const img = new Image();
@@ -571,123 +553,81 @@
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
       entry.tex = tex;
-      entry.ready = true;
-      loadedImgCount++;
+      entry.status = "ready";
+      imgLoadedCount++;
     };
     img.onerror = () => {
-      entry.failed = true;
+      entry.status = "error";
     };
-    img.src = TILE_LAYERS[layerKey](z, x, y);
+    img.src = layerUrls[layer](z, x, y);
     return entry;
   }
 
-  function requestDemTile(z, x, y) {
-    const { url, dz, dx, dy } = getDemUrl(z, x, y);
+  function getDemTile(z, x, y) {
+    const dz = Math.min(z, 14);
+    const shift = z - dz;
+    const dx = x >> shift;
+    const dy = y >> shift;
     const key = `${dz}/${dx}/${dy}`;
     if (demCache.has(key)) return demCache.get(key);
 
-    const entry = { heights: null, ready: false };
+    const entry = { status: "loading", buf: null, heights: null };
     demCache.set(key, entry);
 
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
       try {
-        demCtx.clearRect(0, 0, 256, 256);
-        demCtx.drawImage(img, 0, 0, 256, 256);
-        const data = demCtx.getImageData(0, 0, 256, 256).data;
-        const hGrid = new Float32Array(256 * 256);
-        for (let i = 0; i < 256 * 256; i++) {
-          const r = data[i * 4];
-          const g = data[i * 4 + 1];
-          const b = data[i * 4 + 2];
-          hGrid[i] = (r * 256.0 + g + b / 256.0) - 32768.0;
+        offCtx.clearRect(0, 0, 256, 256);
+        offCtx.drawImage(img, 0, 0, 256, 256);
+        const pixels = offCtx.getImageData(0, 0, 256, 256).data;
+        const heights = new Float32Array(totalVerts);
+        let hPtr = 0;
+        let minH = 99999;
+
+        for (let r = 0; r <= GRID_N; r++) {
+          const py = Math.min(255, Math.round((r / GRID_N) * 255));
+          for (let c = 0; c <= GRID_N; c++) {
+            const px = Math.min(255, Math.round((c / GRID_N) * 255));
+            const idx = (py * 256 + px) * 4;
+            const elev = (pixels[idx] * 256.0 + pixels[idx + 1] + pixels[idx + 2] / 256.0) - 32768.0;
+            heights[hPtr++] = elev;
+            if (elev < minH) minH = elev;
+          }
         }
-        entry.heights = hGrid;
-        entry.ready = true;
-        loadedDemCount++;
-      } catch (e) {
-        entry.ready = false;
+        const skirtDrop = Math.max(250.0, 2500.0 / Math.pow(2, dz - 4));
+        for (let i = 0; i < skirtEdges.length; i++) {
+          const srcIdx = skirtEdges[i][2];
+          heights[hPtr++] = heights[srcIdx] - skirtDrop;
+        }
+
+        const buf = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+        gl.bufferData(gl.ARRAY_BUFFER, heights, gl.STATIC_DRAW);
+        entry.buf = buf;
+        entry.heights = heights;
+        entry.status = "ready";
+        demLoadedCount++;
+      } catch (err) {
+        entry.status = "error";
       }
     };
-    img.src = url;
+    img.onerror = () => {
+      entry.status = "error";
+    };
+    img.src = `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${dz}/${dx}/${dy}.png`;
     return entry;
   }
 
-  const tileElevBuffers = new Map();
-
-  function getOrBuildElevBuffer(z, x, y) {
-    const { dz, dx, dy } = getDemUrl(z, x, y);
-    const demEntry = requestDemTile(z, x, y);
-    if (!demEntry.ready || !demEntry.heights) {
-      return defaultElevBuf;
-    }
-
-    const bufKey = `${z}/${x}/${y}:${dz}/${dx}/${dy}`;
-    if (tileElevBuffers.has(bufKey)) {
-      return tileElevBuffers.get(bufKey);
-    }
-
-    const scale = Math.pow(2, z - dz);
-    const subX = (x % scale) / scale;
-    const subY = (y % scale) / scale;
-    const subSpan = 1.0 / scale;
-
-    const elevArr = new Float32Array(totalVertCount);
-    const heights = demEntry.heights;
-
-    for (let r = 0; r <= GRID; r++) {
-      const py = Math.min(255, Math.floor((subY + (r / GRID) * subSpan) * 255.99));
-      for (let c = 0; c <= GRID; c++) {
-        const px = Math.min(255, Math.floor((subX + (c / GRID) * subSpan) * 255.99));
-        elevArr[r * rowStride + c] = heights[py * 256 + px];
-      }
-    }
-
-    for (let k = 0; k < skirtSourceIndices.length; k++) {
-      const srcIdx = skirtSourceIndices[k];
-      elevArr[surfaceVertCount + k] = elevArr[srcIdx] + SKIRT_DROP;
-    }
-
-    const buf = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-    gl.bufferData(gl.ARRAY_BUFFER, elevArr, gl.STATIC_DRAW);
-    tileElevBuffers.set(bufKey, buf);
-    return buf;
-  }
-
-  // Matrix math utilities (Column-major 4x4)
-  function mat4Identity() {
-    return new Float32Array([
-      1, 0, 0, 0,
-      0, 1, 0, 0,
-      0, 0, 1, 0,
-      0, 0, 0, 1
-    ]);
-  }
-
-  function mat4Multiply(a, b) {
-    const out = new Float32Array(16);
-    for (let c = 0; c < 4; c++) {
-      for (let r = 0; r < 4; r++) {
-        out[c * 4 + r] =
-          a[0 * 4 + r] * b[c * 4 + 0] +
-          a[1 * 4 + r] * b[c * 4 + 1] +
-          a[2 * 4 + r] * b[c * 4 + 2] +
-          a[3 * 4 + r] * b[c * 4 + 3];
-      }
-    }
-    return out;
-  }
-
-  function mat4Perspective(fovRad, aspect, near, far) {
-    const f = 1.0 / Math.tan(fovRad / 2.0);
+  // Matrix math (column-major Float32Array)
+  function mat4Perspective(fovyRad, aspect, near, far) {
+    const f = 1.0 / Math.tan(fovyRad / 2.0);
     const nf = 1.0 / (near - far);
     return new Float32Array([
       f / aspect, 0, 0, 0,
       0, f, 0, 0,
       0, 0, (far + near) * nf, -1,
-      0, 0, 2 * far * near * nf, 0
+      0, 0, (2 * far * near) * nf, 0
     ]);
   }
 
@@ -719,6 +659,20 @@
     ]);
   }
 
+  function mat4Multiply(a, b) {
+    const out = new Float32Array(16);
+    for (let col = 0; col < 4; col++) {
+      for (let row = 0; row < 4; row++) {
+        out[col * 4 + row] =
+          a[0 * 4 + row] * b[col * 4 + 0] +
+          a[1 * 4 + row] * b[col * 4 + 1] +
+          a[2 * 4 + row] * b[col * 4 + 2] +
+          a[3 * 4 + row] * b[col * 4 + 3];
+      }
+    }
+    return out;
+  }
+
   function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const w = Math.floor(window.innerWidth * dpr);
@@ -732,231 +686,150 @@
   window.addEventListener("resize", resize);
   resize();
 
-  // Render frame
   function render() {
     if (state.autoOrbit) {
-      state.bearing = ((state.bearing + 0.15 + 180) % 360) - 180;
-      bearingSlider.value = Math.round(state.bearing);
-      bearingVal.textContent = Math.round(state.bearing) + "°";
+      state.bearing = ((state.bearing + 0.18 + 180) % 360) - 180;
+      document.getElementById("bearingSlider").value = Math.round(state.bearing);
+      document.getElementById("bearingVal").textContent = Math.round(state.bearing) + "°";
     }
 
-    gl.clearColor(0.03, 0.05, 0.10, 1.0);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    const zInt = Math.max(2, Math.min(16, Math.floor(state.zoom)));
+    const numTiles = Math.pow(2, zInt);
+    const tileWorldSize = 1.0 / numTiles;
 
-    const cx = lonToNormX(state.lon);
-    const cy = latToNormY(state.lat);
+    const centerMercX = lonToMercX(state.lon);
+    const centerMercY = latToMercYNorthUp(state.lat);
 
-    // Distance from camera to target based on zoom level
-    const fov = 42.0 * Math.PI / 180.0;
-    const worldSpan = Math.pow(2.0, -state.zoom) * 2.2;
-    const dist = worldSpan / (2.0 * Math.tan(fov / 2.0));
-
+    // Camera distance scaled smoothly with fractional zoom
+    const zoomScale = Math.pow(2, state.zoom - zInt);
+    const baseDist = (tileWorldSize * 2.55) / zoomScale;
     const pitchRad = state.pitch * Math.PI / 180.0;
     const bearingRad = state.bearing * Math.PI / 180.0;
 
-    // Right-handed map space: +X = East, +Y = North, +Z = Up
-    // When pitch > 0, camera shifts South (-Y) and looks North (+Y) so bottom is foreground & top is horizon
-    const horizDist = dist * Math.sin(pitchRad);
-    const vertDist = dist * Math.cos(pitchRad);
+    // Right-handed map frame: +X East, +Y North, +Z Up
+    const sinP = Math.sin(pitchRad);
+    const cosP = Math.cos(pitchRad);
+    const sinB = Math.sin(bearingRad);
+    const cosB = Math.cos(bearingRad);
 
-    const eyeX = cx - horizDist * Math.sin(bearingRad);
-    const eyeY = cy - horizDist * Math.cos(bearingRad);
-    const eyeZ = vertDist;
+    // When bearing=0 and pitch>0, camera sits South (-Y) and Up (+Z), looking North (+Y)
+    const eyeX = centerMercX - baseDist * sinP * sinB;
+    const eyeY = centerMercY - baseDist * sinP * cosB;
+    const eyeZ = Math.max(baseDist * cosP, tileWorldSize * 0.06);
 
-    // Up vector tilts forward along bearing so pitch=0 looks straight down with North up
-    const upX = Math.sin(bearingRad) * Math.cos(pitchRad);
-    const upY = Math.cos(bearingRad) * Math.cos(pitchRad);
-    const upZ = Math.sin(pitchRad);
+    const upVec = pitchRad < 0.02
+      ? [-sinB, cosB, 0]
+      : [0, 0, 1];
 
     const aspect = canvas.width / Math.max(1, canvas.height);
-    const near = Math.max(0.00001, dist * 0.02);
-    const far = Math.max(4.0, dist * 14.0);
-
-    const proj = mat4Perspective(fov, aspect, near, far);
-    const view = mat4LookAt([eyeX, eyeY, eyeZ], [cx, cy, 0.0], [upX, upY, upZ]);
+    const near = baseDist * 0.02;
+    const far = baseDist * 28.0;
+    const proj = mat4Perspective(42 * Math.PI / 180, aspect, near, far);
+    const view = mat4LookAt([eyeX, eyeY, eyeZ], [centerMercX, centerMercY, 0], upVec);
     const mvp = mat4Multiply(proj, view);
 
-    gl.uniformMatrix4fv(uMVPLoc, false, mvp);
+    // Earth circumference at latitude ~40,075,016 m * cos(lat)
+    const metersPerWorldUnit = 40075016.686 * Math.max(0.15, Math.cos(state.lat * Math.PI / 180.0));
+    const elevScale = (state.exag / metersPerWorldUnit);
 
-    // Earth circumference at equator ~40,075,017 meters -> convert meters to normalized world units
-    const metersToWorld = 1.0 / (40075017.0 * Math.cos(state.lat * Math.PI / 180.0));
-    gl.uniform1f(uElevScaleLoc, metersToWorld * state.exag);
-    gl.uniform1f(uSunAngleLoc, bearingRad);
+    const skyMix = Math.min(1.0, state.pitch / 72.0);
+    const skyR = 0.03 + skyMix * 0.06;
+    const skyG = 0.06 + skyMix * 0.12;
+    const skyB = 0.11 + skyMix * 0.22;
 
-    // Bind static position, UV, and index buffers
-    gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
-    gl.enableVertexAttribArray(aPosLoc);
-    gl.vertexAttribPointer(aPosLoc, 2, gl.FLOAT, false, 0, 0);
+    gl.clearColor(skyR, skyG, skyB, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.DEPTH_TEST);
+    gl.depthFunc(gl.LEQUAL);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, uvBuf);
-    gl.enableVertexAttribArray(aUVLoc);
-    gl.vertexAttribPointer(aUVLoc, 2, gl.FLOAT, false, 0, 0);
+    gl.uniformMatrix4fv(loc.uMVP, false, mvp);
+    gl.uniform1f(loc.uElevScale, elevScale);
+    gl.uniform3f(loc.uSkyColor, skyR, skyG, skyB);
+    gl.uniform1f(loc.uFogDensity, (0.14 * skyMix) / Math.max(baseDist, 1e-6));
 
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idxBuf);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gridBuf);
+    gl.enableVertexAttribArray(loc.aGrid);
+    gl.vertexAttribPointer(loc.aGrid, 2, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuf);
 
-    // Determine visible tile grid around center
-    const z = Math.max(2, Math.min(16, Math.round(state.zoom)));
-    const numTiles = Math.pow(2, z);
-    const tileSize = 1.0 / numTiles;
-
-    const centerTileX = Math.floor(cx * numTiles);
-    // In slippy map Y, 0 is North (ny = 1) and numTiles-1 is South (ny = 0)
-    const centerTileY = Math.floor((1.0 - cy) * numTiles);
-
+    // Determine visible tile grid radius
+    const centerTileX = Math.floor(centerMercX * numTiles);
+    const centerTileYNorth = Math.floor(centerMercY * numTiles);
     const radius = state.pitch > 35 ? 4 : 3;
 
     for (let dy = -radius; dy <= radius; dy++) {
-      const ty = centerTileY + dy;
-      if (ty < 0 || ty >= numTiles) continue;
+      const tyNorth = centerTileYNorth + dy;
+      if (tyNorth < 0 || tyNorth >= numTiles) continue;
+      const slippyY = (numTiles - 1) - tyNorth; // Standard XYZ slippy Y=0 at North
 
       for (let dx = -radius; dx <= radius; dx++) {
         const rawTx = centerTileX + dx;
-        const wrappedTx = ((rawTx % numTiles) + numTiles) % numTiles;
+        const slippyX = ((rawTx % numTiles) + numTiles) % numTiles;
+        const originX = rawTx * tileWorldSize;
+        const originY = tyNorth * tileWorldSize;
 
-        const worldTileX = rawTx * tileSize;
-        const worldTileY = 1.0 - (ty + 1) * tileSize;
+        gl.uniform2f(loc.uTileOrigin, originX, originY);
+        gl.uniform1f(loc.uTileSize, tileWorldSize);
 
-        gl.uniform2f(uTileOffsetLoc, worldTileX, worldTileY);
-        gl.uniform1f(uTileScaleLoc, tileSize);
+        // Imagery tile with parent-zoom progressive fallback
+        let texToBind = dummyTex;
+        let hasTex = 0.0;
+        let uvOffX = 0.0;
+        let uvOffY = 0.0;
+        let uvScale = 1.0;
 
-        // Bind elevation buffer
-        const elevBuf = getOrBuildElevBuffer(z, wrappedTx, ty);
-        gl.bindBuffer(gl.ARRAY_BUFFER, elevBuf);
-        gl.enableVertexAttribArray(aElevLoc);
-        gl.vertexAttribPointer(aElevLoc, 1, gl.FLOAT, false, 0, 0);
-
-        // Bind imagery texture (with parent zoom fallback if still loading)
-        let imgEntry = requestImageryTile(state.layer, z, wrappedTx, ty);
-        if (imgEntry && imgEntry.ready && imgEntry.tex) {
-          gl.activeTexture(gl.TEXTURE0);
-          gl.bindTexture(gl.TEXTURE_2D, imgEntry.tex);
-          gl.uniform1i(uTexLoc, 0);
-          gl.uniform1f(uHasTexLoc, 1.0);
-        } else {
-          gl.uniform1f(uHasTexLoc, 0.0);
+        for (let fallbackStep = 0; fallbackStep <= 3; fallbackStep++) {
+          const fz = zInt - fallbackStep;
+          if (fz < 1) break;
+          const fx = slippyX >> fallbackStep;
+          const fy = slippyY >> fallbackStep;
+          const imgEntry = getImageTile(state.layer, fz, fx, fy);
+          if (imgEntry.status === "ready" && imgEntry.tex) {
+            texToBind = imgEntry.tex;
+            hasTex = 1.0;
+            const subCount = 1 << fallbackStep;
+            const subX = slippyX & (subCount - 1);
+            const subY = slippyY & (subCount - 1);
+            uvScale = 1.0 / subCount;
+            uvOffX = subX * uvScale;
+            uvOffY = subY * uvScale;
+            break;
+          }
         }
 
-        gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+        // Trigger download of exact zoom tile if not yet requested
+        getImageTile(state.layer, zInt, slippyX, slippyY);
+
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, texToBind);
+        gl.uniform1i(loc.uTex, 0);
+        gl.uniform1f(loc.uHasTex, hasTex);
+        gl.uniform2f(loc.uUvOffset, uvOffX, uvOffY);
+        gl.uniform1f(loc.uUvScale, uvScale);
+
+        // Elevation buffer binding
+        const demEntry = getDemTile(zInt, slippyX, slippyY);
+        if (demEntry.status === "ready" && demEntry.buf) {
+          gl.bindBuffer(gl.ARRAY_BUFFER, demEntry.buf);
+        } else {
+          gl.bindBuffer(gl.ARRAY_BUFFER, flatElevBuf);
+        }
+        gl.enableVertexAttribArray(loc.aElev);
+        gl.vertexAttribPointer(loc.aElev, 1, gl.FLOAT, false, 0, 0);
+
+        gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
       }
     }
 
     const latDir = state.lat >= 0 ? "N" : "S";
     const lonDir = state.lon >= 0 ? "E" : "W";
-    coordsEl.textContent = `Center: ${Math.abs(state.lat).toFixed(4)}° ${latDir}, ${Math.abs(state.lon).toFixed(4)}° ${lonDir} | Zoom: ${state.zoom.toFixed(1)}`;
-    statusEl.textContent = `WebGL Active | Imagery: ${loadedImgCount} | DEM: ${loadedDemCount}`;
+    coordEl.textContent = `Center: ${Math.abs(state.lat).toFixed(4)}° ${latDir}, ${Math.abs(state.lon).toFixed(4)}° ${lonDir} | Zoom: ${state.zoom.toFixed(1)}`;
+    statusEl.textContent = `WebGL Active | Imagery: ${imgLoadedCount} | DEM: ${demLoadedCount}`;
 
     requestAnimationFrame(render);
   }
 
-  // UI Bindings
-  const pitchSlider = document.getElementById("pitch-slider");
-  const pitchVal = document.getElementById("pitch-val");
-  const bearingSlider = document.getElementById("bearing-slider");
-  const bearingVal = document.getElementById("bearing-val");
-  const exagSlider = document.getElementById("exag-slider");
-  const exagVal = document.getElementById("exag-val");
-  const layerSelect = document.getElementById("layer-select");
-
-  function syncSliders() {
-    pitchSlider.value = Math.round(state.pitch);
-    pitchVal.textContent = Math.round(state.pitch) + "°";
-    bearingSlider.value = Math.round(state.bearing);
-    bearingVal.textContent = Math.round(state.bearing) + "°";
-    exagSlider.value = state.exag.toFixed(1);
-    exagVal.textContent = state.exag.toFixed(1) + "x";
-  }
-
-  pitchSlider.addEventListener("input", () => {
-    state.pitch = parseFloat(pitchSlider.value);
-    pitchVal.textContent = Math.round(state.pitch) + "°";
-  });
-
-  bearingSlider.addEventListener("input", () => {
-    state.bearing = parseFloat(bearingSlider.value);
-    bearingVal.textContent = Math.round(state.bearing) + "°";
-  });
-
-  exagSlider.addEventListener("input", () => {
-    state.exag = parseFloat(exagSlider.value);
-    exagVal.textContent = state.exag.toFixed(1) + "x";
-  });
-
-  layerSelect.addEventListener("change", () => {
-    state.layer = layerSelect.value;
-  });
-
-  document.getElementById("zoom-in-btn").addEventListener("click", () => {
-    state.zoom = Math.min(16, state.zoom + 0.7);
-  });
-
-  document.getElementById("zoom-out-btn").addEventListener("click", () => {
-    state.zoom = Math.max(2, state.zoom - 0.7);
-  });
-
-  document.getElementById("view-2d-btn").addEventListener("click", () => {
-    state.pitch = 0;
-    state.bearing = 0;
-    syncSliders();
-  });
-
-  document.getElementById("view-3d-btn").addEventListener("click", () => {
-    state.pitch = 56;
-    syncSliders();
-  });
-
-  const orbitBtn = document.getElementById("orbit-btn");
-  orbitBtn.addEventListener("click", () => {
-    state.autoOrbit = !state.autoOrbit;
-    orbitBtn.textContent = state.autoOrbit ? "Auto-Orbit: On" : "Auto-Orbit: Off";
-    orbitBtn.classList.toggle("active", state.autoOrbit);
-  });
-
-  document.querySelectorAll(".preset-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      state.lat = parseFloat(btn.dataset.lat);
-      state.lon = parseFloat(btn.dataset.lon);
-      state.zoom = parseFloat(btn.dataset.zoom);
-      state.pitch = parseFloat(btn.dataset.pitch);
-      state.bearing = parseFloat(btn.dataset.bearing);
-      syncSliders();
-    });
-  });
-
-  // Search place name via Nominatim or direct Lat, Lon
-  async function handleSearch() {
-    const q = document.getElementById("search-input").value.trim();
-    if (!q) return;
-
-    const coordMatch = q.match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
-    if (coordMatch) {
-      state.lat = Math.max(-85, Math.min(85, parseFloat(coordMatch[1])));
-      state.lon = ((parseFloat(coordMatch[2]) + 180) % 360 + 360) % 360 - 180;
-      state.zoom = Math.max(state.zoom, 10.5);
-      return;
-    }
-
-    try {
-      statusEl.textContent = "Searching location...";
-      const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`);
-      const data = await resp.json();
-      if (data && data.length > 0) {
-        state.lat = parseFloat(data[0].lat);
-        state.lon = parseFloat(data[0].lon);
-        state.zoom = 11.0;
-      } else {
-        statusEl.textContent = "Location not found.";
-      }
-    } catch (e) {
-      statusEl.textContent = "Search unavailable offline.";
-    }
-  }
-
-  document.getElementById("search-btn").addEventListener("click", handleSearch);
-  document.getElementById("search-input").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") handleSearch();
-  });
-
-  // Mouse & Wheel Navigation
+  // Interactive mouse & touch controls
   let isDragging = false;
   let dragMode = "pan";
   let lastX = 0;
@@ -964,56 +837,155 @@
 
   canvas.addEventListener("contextmenu", e => e.preventDefault());
 
-  canvas.addEventListener("mousedown", (e) => {
+  canvas.addEventListener("mousedown", e => {
     isDragging = true;
     lastX = e.clientX;
     lastY = e.clientY;
-    dragMode = (e.button === 2 || e.shiftKey) ? "orbit" : "pan";
-  });
-
-  window.addEventListener("mousemove", (e) => {
-    if (!isDragging) return;
-    const dx = e.clientX - lastX;
-    const dy = e.clientY - lastY;
-    lastX = e.clientX;
-    lastY = e.clientY;
-
-    if (dragMode === "orbit") {
-      state.bearing = ((state.bearing + dx * 0.35 + 180) % 360) - 180;
-      state.pitch = Math.max(0, Math.min(72, state.pitch - dy * 0.35));
-      syncSliders();
-    } else {
-      // Natural drag: moving mouse right moves map right (center shifts West)
-      const scale = Math.pow(2.0, -state.zoom) * 0.0018;
-      const rad = state.bearing * Math.PI / 180.0;
-      const cosB = Math.cos(rad);
-      const sinB = Math.sin(rad);
-
-      const moveEast = (-dx * cosB + dy * sinB) * scale;
-      const moveNorth = (dx * sinB + dy * cosB) * scale;
-
-      const curX = lonToNormX(state.lon) + moveEast;
-      const curY = Math.max(0.05, Math.min(0.95, latToNormY(state.lat) + moveNorth));
-
-      state.lon = ((normXToLon(curX) + 180) % 360 + 360) % 360 - 180;
-      state.lat = normYToLat(curY);
-    }
+    dragMode = (e.button === 2 || e.shiftKey) ? "tilt" : "pan";
   });
 
   window.addEventListener("mouseup", () => {
     isDragging = false;
   });
 
-  canvas.addEventListener("wheel", (e) => {
+  window.addEventListener("mousemove", e => {
+    if (!isDragging) return;
+    const dx = e.clientX - lastX;
+    const dy = e.clientY - lastY;
+    lastX = e.clientX;
+    lastY = e.clientY;
+
+    if (dragMode === "tilt") {
+      state.bearing = ((state.bearing + dx * 0.35 + 180) % 360) - 180;
+      state.pitch = Math.max(0, Math.min(72, state.pitch - dy * 0.3));
+      syncSliders();
+    } else {
+      // Natural pan: dragging right->left (dx < 0) moves view East (+lon)
+      const worldSpan = 1.0 / Math.pow(2, state.zoom);
+      const speed = (worldSpan * 1.45) / Math.max(400, canvas.clientHeight);
+      const bRad = state.bearing * Math.PI / 180.0;
+      const cosB = Math.cos(bRad);
+      const sinB = Math.sin(bRad);
+
+      // Screen right vector in world XY is (cosB, -sinB); screen up vector is (sinB, cosB)
+      const dMercX = (-dx * cosB + dy * sinB) * speed;
+      const dMercY = (dx * sinB + dy * cosB) * speed;
+
+      const curX = lonToMercX(state.lon) + dMercX;
+      const curY = Math.max(0.02, Math.min(0.98, latToMercYNorthUp(state.lat) + dMercY));
+      state.lon = ((mercXToLon(curX) + 540) % 360) - 180;
+      state.lat = mercYNorthUpToLat(curY);
+    }
+  });
+
+  canvas.addEventListener("wheel", e => {
     e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.45 : 0.45;
-    state.zoom = Math.max(2, Math.min(16, state.zoom + delta));
+    const delta = -Math.sign(e.deltaY) * 0.35;
+    state.zoom = Math.max(2.0, Math.min(16.0, state.zoom + delta));
   }, { passive: false });
 
-  window.addEventListener("keydown", (e) => {
-    if (document.activeElement && document.activeElement.tagName === "INPUT") return;
-    if (e.key === "+" || e.key === "=") state.zoom = Math.min(16, state.zoom + 0.5);
-    if (e.key === "-" || e.key === "_") state.zoom = Math.max(2, state.zoom - 0.5);
+  function syncSliders() {
+    document.getElementById("pitchSlider").value = Math.round(state.pitch);
+    document.getElementById("pitchVal").textContent = Math.round(state.pitch) + "°";
+    document.getElementById("bearingSlider").value = Math.round(state.bearing);
+    document.getElementById("bearingVal").textContent = Math.round(state.bearing) + "°";
+    document.getElementById("exagSlider").value = state.exag.toFixed(1);
+    document.getElementById("exagVal").textContent = state.exag.toFixed(1) + "x";
+  }
+
+  document.getElementById("layerSelect").addEventListener("change", e => {
+    state.layer = e.target.value;
+  });
+
+  document.getElementById("pitchSlider").addEventListener("input", e => {
+    state.pitch = parseFloat(e.target.value);
+    document.getElementById("pitchVal").textContent = Math.round(state.pitch) + "°";
+  });
+
+  document.getElementById("bearingSlider").addEventListener("input", e => {
+    state.bearing = parseFloat(e.target.value);
+    document.getElementById("bearingVal").textContent = Math.round(state.bearing) + "°";
+  });
+
+  document.getElementById("exagSlider").addEventListener("input", e => {
+    state.exag = parseFloat(e.target.value);
+    document.getElementById("exagVal").textContent = state.exag.toFixed(1) + "x";
+  });
+
+  document.getElementById("zoomInBtn").addEventListener("click", () => {
+    state.zoom = Math.min(16.0, state.zoom + 0.6);
+  });
+
+  document.getElementById("zoomOutBtn").addEventListener("click", () => {
+    state.zoom = Math.max(2.0, state.zoom - 0.6);
+  });
+
+  document.getElementById("btn2D").addEventListener("click", () => {
+    state.pitch = 0;
+    state.bearing = 0;
+    syncSliders();
+  });
+
+  document.getElementById("btn3D").addEventListener("click", () => {
+    state.pitch = 54;
+    syncSliders();
+  });
+
+  const orbitBtn = document.getElementById("btnOrbit");
+  orbitBtn.addEventListener("click", () => {
+    state.autoOrbit = !state.autoOrbit;
+    orbitBtn.textContent = state.autoOrbit ? "Auto-Orbit: On" : "Auto-Orbit: Off";
+  });
+
+  window.addEventListener("keydown", e => {
+    if (document.activeElement.tagName === "INPUT") return;
+    if (e.key === "+" || e.key === "=") state.zoom = Math.min(16.0, state.zoom + 0.5);
+    if (e.key === "-" || e.key === "_") state.zoom = Math.max(2.0, state.zoom - 0.5);
+  });
+
+  document.querySelectorAll(".preset-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      state.lat = parseFloat(btn.dataset.lat);
+      state.lon = parseFloat(btn.dataset.lon);
+      state.zoom = parseFloat(btn.dataset.z);
+      state.pitch = parseFloat(btn.dataset.p);
+      state.bearing = parseFloat(btn.dataset.b);
+      syncSliders();
+    });
+  });
+
+  async function handleSearch() {
+    const q = document.getElementById("searchInput").value.trim();
+    if (!q) return;
+
+    const coordMatch = q.match(/^(-?\d+(?:\.\d+)?)\s*[,\s]\s*(-?\d+(?:\.\d+)?)$/);
+    if (coordMatch) {
+      const lat = parseFloat(coordMatch[1]);
+      const lon = parseFloat(coordMatch[2]);
+      if (lat >= -85 && lat <= 85 && lon >= -180 && lon <= 180) {
+        state.lat = lat;
+        state.lon = lon;
+        state.zoom = Math.max(state.zoom, 10.5);
+        return;
+      }
+    }
+
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      if (data && data.length > 0) {
+        state.lat = parseFloat(data[0].lat);
+        state.lon = parseFloat(data[0].lon);
+        state.zoom = 11.0;
+      }
+    } catch (err) {
+      // Ignore network search errors silently
+    }
+  }
+
+  document.getElementById("searchBtn").addEventListener("click", handleSearch);
+  document.getElementById("searchInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") handleSearch();
   });
 
   syncSliders();
