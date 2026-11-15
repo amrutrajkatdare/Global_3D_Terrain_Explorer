@@ -3,200 +3,218 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Global 3D Real-Elevation Topographic Explorer</title>
+<title>Global 3D Topographic Map Explorer (DEM Terrain)</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #f8fafc; }
-  #viewport { position: relative; width: 100%; height: 100%; cursor: grab; user-select: none; }
-  #viewport:active { cursor: grabbing; }
-  canvas { display: block; width: 100%; height: 100%; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: #0b111e; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #f1f5f9; user-select: none;
+  }
+  #mapCanvas {
+    display: block; width: 100%; height: 100%; cursor: grab;
+  }
+  #mapCanvas:active { cursor: grabbing; }
 
   .panel {
-    position: absolute; top: 14px; left: 14px; z-index: 10;
-    background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(8px);
-    border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 10px;
-    padding: 14px; width: 315px; max-height: calc(100vh - 28px); overflow-y: auto;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.45);
+    position: absolute; top: 14px; left: 14px; width: 325px;
+    background: rgba(15, 23, 42, 0.90); backdrop-filter: blur(10px);
+    border: 1px solid rgba(148, 163, 184, 0.22); border-radius: 12px;
+    padding: 14px 16px; box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+    z-index: 10; max-height: calc(100vh - 28px); overflow-y: auto;
   }
-  .panel h1 { font-size: 15px; font-weight: 700; color: #38bdf8; margin-bottom: 4px; }
-  .panel p.sub { font-size: 11px; color: #94a3b8; margin-bottom: 12px; line-height: 1.4; }
-
-  .control-group { margin-bottom: 11px; }
-  .control-group label { display: flex; justify-content: space-between; font-size: 11.5px; font-weight: 600; color: #cbd5e1; margin-bottom: 5px; }
-  .control-group label span.val { color: #38bdf8; font-family: monospace; }
-
-  select, input[type="text"], button {
-    width: 100%; padding: 7px 10px; border-radius: 6px;
-    border: 1px solid rgba(148, 163, 184, 0.3);
-    background: #1e293b; color: #f8fafc; font-size: 12.5px;
+  .panel h1 {
+    font-size: 15px; font-weight: 700; color: #f8fafc; margin-bottom: 2px;
+    display: flex; align-items: center; justify-content: space-between;
   }
-  select:focus, input:focus { outline: none; border-color: #38bdf8; }
-
-  .row { display: flex; gap: 6px; }
-  .row input { flex: 1; }
-  .row button { width: auto; background: #0284c7; border-color: #0284c7; font-weight: 600; cursor: pointer; }
-  .row button:hover { background: #0369a1; }
-
-  input[type="range"] { width: 100%; accent-color: #38bdf8; cursor: pointer; }
-
-  .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
-  .btn-secondary {
-    background: #1e293b; border: 1px solid rgba(148, 163, 184, 0.3);
-    color: #e2e8f0; font-size: 11.5px; padding: 6px 8px; cursor: pointer; font-weight: 500;
+  .badge {
+    font-size: 10px; font-weight: 600; background: #0284c7; color: #fff;
+    padding: 2px 7px; border-radius: 999px; letter-spacing: 0.4px;
   }
-  .btn-secondary:hover { background: #334155; }
-  .btn-secondary.active { background: #0284c7; border-color: #38bdf8; color: #fff; }
+  .sub { font-size: 11.5px; color: #94a3b8; margin-bottom: 12px; }
+
+  .group { margin-bottom: 11px; }
+  .group label {
+    display: flex; justify-content: space-between;
+    font-size: 11.5px; font-weight: 600; color: #cbd5e1; margin-bottom: 4px;
+  }
+  .group label span { color: #38bdf8; font-variant-numeric: tabular-nums; }
+
+  select, input[type="text"] {
+    width: 100%; padding: 7px 10px; border-radius: 7px;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    background: #1e293b; color: #f8fafc; font-size: 12.5px; outline: none;
+  }
+  select:focus, input[type="text"]:focus { border-color: #38bdf8; }
+
+  .search-row { display: flex; gap: 6px; }
+  .btn {
+    padding: 7px 11px; border-radius: 7px; border: 1px solid rgba(148, 163, 184, 0.25);
+    background: #1e293b; color: #e2e8f0; font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: background 0.15s, border-color 0.15s;
+  }
+  .btn:hover { background: #334155; border-color: #38bdf8; }
+  .btn-primary { background: #0284c7; border-color: #0284c7; color: #fff; }
+  .btn-primary:hover { background: #0369a1; }
 
   .presets { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
-  .preset-btn {
-    width: auto; padding: 4px 8px; font-size: 11px; border-radius: 5px;
-    background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35);
-    color: #7dd3fc; cursor: pointer;
+  .chip {
+    font-size: 11px; padding: 4px 8px; border-radius: 6px;
+    background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(148, 163, 184, 0.2);
+    color: #cbd5e1; cursor: pointer;
   }
-  .preset-btn:hover { background: rgba(56, 189, 248, 0.25); }
+  .chip:hover { border-color: #38bdf8; color: #fff; background: #1e293b; }
+
+  input[type="range"] {
+    width: 100%; accent-color: #38bdf8; cursor: pointer; height: 5px;
+  }
+
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 12px; color: #cbd5e1; padding: 4px 0;
+  }
+  .toggle-row input { accent-color: #38bdf8; width: 15px; height: 15px; cursor: pointer; }
+
+  .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
 
   .hud {
-    position: absolute; bottom: 14px; left: 14px; z-index: 10;
-    background: rgba(15, 23, 42, 0.88); border: 1px solid rgba(148, 163, 184, 0.25);
-    border-radius: 8px; padding: 8px 12px; font-size: 11.5px; color: #cbd5e1;
-    display: flex; gap: 14px; flex-wrap: wrap; pointer-events: none;
+    position: absolute; bottom: 14px; left: 14px;
+    background: rgba(15, 23, 42, 0.86); backdrop-filter: blur(8px);
+    border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 9px;
+    padding: 8px 13px; font-size: 11.5px; color: #cbd5e1;
+    display: flex; gap: 16px; flex-wrap: wrap; z-index: 10;
+    font-variant-numeric: tabular-nums;
   }
-  .hud strong { color: #38bdf8; }
+  .hud strong { color: #38bdf8; font-weight: 600; }
 
-  .zoom-controls {
-    position: absolute; top: 14px; right: 14px; z-index: 10;
-    display: flex; flex-direction: column; gap: 6px;
-  }
-  .zoom-controls button {
-    width: 36px; height: 36px; font-size: 18px; font-weight: bold;
-    background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(148, 163, 184, 0.3);
-    border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;
-  }
-  .zoom-controls button:hover { background: #1e293b; border-color: #38bdf8; }
-
-  .badge {
-    display: inline-block; font-size: 10px; padding: 2px 6px; border-radius: 4px;
-    background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35);
-    margin-bottom: 8px;
-  }
   .help-box {
-    margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(148, 163, 184, 0.2);
-    font-size: 11px; color: #94a3b8; line-height: 1.45;
+    position: absolute; top: 14px; right: 14px;
+    background: rgba(15, 23, 42, 0.86); backdrop-filter: blur(8px);
+    border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 10px;
+    padding: 10px 14px; font-size: 11.5px; color: #cbd5e1;
+    line-height: 1.55; z-index: 10; max-width: 245px;
   }
+  .help-box strong { color: #f8fafc; }
+  .status-dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    background: #22c55e; margin-right: 5px;
+  }
+  .status-dot.loading { background: #f59e0b; }
 </style>
 </head>
 <body>
 
-<div id="viewport">
-  <canvas id="mapCanvas"></canvas>
+<canvas id="mapCanvas"></canvas>
 
-  <div class="panel">
-    <h1>Global Real-DEM 3D Terrain Map</h1>
-    <div class="badge" id="demStatus">Live Global AWS Terrarium DEM Active</div>
-    <p class="sub">True 3D elevation mesh streamed globally from real Digital Elevation Model (DEM) tiles. Pan anywhere on Earth and tilt into 3D.</p>
+<div class="panel">
+  <h1>Global 3D Topographic Map <span class="badge">LIVE DEM</span></h1>
+  <div class="sub">Real global elevation tiles + perspective 3D camera</div>
 
-    <div class="control-group">
-      <label>Jump to Any Location (Name or Lat, Lon)</label>
-      <div class="row">
-        <input type="text" id="searchInput" placeholder="e.g. Everest, Grand Canyon, 21.11, -11.39">
-        <button id="searchBtn">Go</button>
-      </div>
-      <div class="presets">
-        <button class="preset-btn" data-lat="21.1147" data-lon="-11.3942" data-z="10.5">Eye of Sahara</button>
-        <button class="preset-btn" data-lat="27.9881" data-lon="86.9250" data-z="11.2">Mt. Everest</button>
-        <button class="preset-btn" data-lat="36.1069" data-lon="-112.1129" data-z="11.5">Grand Canyon</button>
-        <button class="preset-btn" data-lat="35.3606" data-lon="138.7274" data-z="11.5">Mt. Fuji</button>
-        <button class="preset-btn" data-lat="45.9766" data-lon="7.6585" data-z="12.0">Matterhorn</button>
-      </div>
+  <div class="group">
+    <label>Search Location or Coordinates</label>
+    <div class="search-row">
+      <input type="text" id="searchInput" placeholder="e.g. Everest, 21.11, -11.39">
+      <button class="btn btn-primary" id="searchBtn">Go</button>
     </div>
-
-    <div class="control-group">
-      <label>Base Map Imagery Layer</label>
-      <select id="layerSelect">
-        <option value="esri_sat">Esri World Satellite Imagery</option>
-        <option value="esri_topo">Esri World Topographic</option>
-        <option value="opentopo">OpenTopoMap (Contours)</option>
-        <option value="esri_street">Esri World Street Map</option>
-        <option value="esri_hillshade">Esri Hillshade Relief</option>
-      </select>
-    </div>
-
-    <div class="control-group">
-      <label>3D Camera Tilt (Pitch) <span class="val" id="pitchVal">52°</span></label>
-      <input type="range" id="pitchSlider" min="0" max="72" value="52">
-    </div>
-
-    <div class="control-group">
-      <label>3D Rotation (Bearing) <span class="val" id="bearingVal">25°</span></label>
-      <input type="range" id="bearingSlider" min="-180" max="180" value="25">
-    </div>
-
-    <div class="control-group">
-      <label>Elevation Exaggeration <span class="val" id="exagVal">2.5x</span></label>
-      <input type="range" id="exagSlider" min="0" max="8" step="0.2" value="2.5">
-    </div>
-
-    <div class="btn-grid">
-      <button class="btn-secondary active" id="toggleWire">Terrain Mesh: Smooth</button>
-      <button class="btn-secondary" id="toggleRing">Richat Ring: On</button>
-      <button class="btn-secondary" id="resetViewBtn">Reset 3D Angle</button>
-      <button class="btn-secondary" id="flat2dBtn">Flat 2D Top-Down</button>
-    </div>
-
-    <div class="help-box">
-      <strong>Controls:</strong><br>
-      • <strong>Left-Drag:</strong> Pan across the entire globe<br>
-      • <strong>Right-Drag (or Shift + Drag):</strong> Tilt & rotate 3D camera<br>
-      • <strong>Mouse Wheel:</strong> Zoom in / out
+    <div class="presets">
+      <span class="chip" data-lat="21.1147" data-lon="-11.3942" data-z="11" data-p="52" data-b="-20">Eye of Sahara</span>
+      <span class="chip" data-lat="27.9881" data-lon="86.9250" data-z="11.5" data-p="58" data-b="15">Mt. Everest</span>
+      <span class="chip" data-lat="36.1069" data-lon="-112.1129" data-z="12" data-p="55" data-b="35">Grand Canyon</span>
+      <span class="chip" data-lat="35.3606" data-lon="138.7274" data-z="11.5" data-p="55" data-b="-30">Mt. Fuji</span>
+      <span class="chip" data-lat="45.9766" data-lon="7.6585" data-z="12.5" data-p="60" data-b="10">Matterhorn</span>
     </div>
   </div>
 
-  <div class="zoom-controls">
-    <button id="zoomIn" title="Zoom In">+</button>
-    <button id="zoomOut" title="Zoom Out">−</button>
+  <div class="group">
+    <label>Base Map Layer</label>
+    <select id="layerSelect">
+      <option value="esri_topo">Esri World Topographic</option>
+      <option value="esri_sat" selected>Esri Satellite Imagery</option>
+      <option value="opentopo">OpenTopoMap (Contours)</option>
+      <option value="esri_street">Esri World Street Map</option>
+      <option value="esri_hillshade">Esri Shaded Relief</option>
+    </select>
   </div>
 
-  <div class="hud">
-    <div>Center: <strong id="hudCoords">21.1147° N, 11.3942° W</strong></div>
-    <div>Cursor Elev: <strong id="hudElev">-- m</strong></div>
-    <div>Zoom: <strong id="hudZoom">10.5</strong></div>
-    <div>Pitch: <strong id="hudPitch">52°</strong></div>
+  <div class="group">
+    <label>3D Camera Pitch (Tilt) <span id="pitchVal">52°</span></label>
+    <input type="range" id="pitchSlider" min="0" max="72" step="1" value="52">
+  </div>
+
+  <div class="group">
+    <label>Camera Bearing (Rotation) <span id="bearingVal">0°</span></label>
+    <input type="range" id="bearingSlider" min="-180" max="180" step="1" value="0">
+  </div>
+
+  <div class="group">
+    <label>Elevation Exaggeration <span id="exagVal">2.2x</span></label>
+    <input type="range" id="exagSlider" min="0.5" max="6.0" step="0.1" value="2.2">
+  </div>
+
+  <div class="toggle-row">
+    <span>Directional Terrain Hillshading</span>
+    <input type="checkbox" id="shadeCheck" checked>
+  </div>
+  <div class="toggle-row">
+    <span>Richat Structure Reference Rings</span>
+    <input type="checkbox" id="ringsCheck" checked>
+  </div>
+
+  <div class="btn-grid">
+    <button class="btn" id="btn2D">Flat 2D View</button>
+    <button class="btn" id="btn3D">3D Tilted View</button>
   </div>
 </div>
 
+<div class="help-box">
+  <div><span class="status-dot" id="statusDot"></span><strong id="statusText">DEM Terrain Ready</strong></div>
+  <div style="margin-top:6px;">
+    <strong>Left-Drag:</strong> Pan anywhere<br>
+    <strong>Right-Drag / Shift+Drag:</strong> Tilt 3D &amp; Rotate<br>
+    <strong>Scroll Wheel:</strong> Zoom in / out
+  </div>
+</div>
+
+<div class="hud">
+  <div>Center: <strong id="hudCoord">21.1147° N, 11.3942° W</strong></div>
+  <div>Cursor Elev: <strong id="hudElev">-- m</strong></div>
+  <div>Zoom: <strong id="hudZoom">11.0</strong></div>
+</div>
+
 <script>
-(() => {
+(function() {
   const canvas = document.getElementById('mapCanvas');
   const ctx = canvas.getContext('2d');
 
-  // Map state (Web Mercator normalized world coordinates [0..1])
+  // Camera & Map State
   const state = {
     lat: 21.1147,
     lon: -11.3942,
-    zoom: 10.5,
-    pitch: 52,      // degrees (0 = flat 2D, up to 72 = steep 3D)
-    bearing: 25,    // degrees
-    exag: 2.5,      // vertical exaggeration multiplier
+    zoom: 11.0,
+    pitch: 52,      // degrees (0 = flat top-down, 72 = steep 3D horizon view)
+    bearing: -15,   // degrees
+    exag: 2.2,      // vertical elevation multiplier
     layer: 'esri_sat',
-    wireframe: false,
-    showRichatRing: true,
-    cursorElev: null
+    shading: true,
+    showRings: true,
+    hoverElev: null
   };
 
-  // Tile sources (Zero API keys, CORS enabled for DEM canvas sampling)
-  const IMAGERY_SOURCES = {
-    esri_sat: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`,
+  // Tile URL Templates (Key-free public endpoints)
+  const LAYERS = {
     esri_topo: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/${z}/${y}/${x}`,
+    esri_sat: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`,
     opentopo: (z, x, y) => `https://a.tile.opentopomap.org/${z}/${x}/${y}.png`,
     esri_street: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${z}/${y}/${x}`,
     esri_hillshade: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/${z}/${y}/${x}`
   };
 
-  // AWS Open Data Terrarium Global Elevation Tiles (CORS enabled, RGB encodes meters)
-  const DEM_SOURCE = (z, x, y) => `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${x}/${y}.png`;
+  // AWS Open Data Terrarium Global DEM Tiles
+  const demUrl = (z, x, y) => `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${x}/${y}.png`;
 
   const imgCache = new Map();
   const demCache = new Map();
+  let pendingLoads = 0;
   let renderScheduled = false;
 
   function scheduleRender() {
@@ -209,336 +227,417 @@
     }
   }
 
-  // Geo <-> Web Mercator [0..1] helpers
-  function lonToX(lon) { return (lon + 180) / 360; }
-  function latToY(lat) {
+  function updateStatus() {
+    const dot = document.getElementById('statusDot');
+    const txt = document.getElementById('statusText');
+    if (pendingLoads > 0) {
+      dot.classList.add('loading');
+      txt.textContent = `Streaming Tiles (${pendingLoads})...`;
+    } else {
+      dot.classList.remove('loading');
+      txt.textContent = 'Global 3D DEM Active';
+    }
+  }
+
+  // Web Mercator Helpers (Normalized [0, 1] world coordinates)
+  function lonToNormX(lon) {
+    return (lon + 180) / 360;
+  }
+  function latToNormY(lat) {
     const rad = Math.max(-85.0511, Math.min(85.0511, lat)) * Math.PI / 180;
     return (1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2;
   }
-  function xToLon(x) { return x * 360 - 180; }
-  function yToLat(y) {
-    const n = Math.PI - 2 * Math.PI * y;
-    return 180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+  function normXToLon(nx) {
+    return nx * 360 - 180;
+  }
+  function normYToLat(ny) {
+    const n = Math.PI - 2 * Math.PI * ny;
+    return (180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
   }
 
-  // Load imagery tile
-  function getImageryTile(layer, z, x, y) {
+  // Fetch Imagery Tile
+  function getMapTile(layer, z, x, y) {
     const maxT = 1 << z;
     const wx = ((x % maxT) + maxT) % maxT;
     if (y < 0 || y >= maxT) return null;
     const key = `${layer}/${z}/${wx}/${y}`;
     if (imgCache.has(key)) return imgCache.get(key);
 
+    const entry = { img: null, ready: false };
+    imgCache.set(key, entry);
+    pendingLoads++;
+    updateStatus();
+
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    const entry = { img, loaded: false, error: false };
-    imgCache.set(key, entry);
-
-    img.onload = () => { entry.loaded = true; scheduleRender(); };
-    img.onerror = () => { entry.error = true; };
-    img.src = IMAGERY_SOURCES[layer](z, wx, y);
+    img.onload = () => {
+      entry.img = img;
+      entry.ready = true;
+      pendingLoads = Math.max(0, pendingLoads - 1);
+      updateStatus();
+      scheduleRender();
+    };
+    img.onerror = () => {
+      pendingLoads = Math.max(0, pendingLoads - 1);
+      updateStatus();
+    };
+    img.src = LAYERS[layer](z, wx, y);
     return entry;
   }
 
-  // Load & decode Terrarium DEM elevation tile into Float32Array (256x256)
+  // Fetch & Decode Terrarium DEM Tile -> Float32Array (256x256 meters)
   function getDemTile(z, x, y) {
-    const maxT = 1 << z;
-    const wx = ((x % maxT) + maxT) % maxT;
-    if (y < 0 || y >= maxT) return null;
-    const key = `${z}/${wx}/${y}`;
+    const dz = Math.min(14, z); // Terrarium max zoom is 15; cap at 14 for fast loading
+    const scaleShift = z - dz;
+    const tx = x >> scaleShift;
+    const ty = y >> scaleShift;
+    const maxT = 1 << dz;
+    const wx = ((tx % maxT) + maxT) % maxT;
+    if (ty < 0 || ty >= maxT) return null;
+
+    const key = `${dz}/${wx}/${ty}`;
     if (demCache.has(key)) return demCache.get(key);
+
+    const entry = { heights: null, ready: false };
+    demCache.set(key, entry);
+    pendingLoads++;
+    updateStatus();
 
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    const entry = { loaded: false, heights: null };
-    demCache.set(key, entry);
-
     img.onload = () => {
       try {
         const off = document.createElement('canvas');
         off.width = 256; off.height = 256;
-        const octx = off.getContext('2d', { willReadFrequently: true });
+        const octx = off.getContext('2d');
         octx.drawImage(img, 0, 0);
         const data = octx.getImageData(0, 0, 256, 256).data;
         const heights = new Float32Array(256 * 256);
         for (let i = 0, p = 0; i < heights.length; i++, p += 4) {
           // Terrarium formula: (R * 256 + G + B / 256) - 32768
-          const h = (data[p] * 256 + data[p + 1] + data[p + 2] / 256) - 32768;
-          heights[i] = h < -11000 ? 0 : h;
+          heights[i] = (data[p] * 256 + data[p + 1] + data[p + 2] / 256) - 32768;
         }
         entry.heights = heights;
-        entry.loaded = true;
-        document.getElementById('demStatus').textContent = 'Live Global AWS Terrarium DEM Active';
-        scheduleRender();
+        entry.ready = true;
       } catch (e) {
-        document.getElementById('demStatus').textContent = 'DEM Canvas Fallback Mode';
+        // Fallback flat if canvas read blocked
       }
+      pendingLoads = Math.max(0, pendingLoads - 1);
+      updateStatus();
+      scheduleRender();
     };
     img.onerror = () => {
-      document.getElementById('demStatus').textContent = 'DEM Tile Unavailable at Zoom';
+      pendingLoads = Math.max(0, pendingLoads - 1);
+      updateStatus();
     };
-    img.src = DEM_SOURCE(z, wx, y);
+    img.src = demUrl(dz, wx, ty);
     return entry;
   }
 
-  // Sample real elevation in meters at normalized Mercator (nx, ny)
-  function sampleElevation(nx, ny, demZ) {
-    const maxT = 1 << demZ;
-    const tx = Math.floor(nx * maxT);
-    const ty = Math.floor(ny * maxT);
-    const entry = getDemTile(demZ, tx, ty);
-    if (!entry || !entry.loaded) return 0;
+  // Sample elevation in meters at normalized world coordinates (nx, ny)
+  function sampleElevation(nx, ny, z) {
+    const dz = Math.min(14, z);
+    const nTiles = 1 << dz;
+    const fx = (((nx % 1) + 1) % 1) * nTiles;
+    const fy = Math.max(0, Math.min(nTiles - 0.0001, ny * nTiles));
+    const tx = Math.floor(fx);
+    const ty = Math.floor(fy);
 
-    const fx = (nx * maxT - tx) * 255;
-    const fy = (ny * maxT - ty) * 255;
-    const x0 = Math.max(0, Math.min(255, Math.floor(fx)));
-    const y0 = Math.max(0, Math.min(255, Math.floor(fy)));
-    const x1 = Math.min(255, x0 + 1);
-    const y1 = Math.min(255, y0 + 1);
-    const dx = fx - x0;
-    const dy = fy - y0;
+    const entry = getDemTile(dz, tx, ty);
+    if (!entry || !entry.ready || !entry.heights) return 0;
 
-    const h = entry.heights;
-    const h00 = h[y0 * 256 + x0];
-    const h10 = h[y0 * 256 + x1];
-    const h01 = h[y1 * 256 + x0];
-    const h11 = h[y1 * 256 + x1];
-    return (h00 * (1 - dx) + h10 * dx) * (1 - dy) + (h01 * (1 - dx) + h11 * dx) * dy;
+    const px = Math.min(255, Math.floor((fx - tx) * 256));
+    const py = Math.min(255, Math.floor((fy - ty) * 256));
+    return entry.heights[py * 256 + px];
   }
 
-  // Project 3D world offset (dx, dy in screen-scale pixels, dz in vertical pixels) to 2D screen
-  function project3D(dx, dy, dz, w, h) {
-    const radB = -state.bearing * Math.PI / 180;
-    const cosB = Math.cos(radB), sinB = Math.sin(radB);
-    // Rotate around Z (bearing)
-    const rx = dx * cosB - dy * sinB;
-    const ry = dx * sinB + dy * cosB;
+  // Perspective 3D Camera Projection
+  // Standard forward-looking 3D map tilt:
+  // Top of screen (North / forward along camera view) tilts AWAY toward the horizon (smaller perspective scale).
+  // Bottom of screen (South / foreground near viewer) tilts CLOSER toward the viewer (larger perspective scale).
+  function createProjector(w, h) {
+    const tileZ = Math.max(2, Math.min(16, Math.round(state.zoom)));
+    const scaleFactor = Math.pow(2, state.zoom - tileZ);
+    const tilePx = 256 * scaleFactor;
+    const worldPx = (1 << tileZ) * tilePx;
 
-    // Tilt around X (pitch)
-    const radP = state.pitch * Math.PI / 180;
-    const cosP = Math.cos(radP), sinP = Math.sin(radP);
-    const ty = ry * cosP - dz * sinP;
-    const tz = ry * sinP + dz * cosP;
+    const cx = lonToNormX(state.lon) * worldPx;
+    const cy = latToNormY(state.lat) * worldPx;
 
-    // Perspective foreshortening
-    const fov = Math.max(w, h) * 1.15;
-    const depth = fov + tz;
-    const scale = fov / Math.max(120, depth);
+    const pitchRad = state.pitch * Math.PI / 180;
+    const bearRad = state.bearing * Math.PI / 180;
+    const cosB = Math.cos(bearRad);
+    const sinB = Math.sin(bearRad);
+    const cosP = Math.cos(pitchRad);
+    const sinP = Math.sin(pitchRad);
 
-    return {
-      sx: w / 2 + rx * scale,
-      sy: h / 2 + ty * scale,
-      depth: tz,
-      scale
-    };
+    // Focal length in pixels
+    const fov = 45 * Math.PI / 180;
+    const cameraDist = (h * 0.5) / Math.tan(fov * 0.5);
+
+    // Meters per pixel at current latitude & zoom
+    const metersPerPx = (156543.03392 * Math.cos(state.lat * Math.PI / 180)) / Math.pow(2, state.zoom);
+
+    function project(nx, ny, elevMeters) {
+      // Delta in ground pixels from screen center
+      let dx = nx * worldPx - cx;
+      const dy = ny * worldPx - cy;
+
+      // Wrap shortest longitudinal distance
+      if (dx > worldPx * 0.5) dx -= worldPx;
+      if (dx < -worldPx * 0.5) dx += worldPx;
+
+      // Rotate ground plane by camera bearing
+      // rx: right on screen; ry: screen-downward (South when bearing=0)
+      const rx = dx * cosB - dy * sinB;
+      const ry = dx * sinB + dy * cosB;
+
+      // Vertical terrain displacement in pixels
+      const zPx = (elevMeters * state.exag) / metersPerPx;
+
+      // Forward-looking tilt camera:
+      // Moving toward top of screen (ry < 0) moves deeper into the scene (depth increases),
+      // while moving toward bottom of screen (ry > 0) brings terrain closer to the camera (depth decreases).
+      const depth = cameraDist - ry * sinP - zPx * cosP;
+      if (depth < 40) return null; // Behind near clipping plane
+
+      const screenYOffset = ry * cosP - zPx * sinP;
+      const persp = cameraDist / depth;
+
+      return {
+        sx: w * 0.5 + rx * persp,
+        sy: h * 0.5 + screenYOffset * persp,
+        depth: depth,
+        persp: persp
+      };
+    }
+
+    return { project, tileZ, worldPx, cx, cy, metersPerPx };
   }
 
-  // Draw textured triangle (affine UV mapping onto canvas)
-  function drawTexturedTriangle(img, sx0, sy0, sx1, sy1, sx2, sy2, u0, v0, u1, v1, u2, v2, shade) {
+  // Draw a textured triangle using affine canvas transform
+  function drawTexturedTriangle(img, p0, p1, p2, u0, v0, u1, v1, u2, v2, shadeAlpha) {
+    // Expand vertices slightly by ~0.6px around centroid to prevent sub-pixel hairline seams
+    const cx = (p0.sx + p1.sx + p2.sx) / 3;
+    const cy = (p0.sy + p1.sy + p2.sy) / 3;
+    const pad = 0.65;
+    const ax = p0.sx + (p0.sx - cx) * (pad / (Math.hypot(p0.sx - cx, p0.sy - cy) || 1));
+    const ay = p0.sy + (p0.sy - cy) * (pad / (Math.hypot(p0.sx - cx, p0.sy - cy) || 1));
+    const bx = p1.sx + (p1.sx - cx) * (pad / (Math.hypot(p1.sx - cx, p1.sy - cy) || 1));
+    const by = p1.sy + (p1.sy - cy) * (pad / (Math.hypot(p1.sx - cx, p1.sy - cy) || 1));
+    const dx = p2.sx + (p2.sx - cx) * (pad / (Math.hypot(p2.sx - cx, p2.sy - cy) || 1));
+    const dy = p2.sy + (p2.sy - cy) * (pad / (Math.hypot(p2.sx - cx, p2.sy - cy) || 1));
+
     ctx.save();
     ctx.beginPath();
-    ctx.moveTo(sx0, sy0);
-    ctx.lineTo(sx1, sy1);
-    ctx.lineTo(sx2, sy2);
+    ctx.moveTo(ax, ay);
+    ctx.lineTo(bx, by);
+    ctx.lineTo(dx, dy);
     ctx.closePath();
     ctx.clip();
 
-    const denom = (u0 * (v1 - v2) + u1 * (v2 - v0) + u2 * (v0 - v1));
-    if (Math.abs(denom) > 1e-6) {
-      const a = (sx0 * (v1 - v2) + sx1 * (v2 - v0) + sx2 * (v0 - v1)) / denom;
-      const b = (sy0 * (v1 - v2) + sy1 * (v2 - v0) + sy2 * (v0 - v1)) / denom;
-      const c = (sx0 * (u2 - u1) + sx1 * (u0 - u2) + sx2 * (u1 - u0)) / denom;
-      const d = (sy0 * (u2 - u1) + sy1 * (u0 - u2) + sy2 * (u1 - u0)) / denom;
-      const e = sx0 - a * u0 - c * v0;
-      const f = sy0 - b * u0 - d * v0;
+    const du1 = u1 - u0, dv1 = v1 - v0;
+    const du2 = u2 - u0, dv2 = v2 - v0;
+    const det = du1 * dv2 - du2 * dv1;
+    if (Math.abs(det) > 1e-6) {
+      const dx1 = p1.sx - p0.sx, dy1 = p1.sy - p0.sy;
+      const dx2 = p2.sx - p0.sx, dy2 = p2.sy - p0.sy;
 
-      ctx.transform(a, b, c, d, e, f);
-      ctx.drawImage(img, 0, 0, 256, 256);
+      const a = (dx1 * dv2 - dx2 * dv1) / det;
+      const b = (dy1 * dv2 - dy2 * dv1) / det;
+      const c = (dx2 * du1 - dx1 * du2) / det;
+      const d = (dy2 * du1 - dy1 * du2) / det;
+      const e = p0.sx - a * u0 - c * v0;
+      const f = p0.sy - b * u0 - d * v0;
 
-      // Apply subtle directional relief shading
-      if (shade !== 0) {
-        ctx.fillStyle = shade > 0 ? `rgba(255,255,255,${Math.min(0.28, shade)})` : `rgba(0,0,0,${Math.min(0.45, -shade)})`;
+      ctx.setTransform(a, b, c, d, e, f);
+      ctx.drawImage(img, 0, 0);
+
+      if (shadeAlpha !== 0) {
+        ctx.fillStyle = shadeAlpha > 0
+          ? `rgba(255, 250, 235, ${Math.min(0.32, shadeAlpha)})`
+          : `rgba(10, 18, 35, ${Math.min(0.45, -shadeAlpha)})`;
         ctx.fillRect(0, 0, 256, 256);
       }
     }
     ctx.restore();
   }
 
-  function resize() {
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = window.innerWidth * dpr;
-    canvas.height = window.innerHeight * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    scheduleRender();
-  }
-  window.addEventListener('resize', resize);
-
   function render() {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+    }
 
-    // Sky / background gradient when pitched
-    const grad = ctx.createLinearGradient(0, 0, 0, h);
-    grad.addColorStop(0, '#09111e');
-    grad.addColorStop(1, '#162338');
-    ctx.fillStyle = grad;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // Sky / Atmosphere Backdrop when pitched
+    if (state.pitch > 15) {
+      const grad = ctx.createLinearGradient(0, 0, 0, h * 0.55);
+      grad.addColorStop(0, '#091326');
+      grad.addColorStop(1, '#1e3a5f');
+      ctx.fillStyle = grad;
+    } else {
+      ctx.fillStyle = '#0b111e';
+    }
     ctx.fillRect(0, 0, w, h);
 
-    const tileZ = Math.max(2, Math.min(16, Math.round(state.zoom)));
-    const demZ = Math.max(2, Math.min(13, tileZ - 1));
-    const scaleFactor = Math.pow(2, state.zoom) * 256;
+    const { project, tileZ, metersPerPx } = createProjector(w, h);
+    const nTiles = 1 << tileZ;
+    const centerTx = Math.floor(lonToNormX(state.lon) * nTiles);
+    const centerTy = Math.floor(latToNormY(state.lat) * nTiles);
 
-    const cx = lonToX(state.lon);
-    const cy = latToY(state.lat);
+    // Determine visible tile radius (larger radius needed when tilted toward horizon)
+    const radius = state.pitch > 35 ? 4 : 3;
+    const meshSteps = state.pitch > 5 ? 8 : 1; // 8x8 elevation grid per tile in 3D, 1x1 in flat 2D
 
-    // Meters per pixel at current latitude & zoom
-    const metersPerPixel = (156543.03392 * Math.cos(state.lat * Math.PI / 180)) / Math.pow(2, state.zoom);
-    const elevScale = (state.exag / Math.max(1, metersPerPixel));
+    // Collect visible tiles and sort back-to-front (Painter's algorithm)
+    const tilesToDraw = [];
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        const tx = centerTx + dx;
+        const ty = centerTy + dy;
+        if (ty < 0 || ty >= nTiles) continue;
 
-    // Determine visible tile range around center
-    const viewRadiusTiles = Math.ceil((Math.max(w, h) * 0.85) / (256 * Math.pow(2, state.zoom - tileZ))) + 1;
-    const centerTx = Math.floor(cx * (1 << tileZ));
-    const centerTy = Math.floor(cy * (1 << tileZ));
-    const maxT = 1 << tileZ;
+        const midNx = (tx + 0.5) / nTiles;
+        const midNy = (ty + 0.5) / nTiles;
+        const midElev = state.pitch > 5 ? sampleElevation(midNx, midNy, tileZ) : 0;
+        const proj = project(midNx, midNy, midElev);
+        if (!proj) continue;
 
-    // Subdivision grid per tile (higher when pitched in 3D, faster 2x2 when flat 2D)
-    const sub = state.pitch > 4 ? 8 : 2;
-    const tris = [];
+        tilesToDraw.push({ tx, ty, depth: proj.depth });
+      }
+    }
 
-    for (let dyT = -viewRadiusTiles; dyT <= viewRadiusTiles; dyT++) {
-      const ty = centerTy + dyT;
-      if (ty < 0 || ty >= maxT) continue;
+    // Farthest tiles first, nearest tiles last
+    tilesToDraw.sort((a, b) => b.depth - a.depth);
 
-      for (let dxT = -viewRadiusTiles; dxT <= viewRadiusTiles; dxT++) {
-        const tx = centerTx + dxT;
-        const tileEntry = getImageryTile(state.layer, tileZ, tx, ty);
-        const imgReady = tileEntry && tileEntry.loaded;
+    const tileMeters = metersPerPx * 256 * Math.pow(2, state.zoom - tileZ);
+    const cellMeters = tileMeters / meshSteps;
 
-        // Build vertex grid for this tile
-        const grid = new Array((sub + 1) * (sub + 1));
-        for (let gy = 0; gy <= sub; gy++) {
-          const vFrac = gy / sub;
-          const ny = (ty + vFrac) / maxT;
-          for (let gx = 0; gx <= sub; gx++) {
-            const uFrac = gx / sub;
-            const nx = (tx + uFrac) / maxT;
+    for (const t of tilesToDraw) {
+      const mapEntry = getMapTile(state.layer, tileZ, t.tx, t.ty);
+      if (!mapEntry || !mapEntry.ready || !mapEntry.img) continue;
 
-            const wx = (nx - cx) * scaleFactor;
-            const wy = (ny - cy) * scaleFactor;
-            const elevM = state.pitch > 0.5 && state.exag > 0 ? sampleElevation(nx, ny, demZ) : 0;
-            const wz = elevM * elevScale;
-
-            const proj = project3D(wx, wy, wz, w, h);
-            grid[gy * (sub + 1) + gx] = {
-              sx: proj.sx, sy: proj.sy, depth: proj.depth,
-              u: uFrac * 256, v: vFrac * 256, elev: elevM
-            };
-          }
+      // Build vertex grid for this tile
+      const grid = [];
+      for (let gy = 0; gy <= meshSteps; gy++) {
+        const row = [];
+        const ny = (t.ty + gy / meshSteps) / nTiles;
+        for (let gx = 0; gx <= meshSteps; gx++) {
+          const nx = (t.tx + gx / meshSteps) / nTiles;
+          const elev = state.pitch > 5 ? sampleElevation(nx, ny, tileZ) : 0;
+          const p = project(nx, ny, elev);
+          row.push({ p, elev, u: (gx / meshSteps) * 256, v: (gy / meshSteps) * 256 });
         }
+        grid.push(row);
+      }
 
-        // Emit 2 triangles per grid cell
-        for (let gy = 0; gy < sub; gy++) {
-          for (let gx = 0; gx < sub; gx++) {
-            const p00 = grid[gy * (sub + 1) + gx];
-            const p10 = grid[gy * (sub + 1) + (gx + 1)];
-            const p01 = grid[(gy + 1) * (sub + 1) + gx];
-            const p11 = grid[(gy + 1) * (sub + 1) + (gx + 1)];
+      // Render subdivided triangles
+      for (let gy = 0; gy < meshSteps; gy++) {
+        for (let gx = 0; gx < meshSteps; gx++) {
+          const v00 = grid[gy][gx];
+          const v10 = grid[gy][gx + 1];
+          const v01 = grid[gy + 1][gx];
+          const v11 = grid[gy + 1][gx + 1];
 
-            // Quick offscreen cull
-            const minX = Math.min(p00.sx, p10.sx, p01.sx, p11.sx);
-            const maxX = Math.max(p00.sx, p10.sx, p01.sx, p11.sx);
-            const minY = Math.min(p00.sy, p10.sy, p01.sy, p11.sy);
-            const maxY = Math.max(p00.sy, p10.sy, p01.sy, p11.sy);
-            if (maxX < -50 || minX > w + 50 || maxY < -50 || minY > h + 50) continue;
+          if (!v00.p || !v10.p || !v01.p || !v11.p) continue;
 
-            // Directional hillshade from NW light source
-            const slopeX = (p10.elev - p00.elev) / Math.max(1, metersPerPixel * (256 / sub));
-            const slopeY = (p01.elev - p00.elev) / Math.max(1, metersPerPixel * (256 / sub));
-            const shade = state.pitch > 4 ? (-slopeX * 0.45 - slopeY * 0.45) * Math.min(1.5, state.exag * 0.4) : 0;
+          // Quick frustum cull
+          const minX = Math.min(v00.p.sx, v10.p.sx, v01.p.sx, v11.p.sx);
+          const maxX = Math.max(v00.p.sx, v10.p.sx, v01.p.sx, v11.p.sx);
+          const minY = Math.min(v00.p.sy, v10.p.sy, v01.p.sy, v11.p.sy);
+          const maxY = Math.max(v00.p.sy, v10.p.sy, v01.p.sy, v11.p.sy);
+          if (maxX < -50 || minX > w + 50 || maxY < -50 || minY > h + 50) continue;
 
-            const avgDepth = (p00.depth + p10.depth + p01.depth + p11.depth) * 0.25;
-            tris.push({
-              depth: avgDepth,
-              img: imgReady ? tileEntry.img : null,
-              p00, p10, p01, p11,
-              shade
-            });
+          // Compute slope shading from NW light source
+          let shade = 0;
+          if (state.shading && state.pitch > 5) {
+            const dzdx = ((v10.elev - v00.elev) * state.exag) / (cellMeters || 1);
+            const dzdy = ((v01.elev - v00.elev) * state.exag) / (cellMeters || 1);
+            // Light vector from NW (-0.65, -0.65)
+            shade = (-dzdx * 0.65 - dzdy * 0.65) * 0.35;
           }
+
+          drawTexturedTriangle(
+            mapEntry.img,
+            v00.p, v10.p, v11.p,
+            v00.u, v00.v, v10.u, v10.v, v11.u, v11.v,
+            shade
+          );
+          drawTexturedTriangle(
+            mapEntry.img,
+            v00.p, v11.p, v01.p,
+            v00.u, v00.v, v11.u, v11.v, v01.u, v01.v,
+            shade
+          );
         }
       }
     }
 
-    // Painter's algorithm: sort far-to-near so mountains properly occlude valleys behind them
-    tris.sort((a, b) => b.depth - a.depth);
-
-    for (let i = 0; i < tris.length; i++) {
-      const t = tris[i];
-      const { p00, p10, p01, p11, img, shade } = t;
-
-      if (img) {
-        drawTexturedTriangle(img, p00.sx, p00.sy, p10.sx, p10.sy, p01.sx, p01.sy, p00.u, p00.v, p10.u, p10.v, p01.u, p01.v, shade);
-        drawTexturedTriangle(img, p10.sx, p10.sy, p11.sx, p11.sy, p01.sx, p01.sy, p10.u, p10.v, p11.u, p11.v, p01.u, p01.v, shade);
-      } else {
-        ctx.fillStyle = '#1e293b';
-        ctx.beginPath();
-        ctx.moveTo(p00.sx, p00.sy); ctx.lineTo(p10.sx, p10.sy);
-        ctx.lineTo(p11.sx, p11.sy); ctx.lineTo(p01.sx, p01.sy);
-        ctx.closePath(); ctx.fill();
-      }
-
-      if (state.wireframe) {
-        ctx.strokeStyle = 'rgba(56, 189, 248, 0.28)';
-        ctx.lineWidth = 0.7;
-        ctx.beginPath();
-        ctx.moveTo(p00.sx, p00.sy); ctx.lineTo(p10.sx, p10.sy);
-        ctx.lineTo(p11.sx, p11.sy); ctx.lineTo(p01.sx, p01.sy);
-        ctx.closePath(); ctx.stroke();
-      }
+    // Draw Richat Structure 3D Draped Rings when toggled & nearby
+    if (state.showRings && Math.abs(state.lat - 21.1147) < 2.5 && Math.abs(state.lon - (-11.3942)) < 2.5) {
+      drawGeoCircle(project, tileZ, 21.1147, -11.3942, 22.0, 'rgba(56, 189, 248, 0.85)', 2);
+      drawGeoCircle(project, tileZ, 21.1147, -11.3942, 10.0, 'rgba(250, 204, 21, 0.85)', 1.5);
     }
 
-    // Draw Richat Structure 3D draped reference rings when near Mauritania
-    if (state.showRichatRing && Math.abs(state.lat - 21.1147) < 2 && Math.abs(state.lon - (-11.3942)) < 2) {
-      drawGeoRing(21.1147, -11.3942, 22, 'rgba(56, 189, 248, 0.85)', 2, demZ, cx, cy, scaleFactor, elevScale, w, h);
-      drawGeoRing(21.1147, -11.3942, 10, 'rgba(250, 204, 21, 0.85)', 1.5, demZ, cx, cy, scaleFactor, elevScale, w, h);
-    }
-
-    // Update HUD
-    const latDir = state.lat >= 0 ? 'N' : 'S';
-    const lonDir = state.lon >= 0 ? 'E' : 'W';
-    document.getElementById('hudCoords').textContent = `${Math.abs(state.lat).toFixed(4)}° ${latDir}, ${Math.abs(state.lon).toFixed(4)}° ${lonDir}`;
-    document.getElementById('hudZoom').textContent = state.zoom.toFixed(1);
-    document.getElementById('hudPitch').textContent = `${Math.round(state.pitch)}°`;
+    updateHUD();
   }
 
-  function drawGeoRing(lat0, lon0, radiusKm, color, lineWidth, demZ, cx, cy, scaleFactor, elevScale, w, h) {
-    const steps = 64;
-    const dLat = radiusKm / 111.32;
-    const dLon = radiusKm / (111.32 * Math.cos(lat0 * Math.PI / 180));
+  function drawGeoCircle(project, tileZ, cLat, cLon, radiusKm, color, lineWidth) {
+    const steps = 72;
+    const latDegPerKm = 1 / 110.574;
+    const lonDegPerKm = 1 / (111.320 * Math.cos(cLat * Math.PI / 180));
+
     ctx.save();
     ctx.strokeStyle = color;
     ctx.lineWidth = lineWidth;
     ctx.beginPath();
+    let started = false;
+
     for (let i = 0; i <= steps; i++) {
-      const a = (i / steps) * Math.PI * 2;
-      const lat = lat0 + Math.sin(a) * dLat;
-      const lon = lon0 + Math.cos(a) * dLon;
-      const nx = lonToX(lon);
-      const ny = latToY(lat);
-      const elevM = state.pitch > 0.5 ? sampleElevation(nx, ny, demZ) : 0;
-      const p = project3D((nx - cx) * scaleFactor, (ny - cy) * scaleFactor, elevM * elevScale + 2, w, h);
-      if (i === 0) ctx.moveTo(p.sx, p.sy);
-      else ctx.lineTo(p.sx, p.sy);
+      const ang = (i / steps) * Math.PI * 2;
+      const lat = cLat + Math.sin(ang) * radiusKm * latDegPerKm;
+      const lon = cLon + Math.cos(ang) * radiusKm * lonDegPerKm;
+      const nx = lonToNormX(lon);
+      const ny = latToNormY(lat);
+      const elev = state.pitch > 5 ? sampleElevation(nx, ny, tileZ) + 15 : 0;
+      const p = project(nx, ny, elev);
+      if (!p) { started = false; continue; }
+      if (!started) { ctx.moveTo(p.sx, p.sy); started = true; }
+      else { ctx.lineTo(p.sx, p.sy); }
     }
     ctx.stroke();
     ctx.restore();
   }
 
-  // Mouse & Touch Interaction (Left-drag = Pan, Right-drag or Shift+Drag = 3D Tilt/Rotate)
+  function updateHUD() {
+    const latDir = state.lat >= 0 ? 'N' : 'S';
+    const lonDir = state.lon >= 0 ? 'E' : 'W';
+    document.getElementById('hudCoord').textContent =
+      `${Math.abs(state.lat).toFixed(4)}° ${latDir}, ${Math.abs(state.lon).toFixed(4)}° ${lonDir}`;
+    document.getElementById('hudZoom').textContent = state.zoom.toFixed(1);
+    document.getElementById('hudElev').textContent =
+      state.hoverElev !== null ? `${Math.round(state.hoverElev)} m` : '-- m';
+
+    document.getElementById('pitchSlider').value = state.pitch;
+    document.getElementById('pitchVal').textContent = `${Math.round(state.pitch)}°`;
+    document.getElementById('bearingSlider').value = state.bearing;
+    document.getElementById('bearingVal').textContent = `${Math.round(state.bearing)}°`;
+    document.getElementById('exagSlider').value = state.exag;
+    document.getElementById('exagVal').textContent = `${state.exag.toFixed(1)}x`;
+  }
+
+  // Mouse & Touch Controls
   let dragging = false;
-  let dragMode = 'pan';
+  let dragMode = 'pan'; // 'pan' or 'orbit'
   let lastX = 0, lastY = 0;
 
   canvas.addEventListener('contextmenu', e => e.preventDefault());
+
   canvas.addEventListener('mousedown', e => {
     dragging = true;
     lastX = e.clientX;
@@ -546,139 +645,160 @@
     dragMode = (e.button === 2 || e.shiftKey) ? 'orbit' : 'pan';
   });
 
-  window.addEventListener('mousemove', e => {
-    // Sample live elevation under cursor
-    const demZ = Math.max(2, Math.min(13, Math.round(state.zoom) - 1));
-    const centerElev = sampleElevation(lonToX(state.lon), latToY(state.lat), demZ);
-    document.getElementById('hudElev').textContent = `${Math.round(centerElev)} m`;
+  window.addEventListener('mouseup', () => { dragging = false; });
 
-    if (!dragging) return;
+  window.addEventListener('mousemove', e => {
+    // Update live elevation readout under cursor when in flat/low-tilt view
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+
+    if (!dragging) {
+      const worldPx = 256 * Math.pow(2, state.zoom);
+      const bearRad = state.bearing * Math.PI / 180;
+      const cosB = Math.cos(bearRad), sinB = Math.sin(bearRad);
+      const rx = mx - rect.width * 0.5;
+      const ry = (my - rect.height * 0.5) / Math.max(0.25, Math.cos(state.pitch * Math.PI / 180));
+      const dx = rx * cosB + ry * sinB;
+      const dy = -rx * sinB + ry * cosB;
+      const nx = lonToNormX(state.lon) + dx / worldPx;
+      const ny = latToNormY(state.lat) + dy / worldPx;
+      const tileZ = Math.max(2, Math.min(14, Math.round(state.zoom)));
+      state.hoverElev = sampleElevation(nx, ny, tileZ);
+      document.getElementById('hudElev').textContent = `${Math.round(state.hoverElev)} m`;
+      return;
+    }
+
     const dx = e.clientX - lastX;
     const dy = e.clientY - lastY;
     lastX = e.clientX;
     lastY = e.clientY;
 
     if (dragMode === 'orbit') {
-      state.bearing = ((state.bearing + dx * 0.35 + 180) % 360 + 360) % 360 - 180;
-      state.pitch = Math.max(0, Math.min(72, state.pitch - dy * 0.3));
-      syncSliders();
+      state.bearing = ((state.bearing + dx * 0.45 + 540) % 360) - 180;
+      // Dragging upward increases 3D tilt (horizon recedes, foreground comes closer)
+      state.pitch = Math.max(0, Math.min(72, state.pitch - dy * 0.35));
     } else {
-      // Pan adjusted by current bearing and pitch foreshortening
-      const radB = state.bearing * Math.PI / 180;
-      const pitchFactor = Math.max(0.35, Math.cos(state.pitch * Math.PI / 180));
-      const adjDy = dy / pitchFactor;
-      const worldDx = dx * Math.cos(radB) - adjDy * Math.sin(radB);
-      const worldDy = dx * Math.sin(radB) + adjDy * Math.cos(radB);
+      // Pan ground plane aligned with camera bearing
+      const worldPx = 256 * Math.pow(2, state.zoom);
+      const bearRad = state.bearing * Math.PI / 180;
+      const cosB = Math.cos(bearRad), sinB = Math.sin(bearRad);
+      const pitchComp = 1 / Math.max(0.35, Math.cos(state.pitch * Math.PI / 180));
 
-      const scaleFactor = Math.pow(2, state.zoom) * 256;
-      const nx = (lonToX(state.lon) - worldDx / scaleFactor + 1) % 1;
-      const ny = Math.max(0.01, Math.min(0.99, latToY(state.lat) - worldDy / scaleFactor));
-      state.lon = xToLon(nx);
-      state.lat = yToLat(ny);
+      const gx = dx * cosB + (dy * pitchComp) * sinB;
+      const gy = -dx * sinB + (dy * pitchComp) * cosB;
+
+      const nx = lonToNormX(state.lon) - gx / worldPx;
+      const ny = Math.max(0.01, Math.min(0.99, latToNormY(state.lat) - gy / worldPx));
+      state.lon = ((normXToLon(nx) + 540) % 360) - 180;
+      state.lat = normYToLat(ny);
     }
     scheduleRender();
   });
 
-  window.addEventListener('mouseup', () => { dragging = false; });
-
   canvas.addEventListener('wheel', e => {
     e.preventDefault();
-    const delta = e.deltaY < 0 ? 0.45 : -0.45;
+    const delta = -Math.sign(e.deltaY) * 0.45;
     state.zoom = Math.max(2.5, Math.min(16, state.zoom + delta));
     scheduleRender();
   }, { passive: false });
 
-  // UI Controls
-  const pitchSlider = document.getElementById('pitchSlider');
-  const bearingSlider = document.getElementById('bearingSlider');
-  const exagSlider = document.getElementById('exagSlider');
-
-  function syncSliders() {
-    pitchSlider.value = Math.round(state.pitch);
-    bearingSlider.value = Math.round(state.bearing);
-    exagSlider.value = state.exag;
-    document.getElementById('pitchVal').textContent = `${Math.round(state.pitch)}°`;
-    document.getElementById('bearingVal').textContent = `${Math.round(state.bearing)}°`;
-    document.getElementById('exagVal').textContent = `${state.exag.toFixed(1)}x`;
-  }
-
-  pitchSlider.addEventListener('input', () => { state.pitch = parseFloat(pitchSlider.value); syncSliders(); scheduleRender(); });
-  bearingSlider.addEventListener('input', () => { state.bearing = parseFloat(bearingSlider.value); syncSliders(); scheduleRender(); });
-  exagSlider.addEventListener('input', () => { state.exag = parseFloat(exagSlider.value); syncSliders(); scheduleRender(); });
-
+  // UI Control Bindings
   document.getElementById('layerSelect').addEventListener('change', e => {
     state.layer = e.target.value;
     scheduleRender();
   });
 
-  document.getElementById('zoomIn').addEventListener('click', () => { state.zoom = Math.min(16, state.zoom + 0.7); scheduleRender(); });
-  document.getElementById('zoomOut').addEventListener('click', () => { state.zoom = Math.max(2.5, state.zoom - 0.7); scheduleRender(); });
-
-  document.getElementById('toggleWire').addEventListener('click', e => {
-    state.wireframe = !state.wireframe;
-    e.target.textContent = state.wireframe ? 'Terrain Mesh: Wireframe' : 'Terrain Mesh: Smooth';
-    e.target.classList.toggle('active', !state.wireframe);
+  document.getElementById('pitchSlider').addEventListener('input', e => {
+    state.pitch = parseFloat(e.target.value);
     scheduleRender();
   });
 
-  document.getElementById('toggleRing').addEventListener('click', e => {
-    state.showRichatRing = !state.showRichatRing;
-    e.target.textContent = state.showRichatRing ? 'Richat Ring: On' : 'Richat Ring: Off';
-    e.target.classList.toggle('active', state.showRichatRing);
+  document.getElementById('bearingSlider').addEventListener('input', e => {
+    state.bearing = parseFloat(e.target.value);
     scheduleRender();
   });
 
-  document.getElementById('resetViewBtn').addEventListener('click', () => {
-    state.pitch = 52; state.bearing = 25; state.exag = 2.5;
-    syncSliders(); scheduleRender();
+  document.getElementById('exagSlider').addEventListener('input', e => {
+    state.exag = parseFloat(e.target.value);
+    scheduleRender();
   });
 
-  document.getElementById('flat2dBtn').addEventListener('click', () => {
-    state.pitch = 0; state.bearing = 0;
-    syncSliders(); scheduleRender();
+  document.getElementById('shadeCheck').addEventListener('change', e => {
+    state.shading = e.target.checked;
+    scheduleRender();
   });
 
-  document.querySelectorAll('.preset-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      state.lat = parseFloat(btn.dataset.lat);
-      state.lon = parseFloat(btn.dataset.lon);
-      state.zoom = parseFloat(btn.dataset.z);
+  document.getElementById('ringsCheck').addEventListener('change', e => {
+    state.showRings = e.target.checked;
+    scheduleRender();
+  });
+
+  document.getElementById('btn2D').addEventListener('click', () => {
+    state.pitch = 0;
+    state.bearing = 0;
+    scheduleRender();
+  });
+
+  document.getElementById('btn3D').addEventListener('click', () => {
+    if (state.pitch < 20) state.pitch = 52;
+    scheduleRender();
+  });
+
+  document.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      state.lat = parseFloat(chip.dataset.lat);
+      state.lon = parseFloat(chip.dataset.lon);
+      state.zoom = parseFloat(chip.dataset.z);
+      state.pitch = parseFloat(chip.dataset.p);
+      state.bearing = parseFloat(chip.dataset.b);
       scheduleRender();
     });
   });
 
-  // Global Geocoder (Open-Meteo Geocoding API - CORS enabled, zero API key) + Lat,Lon parser
-  async function jumpToQuery() {
+  // Global Geocoder Search (Nominatim + Direct Coordinate Parsing)
+  async function handleSearch() {
     const q = document.getElementById('searchInput').value.trim();
     if (!q) return;
 
-    const coordMatch = q.match(/^(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)$/);
+    // Check if user entered "lat, lon"
+    const coordMatch = q.match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
     if (coordMatch) {
       state.lat = Math.max(-85, Math.min(85, parseFloat(coordMatch[1])));
       state.lon = Math.max(-180, Math.min(180, parseFloat(coordMatch[2])));
-      state.zoom = 11;
+      if (state.zoom < 10) state.zoom = 11;
       scheduleRender();
       return;
     }
 
+    const btn = document.getElementById('searchBtn');
+    btn.textContent = '...';
     try {
-      const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=en&format=json`);
-      const data = await res.json();
-      if (data.results && data.results.length > 0) {
-        state.lat = data.results[0].latitude;
-        state.lon = data.results[0].longitude;
-        state.zoom = 11;
+      const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`);
+      const results = await resp.json();
+      if (results && results.length > 0) {
+        state.lat = parseFloat(results[0].lat);
+        state.lon = parseFloat(results[0].lon);
+        state.zoom = 11.5;
+        if (state.pitch < 25) state.pitch = 50;
         scheduleRender();
+      } else {
+        alert('Location not found. Try a city, mountain name, or "lat, lon" coordinates.');
       }
     } catch (err) {
-      console.warn('Search lookup failed', err);
+      alert('Search network error. You can also enter "lat, lon" directly (e.g., 27.98, 86.92).');
+    } finally {
+      btn.textContent = 'Go';
     }
   }
 
-  document.getElementById('searchBtn').addEventListener('click', jumpToQuery);
-  document.getElementById('searchInput').addEventListener('keydown', e => { if (e.key === 'Enter') jumpToQuery(); });
+  document.getElementById('searchBtn').addEventListener('click', handleSearch);
+  document.getElementById('searchInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleSearch();
+  });
 
-  resize();
+  window.addEventListener('resize', scheduleRender);
+  scheduleRender();
 })();
 </script>
 </body>
