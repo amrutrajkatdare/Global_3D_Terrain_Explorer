@@ -3,393 +3,832 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Eye of the Sahara (Richat Structure) - Topographic Map</title>
+<title>Eye of the Sahara (Richat Structure) - 2D & 3D Topographic Viewer</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body, html { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #1e2229; }
+  body { font-family: system-ui, -apple-system, sans-serif; overflow: hidden; background: #0f172a; color: #f8fafc; user-select: none; }
   
-  #header {
-    position: absolute; top: 0; left: 0; right: 0; height: 48px;
-    background: rgba(20, 24, 31, 0.92); color: #fff;
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 0 16px; z-index: 100; border-bottom: 1px solid rgba(255,255,255,0.12);
-    backdrop-filter: blur(6px);
+  #map-canvas, #canvas-3d {
+    position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; display: block;
   }
-  #header h1 { font-size: 15px; font-weight: 600; letter-spacing: 0.2px; }
-  #header span.sub { font-size: 12px; color: #9aa5b1; margin-left: 8px; font-weight: 400; }
+  #map-canvas { cursor: grab; }
+  #map-canvas:active { cursor: grabbing; }
+  #canvas-3d { display: none; cursor: grab; background: radial-gradient(circle at center, #1e293b 0%, #090d16 100%); }
+  #canvas-3d:active { cursor: grabbing; }
 
-  .controls { display: flex; gap: 8px; align-items: center; }
-  select, button {
-    background: #2c333f; color: #fff; border: 1px solid #454f5e;
-    padding: 5px 10px; border-radius: 5px; font-size: 12px; cursor: pointer;
-    outline: none;
-  }
-  select:hover, button:hover { background: #384150; }
-
-  #map-container {
-    position: absolute; top: 48px; left: 0; right: 0; bottom: 0;
-    cursor: grab; user-select: none; overflow: hidden; background: #e8e4d8;
-  }
-  #map-container:active { cursor: grabbing; }
-  canvas { display: block; width: 100%; height: 100%; }
-
-  #info-card {
-    position: absolute; bottom: 20px; left: 20px; width: 290px;
-    background: rgba(255, 255, 255, 0.95); color: #1f2933;
-    border-radius: 8px; padding: 14px 16px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.22); z-index: 90;
-    font-size: 12px; line-height: 1.5;
-    border: 1px solid rgba(0,0,0,0.08);
-  }
-  #info-card h2 { font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #102a43; border-bottom: 1px solid #e4e7eb; padding-bottom: 4px; }
-  .stat-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
-  .stat-label { color: #616e7c; font-weight: 500; }
-  .stat-val { font-weight: 600; color: #102a43; }
-
-  #coords-box {
-    position: absolute; top: 60px; right: 16px;
-    background: rgba(20, 24, 31, 0.85); color: #e4e7eb;
-    padding: 5px 10px; border-radius: 4px; font-size: 11px;
-    font-family: monospace; z-index: 90; pointer-events: none;
+  .panel {
+    position: absolute; z-index: 10; background: rgba(15, 23, 42, 0.88);
+    backdrop-filter: blur(8px); border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: 10px; padding: 14px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
   }
 
-  #attribution {
-    position: absolute; bottom: 4px; right: 8px;
-    background: rgba(255,255,255,0.85); color: #333;
-    padding: 2px 6px; border-radius: 3px; font-size: 10px; z-index: 90;
+  #controls-panel { top: 16px; left: 16px; width: 290px; }
+  h1 { font-size: 15px; font-weight: 700; color: #38bdf8; margin-bottom: 4px; }
+  .subtitle { font-size: 11px; color: #94a3b8; margin-bottom: 12px; }
+
+  .mode-switch {
+    display: flex; background: #1e293b; border-radius: 6px; padding: 3px; margin-bottom: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
   }
-  #attribution a { color: #0066cc; text-decoration: none; }
+  .mode-btn {
+    flex: 1; padding: 6px 8px; border: none; background: transparent; color: #94a3b8;
+    font-size: 12px; font-weight: 600; border-radius: 4px; cursor: pointer; transition: all 0.2s;
+  }
+  .mode-btn.active { background: #0284c7; color: #fff; }
+
+  label { display: block; font-size: 11px; font-weight: 600; color: #cbd5e1; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+  select, input[type="range"] { width: 100%; margin-bottom: 10px; }
+  select {
+    background: #1e293b; color: #f8fafc; border: 1px solid #475569;
+    padding: 7px 10px; border-radius: 6px; font-size: 12px; outline: none; cursor: pointer;
+  }
+
+  .checkbox-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #e2e8f0; margin-bottom: 8px; cursor: pointer; }
+  .checkbox-row input { accent-color: #38bdf8; width: 15px; height: 15px; cursor: pointer; }
+
+  .btn-group { display: flex; gap: 6px; margin-top: 6px; }
+  .btn {
+    flex: 1; background: #1e293b; color: #e2e8f0; border: 1px solid #475569;
+    padding: 6px 8px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 500;
+  }
+  .btn:hover { background: #334155; border-color: #38bdf8; }
+
+  #info-panel { bottom: 16px; left: 16px; width: 290px; font-size: 12px; }
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+  .stat-box { background: rgba(30, 41, 59, 0.7); padding: 7px 9px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.15); }
+  .stat-label { font-size: 10px; color: #94a3b8; }
+  .stat-val { font-size: 13px; font-weight: 600; color: #f1f5f9; margin-top: 2px; }
+
+  #coords-bar {
+    position: absolute; bottom: 16px; right: 16px; z-index: 10;
+    background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(148, 163, 184, 0.25);
+    padding: 6px 12px; border-radius: 6px; font-size: 11px; color: #cbd5e1;
+  }
 
   #status-banner {
-    display: none; position: absolute; top: 58px; left: 50%; transform: translateX(-50%);
-    background: #9b1c1c; color: #fff; padding: 8px 14px; border-radius: 6px;
-    font-size: 12px; z-index: 110; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    display: none; position: absolute; top: 16px; right: 16px; z-index: 20;
+    background: rgba(185, 28, 28, 0.92); color: #fff; padding: 10px 14px;
+    border-radius: 8px; font-size: 12px; max-width: 300px; border: 1px solid #fca5a5;
   }
-  #status-banner a { color: #fde8e8; font-weight: bold; }
+  #status-banner a { color: #fde047; font-weight: 600; }
+
+  #controls-3d-extra { display: none; border-top: 1px solid rgba(148,163,184,0.2); padding-top: 10px; margin-top: 6px; }
+  .hint { font-size: 11px; color: #94a3b8; margin-top: 6px; line-height: 1.4; }
 </style>
 </head>
 <body>
 
-<div id="header">
-  <div>
-    <h1>Eye of the Sahara (Richat Structure) <span class="sub">Adrar Plateau, Mauritania</span></h1>
-  </div>
-  <div class="controls">
-    <select id="layer-select" title="Choose Map Layer">
-      <option value="esri_topo">Esri World Topographic</option>
-      <option value="opentopo">OpenTopoMap (Contours)</option>
-      <option value="esri_imagery">Esri Satellite Imagery</option>
-      <option value="esri_street">Esri World Street Map</option>
-      <option value="esri_shaded">Esri Hillshade Relief</option>
-    </select>
-    <button id="zoom-in" title="Zoom In">+</button>
-    <button id="zoom-out" title="Zoom Out">&minus;</button>
-    <button id="reset-btn" title="Reset View">Reset</button>
-  </div>
-</div>
+<canvas id="map-canvas"></canvas>
+<canvas id="canvas-3d"></canvas>
 
 <div id="status-banner">
-  Unable to fetch map tiles (offline or blocked). 
-  <a href="https://en-us.topographic-map.com/map-mq718/Richat-Structure/" target="_blank">Open Online Topographic Map &nearr;</a>
+  Map tiles are blocked or offline. Check internet connection or view online:
+  <a href="https://en-us.topographic-map.com/map-mq718/Richat-Structure/" target="_blank">Open Topographic Map</a>
 </div>
 
-<div id="coords-box">21.1147° N, 11.3942° W | Zoom: 11</div>
+<div id="controls-panel" class="panel">
+  <h1>Eye of the Sahara</h1>
+  <div class="subtitle">Richat Structure &bull; Adrar Plateau, Mauritania</div>
 
-<div id="map-container">
-  <canvas id="map-canvas"></canvas>
+  <div class="mode-switch">
+    <button id="btn-mode-2d" class="mode-btn active">2D Map View</button>
+    <button id="btn-mode-3d" class="mode-btn">3D Terrain View</button>
+  </div>
+
+  <label for="layer-select">Map Layer / Texture</label>
+  <select id="layer-select">
+    <option value="esri_topo">Esri World Topographic</option>
+    <option value="opentopo">OpenTopoMap (Contours)</option>
+    <option value="esri_sat">Esri World Imagery (Satellite)</option>
+    <option value="esri_street">Esri World Street Map</option>
+    <option value="esri_hillshade">Esri Shaded Relief (Hillshade)</option>
+  </select>
+
+  <label class="checkbox-row">
+    <input type="checkbox" id="toggle-rings" checked>
+    Show Geological Ring Overlays
+  </label>
+
+  <div id="controls-2d-extra">
+    <div class="btn-group">
+      <button class="btn" id="zoom-in">+ Zoom In</button>
+      <button class="btn" id="zoom-out">- Zoom Out</button>
+      <button class="btn" id="reset-2d">Reset</button>
+    </div>
+  </div>
+
+  <div id="controls-3d-extra">
+    <label for="exaggeration">Vertical Elevation Exaggeration: <span id="exag-val">3.5x</span></label>
+    <input type="range" id="exaggeration" min="1" max="8" step="0.5" value="3.5">
+
+    <label for="render-style">3D Surface Style</label>
+    <select id="render-style">
+      <option value="textured">Map Tile Draped + Relief Shading</option>
+      <option value="hypsometric">Hypsometric Elevation Tint + Contours</option>
+      <option value="wireframe">3D Topographic Wireframe Mesh</option>
+    </select>
+
+    <div class="btn-group">
+      <button class="btn" id="toggle-spin">Auto-Rotate: Off</button>
+      <button class="btn" id="reset-3d">Reset 3D Angle</button>
+    </div>
+    <div class="hint">Drag to orbit &bull; Scroll to zoom &bull; Right-drag to tilt</div>
+  </div>
 </div>
 
-<div id="info-card">
-  <h2>Topographic Profile</h2>
-  <div class="stat-row"><span class="stat-label">Center:</span><span class="stat-val">21°06′53″N, 11°23′39″W</span></div>
-  <div class="stat-row"><span class="stat-label">Diameter:</span><span class="stat-val">~40–50 km (25–30 mi)</span></div>
-  <div class="stat-row"><span class="stat-label">Elevation Range:</span><span class="stat-val">349 m – 605 m</span></div>
-  <div class="stat-row"><span class="stat-label">Average Elevation:</span><span class="stat-val">~402 m (1,319 ft)</span></div>
-  <div class="stat-row"><span class="stat-label">Ring Relief:</span><span class="stat-val">Up to ~80 m ridges</span></div>
-  <div class="stat-row"><span class="stat-label">Controls:</span><span class="stat-val">Drag to pan, scroll to zoom</span></div>
+<div id="info-panel" class="panel">
+  <div style="font-weight: 600; color: #38bdf8;">Topographic & Geological Data</div>
+  <div class="stat-grid">
+    <div class="stat-box">
+      <div class="stat-label">Outer Diameter</div>
+      <div class="stat-val">40 &ndash; 50 km</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Elevation Range</div>
+      <div class="stat-val">349 &ndash; 605 m</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Ridge Relief</div>
+      <div class="stat-val">Up to ~80 m</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Center Coords</div>
+      <div class="stat-val">21.11&deg;N, 11.39&deg;W</div>
+    </div>
+  </div>
 </div>
 
-<div id="attribution">
-  Tiles: <span id="attr-text">Esri World Topographic</span> | 
-  <a href="https://en-us.topographic-map.com/map-mq718/Richat-Structure/" target="_blank">Open Online Topo Viewer</a>
-</div>
+<div id="coords-bar">Lat: 21.1147&deg; N | Lon: 11.3942&deg; W | Zoom: 11</div>
 
 <script>
-(function() {
-  const CENTER_LAT = 21.114722;
-  const CENTER_LON = -11.394167;
-  const DEFAULT_ZOOM = 11;
+// Core Coordinates
+const CENTER_LAT = 21.1147;
+const CENTER_LON = -11.3942;
 
-  let centerLat = CENTER_LAT;
-  let centerLon = CENTER_LON;
-  let zoom = DEFAULT_ZOOM;
-  let currentLayer = 'esri_topo';
+// Reliable Key-Free Tile Providers
+const LAYERS = {
+  esri_topo: {
+    name: 'Esri World Topographic',
+    url: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/${z}/${y}/${x}`
+  },
+  opentopo: {
+    name: 'OpenTopoMap',
+    url: (z, x, y) => `https://a.tile.opentopomap.org/${z}/${x}/${y}.png`
+  },
+  esri_sat: {
+    name: 'Esri Satellite',
+    url: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`
+  },
+  esri_street: {
+    name: 'Esri World Street Map',
+    url: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${z}/${y}/${x}`
+  },
+  esri_hillshade: {
+    name: 'Esri Hillshade Relief',
+    url: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/${z}/${y}/${x}`
+  }
+};
 
-  const LAYERS = {
-    esri_topo: {
-      name: 'Esri World Topographic',
-      maxZoom: 16,
-      getUrl: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/${z}/${y}/${x}`
-    },
-    opentopo: {
-      name: 'OpenTopoMap',
-      maxZoom: 15,
-      getUrl: (z, x, y) => `https://a.tile.opentopomap.org/${z}/${x}/${y}.png`
-    },
-    esri_imagery: {
-      name: 'Esri World Imagery',
-      maxZoom: 16,
-      getUrl: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`
-    },
-    esri_street: {
-      name: 'Esri World Street Map',
-      maxZoom: 16,
-      getUrl: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${z}/${y}/${x}`
-    },
-    esri_shaded: {
-      name: 'Esri World Shaded Relief',
-      maxZoom: 13,
-      getUrl: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/${z}/${y}/${x}`
+// State
+let mode = '2d';
+let currentLayer = 'esri_topo';
+let showRings = true;
+let zoom = 11;
+let centerLat = CENTER_LAT;
+let centerLon = CENTER_LON;
+let tileErrors = 0;
+let tileLoads = 0;
+
+const tileCache = new Map();
+
+function lon2tileX(lon, z) { return ((lon + 180) / 360) * Math.pow(2, z); }
+function lat2tileY(lat, z) {
+  const rad = lat * Math.PI / 180;
+  return (1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2 * Math.pow(2, z);
+}
+function tileX2lon(x, z) { return (x / Math.pow(2, z)) * 360 - 180; }
+function tileY2lat(y, z) {
+  const n = Math.PI - (2 * Math.PI * y) / Math.pow(2, z);
+  return (180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+}
+
+function getTile(layerKey, z, x, y, onLoadCallback) {
+  const maxTile = Math.pow(2, z);
+  const wrappedX = ((x % maxTile) + maxTile) % maxTile;
+  if (y < 0 || y >= maxTile) return null;
+
+  const key = `${layerKey}_${z}_${wrappedX}_${y}`;
+  if (tileCache.has(key)) return tileCache.get(key);
+
+  const img = new Image();
+  img.crossOrigin = "Anonymous";
+  const record = { img, loaded: false, error: false };
+  tileCache.set(key, record);
+
+  img.onload = () => {
+    record.loaded = true;
+    tileLoads++;
+    document.getElementById('status-banner').style.display = 'none';
+    if (onLoadCallback) onLoadCallback();
+  };
+  img.onerror = () => {
+    record.error = true;
+    tileErrors++;
+    if (tileErrors > 4 && tileLoads === 0) {
+      document.getElementById('status-banner').style.display = 'block';
     }
   };
+  img.src = LAYERS[layerKey].url(z, wrappedX, y);
+  return record;
+}
 
-  const canvas = document.getElementById('map-canvas');
-  const ctx = canvas.getContext('2d');
-  const container = document.getElementById('map-container');
-  const coordsBox = document.getElementById('coords-box');
-  const attrText = document.getElementById('attr-text');
-  const statusBanner = document.getElementById('status-banner');
+// ==========================================
+// 2D MAP ENGINE
+// ==========================================
+const canvas2d = document.getElementById('map-canvas');
+const ctx2d = canvas2d.getContext('2d');
 
-  const tileCache = new Map();
-  let failedTiles = 0;
-  let loadedTiles = 0;
+function resizeCanvases() {
+  canvas2d.width = window.innerWidth;
+  canvas2d.height = window.innerHeight;
+  canvas3d.width = window.innerWidth;
+  canvas3d.height = window.innerHeight;
+  if (mode === '2d') draw2D();
+  else draw3D();
+}
 
-  function lonToTileX(lon, z) {
-    return ((lon + 180) / 360) * Math.pow(2, z);
-  }
+function draw2D() {
+  if (mode !== '2d') return;
+  const w = canvas2d.width;
+  const h = canvas2d.height;
+  ctx2d.fillStyle = '#0f172a';
+  ctx2d.fillRect(0, 0, w, h);
 
-  function latToTileY(lat, z) {
-    const rad = lat * Math.PI / 180;
-    return (1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2 * Math.pow(2, z);
-  }
+  const tileSize = 256;
+  const cx = lon2tileX(centerLon, zoom);
+  const cy = lat2tileY(centerLat, zoom);
 
-  function tileXToLon(x, z) {
-    return x / Math.pow(2, z) * 360 - 180;
-  }
+  const startX = Math.floor(cx - w / (2 * tileSize));
+  const endX = Math.floor(cx + w / (2 * tileSize)) + 1;
+  const startY = Math.floor(cy - h / (2 * tileSize));
+  const endY = Math.floor(cy + h / (2 * tileSize)) + 1;
 
-  function tileYToLat(y, z) {
-    const n = Math.PI - 2 * Math.PI * y / Math.pow(2, z);
-    return 180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
-  }
-
-  function resize() {
-    canvas.width = container.clientWidth;
-    canvas.height = container.clientHeight;
-    render();
-  }
-
-  function getTile(layerKey, z, x, y) {
-    const maxTile = Math.pow(2, z);
-    const wrappedX = ((x % maxTile) + maxTile) % maxTile;
-    if (y < 0 || y >= maxTile) return null;
-
-    const key = `${layerKey}_${z}_${wrappedX}_${y}`;
-    if (tileCache.has(key)) {
-      return tileCache.get(key);
-    }
-
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    const entry = { img, loaded: false, error: false };
-    tileCache.set(key, entry);
-
-    img.onload = () => {
-      entry.loaded = true;
-      loadedTiles++;
-      statusBanner.style.display = 'none';
-      render();
-    };
-    img.onerror = () => {
-      entry.error = true;
-      failedTiles++;
-      if (loadedTiles === 0 && failedTiles >= 4) {
-        statusBanner.style.display = 'block';
-      }
-      render();
-    };
-    img.src = LAYERS[layerKey].getUrl(z, wrappedX, y);
-    return entry;
-  }
-
-  function render() {
-    const w = canvas.width;
-    const h = canvas.height;
-    ctx.clearRect(0, 0, w, h);
-
-    const tileSize = 256;
-    const centerTileX = lonToTileX(centerLon, zoom);
-    const centerTileY = latToTileY(centerLat, zoom);
-
-    const startCol = Math.floor(centerTileX - (w / 2) / tileSize);
-    const endCol = Math.floor(centerTileX + (w / 2) / tileSize);
-    const startRow = Math.floor(centerTileY - (h / 2) / tileSize);
-    const endRow = Math.floor(centerTileY + (h / 2) / tileSize);
-
-    for (let col = startCol; col <= endCol; col++) {
-      for (let row = startRow; row <= endRow; row++) {
-        const screenX = Math.round((w / 2) + (col - centerTileX) * tileSize);
-        const screenY = Math.round((h / 2) + (row - centerTileY) * tileSize);
-
-        const tile = getTile(currentLayer, zoom, col, row);
-        if (tile && tile.loaded) {
-          ctx.drawImage(tile.img, screenX, screenY, tileSize, tileSize);
-        } else {
-          ctx.fillStyle = '#dfe3e8';
-          ctx.fillRect(screenX, screenY, tileSize, tileSize);
-          ctx.strokeStyle = '#cbd2d9';
-          ctx.strokeRect(screenX, screenY, tileSize, tileSize);
-        }
+  for (let tx = startX; tx <= endX; tx++) {
+    for (let ty = startY; ty <= endY; ty++) {
+      const px = Math.floor(w / 2 + (tx - cx) * tileSize);
+      const py = Math.floor(h / 2 + (ty - cy) * tileSize);
+      const tile = getTile(currentLayer, zoom, tx, ty, draw2D);
+      if (tile && tile.loaded) {
+        ctx2d.drawImage(tile.img, px, py, tileSize, tileSize);
+      } else {
+        ctx2d.strokeStyle = '#1e293b';
+        ctx2d.strokeRect(px, py, tileSize, tileSize);
       }
     }
-
-    // Draw Richat Structure center marker and approximate 44km diameter outer ring
-    const structTileX = lonToTileX(CENTER_LON, zoom);
-    const structTileY = latToTileY(CENTER_LAT, zoom);
-    const structScreenX = (w / 2) + (structTileX - centerTileX) * tileSize;
-    const structScreenY = (h / 2) + (structTileY - centerTileY) * tileSize;
-
-    // Meters per pixel at latitude
-    const metersPerPixel = 156543.03392 * Math.cos(CENTER_LAT * Math.PI / 180) / Math.pow(2, zoom);
-    const outerRadiusPx = 22000 / metersPerPixel; // ~44 km diameter
-    const innerRadiusPx = 10000 / metersPerPixel; // ~20 km inner ring
-
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(structScreenX, structScreenY, outerRadiusPx, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(214, 48, 49, 0.85)';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([6, 4]);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(structScreenX, structScreenY, innerRadiusPx, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(214, 48, 49, 0.55)';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    // Center crosshair
-    ctx.strokeStyle = '#d63031';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(structScreenX - 8, structScreenY);
-    ctx.lineTo(structScreenX + 8, structScreenY);
-    ctx.moveTo(structScreenX, structScreenY - 8);
-    ctx.lineTo(structScreenX, structScreenY + 8);
-    ctx.stroke();
-
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
-    ctx.fillRect(structScreenX + 10, structScreenY - 22, 146, 18);
-    ctx.fillStyle = '#b91c1c';
-    ctx.font = 'bold 11px sans-serif';
-    ctx.fillText('Richat Structure (~44 km)', structScreenX + 14, structScreenY - 9);
-    ctx.restore();
-
-    coordsBox.textContent = `${centerLat.toFixed(4)}° N, ${Math.abs(centerLon).toFixed(4)}° W | Zoom: ${zoom}`;
   }
 
-  // Panning logic
-  let isDragging = false;
-  let lastX = 0;
-  let lastY = 0;
+  // Draw Geological Ring Overlays
+  if (showRings) {
+    const scx = w / 2 + (lon2tileX(CENTER_LON, zoom) - cx) * tileSize;
+    const scy = h / 2 + (lat2tileY(CENTER_LAT, zoom) - cy) * tileSize;
+    const metersPerPixel = (156543.03392 * Math.cos(CENTER_LAT * Math.PI / 180)) / Math.pow(2, zoom);
 
-  container.addEventListener('mousedown', (e) => {
-    isDragging = true;
-    lastX = e.clientX;
-    lastY = e.clientY;
-  });
+    const rings = [
+      { rMeters: 22000, label: 'Outer Rim (~44 km)', color: '#38bdf8', dash: [8, 6] },
+      { rMeters: 12000, label: 'Middle Cuesta Ridge (~24 km)', color: '#f59e0b', dash: [5, 5] },
+      { rMeters: 4500,  label: 'Inner Core Dome (~9 km)', color: '#f43f5e', dash: [] }
+    ];
 
-  window.addEventListener('mousemove', (e) => {
-    if (!isDragging) return;
-    const dx = e.clientX - lastX;
-    const dy = e.clientY - lastY;
-    lastX = e.clientX;
-    lastY = e.clientY;
+    rings.forEach(ring => {
+      const rPx = ring.rMeters / metersPerPixel;
+      ctx2d.save();
+      ctx2d.beginPath();
+      ctx2d.arc(scx, scy, rPx, 0, Math.PI * 2);
+      ctx2d.strokeStyle = ring.color;
+      ctx2d.lineWidth = 2;
+      ctx2d.setLineDash(ring.dash);
+      ctx2d.stroke();
 
-    const tileSize = 256;
-    const currentTileX = lonToTileX(centerLon, zoom) - dx / tileSize;
-    const currentTileY = latToTileY(centerLat, zoom) - dy / tileSize;
+      if (rPx > 35) {
+        ctx2d.fillStyle = 'rgba(15, 23, 42, 0.8)';
+        ctx2d.font = 'bold 11px system-ui';
+        const tw = ctx2d.measureText(ring.label).width;
+        ctx2d.fillRect(scx - tw/2 - 5, scy - rPx - 18, tw + 10, 16);
+        ctx2d.fillStyle = ring.color;
+        ctx2d.fillText(ring.label, scx - tw/2, scy - rPx - 6);
+      }
+      ctx2d.restore();
+    });
 
-    centerLon = tileXToLon(currentTileX, zoom);
-    centerLat = Math.max(-85, Math.min(85, tileYToLat(currentTileY, zoom)));
-    render();
-  });
+    // Center marker
+    ctx2d.fillStyle = '#f43f5e';
+    ctx2d.beginPath();
+    ctx2d.arc(scx, scy, 4, 0, Math.PI * 2);
+    ctx2d.fill();
+  }
+}
 
-  window.addEventListener('mouseup', () => { isDragging = false; });
+// 2D Interaction
+let isDragging2D = false;
+let lastMouse2D = { x: 0, y: 0 };
 
-  // Touch panning
-  container.addEventListener('touchstart', (e) => {
-    if (e.touches.length === 1) {
-      isDragging = true;
-      lastX = e.touches[0].clientX;
-      lastY = e.touches[0].clientY;
+canvas2d.addEventListener('mousedown', e => {
+  isDragging2D = true;
+  lastMouse2D = { x: e.clientX, y: e.clientY };
+});
+window.addEventListener('mouseup', () => { isDragging2D = false; isDragging3D = false; });
+canvas2d.addEventListener('mousemove', e => {
+  const rect = canvas2d.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const tileSize = 256;
+  const cx = lon2tileX(centerLon, zoom);
+  const cy = lat2tileY(centerLat, zoom);
+  const hoverLon = tileX2lon(cx + (mx - canvas2d.width / 2) / tileSize, zoom);
+  const hoverLat = tileY2lat(cy + (my - canvas2d.height / 2) / tileSize, zoom);
+  document.getElementById('coords-bar').textContent =
+    `Lat: ${hoverLat.toFixed(4)}° N | Lon: ${Math.abs(hoverLon).toFixed(4)}° W | Zoom: ${zoom}`;
+
+  if (!isDragging2D) return;
+  const dx = e.clientX - lastMouse2D.x;
+  const dy = e.clientY - lastMouse2D.y;
+  lastMouse2D = { x: e.clientX, y: e.clientY };
+
+  centerLon = tileX2lon(cx - dx / tileSize, zoom);
+  centerLat = Math.max(-85, Math.min(85, tileY2lat(cy - dy / tileSize, zoom)));
+  draw2D();
+});
+
+canvas2d.addEventListener('wheel', e => {
+  e.preventDefault();
+  const delta = e.deltaY < 0 ? 1 : -1;
+  zoom = Math.max(6, Math.min(15, zoom + delta));
+  document.getElementById('coords-bar').textContent =
+    `Lat: ${centerLat.toFixed(4)}° N | Lon: ${Math.abs(centerLon).toFixed(4)}° W | Zoom: ${zoom}`;
+  draw2D();
+}, { passive: false });
+
+document.getElementById('zoom-in').onclick = () => { zoom = Math.min(15, zoom + 1); draw2D(); };
+document.getElementById('zoom-out').onclick = () => { zoom = Math.max(6, zoom - 1); draw2D(); };
+document.getElementById('reset-2d').onclick = () => { centerLat = CENTER_LAT; centerLon = CENTER_LON; zoom = 11; draw2D(); };
+
+
+// ==========================================
+// 3D TERRAIN ENGINE (Self-Contained DEM + Map Texture)
+// ==========================================
+const canvas3d = document.getElementById('canvas-3d');
+const ctx3d = canvas3d.getContext('2d');
+
+// Composite offscreen texture of the Richat Structure from live map tiles
+const texCanvas = document.createElement('canvas');
+const texSize = 768; // 3x3 tiles at zoom 11
+texCanvas.width = texSize;
+texCanvas.height = texSize;
+const texCtx = texCanvas.getContext('2d');
+let texReady = false;
+
+function build3DTexture() {
+  texReady = false;
+  const z3d = 11;
+  const cx = Math.floor(lon2tileX(CENTER_LON, z3d));
+  const cy = Math.floor(lat2tileY(CENTER_LAT, z3d));
+  let loadedCount = 0;
+
+  texCtx.fillStyle = '#334155';
+  texCtx.fillRect(0, 0, texSize, texSize);
+
+  for (let dx = -1; dx <= 1; dx++) {
+    for (let dy = -1; dy <= 1; dy++) {
+      const tile = getTile(currentLayer, z3d, cx + dx, cy + dy, () => {
+        drawTextureGrid(z3d, cx, cy);
+      });
+      if (tile && tile.loaded) loadedCount++;
     }
-  }, { passive: true });
+  }
+  drawTextureGrid(z3d, cx, cy);
+}
 
-  container.addEventListener('touchmove', (e) => {
-    if (!isDragging || e.touches.length !== 1) return;
-    const dx = e.touches[0].clientX - lastX;
-    const dy = e.touches[0].clientY - lastY;
-    lastX = e.touches[0].clientX;
-    lastY = e.touches[0].clientY;
+function drawTextureGrid(z3d, cx, cy) {
+  for (let dx = -1; dx <= 1; dx++) {
+    for (let dy = -1; dy <= 1; dy++) {
+      const tile = getTile(currentLayer, z3d, cx + dx, cy + dy, null);
+      if (tile && tile.loaded) {
+        texCtx.drawImage(tile.img, (dx + 1) * 256, (dy + 1) * 256, 256, 256);
+        texReady = true;
+      }
+    }
+  }
+  if (mode === '3d') draw3D();
+}
 
-    const tileSize = 256;
-    const currentTileX = lonToTileX(centerLon, zoom) - dx / tileSize;
-    const currentTileY = latToTileY(centerLat, zoom) - dy / tileSize;
+// High-detail Synthetic Digital Elevation Model (DEM) calibrated to Richat Structure topography
+// Models the Adrar Plateau escarpment (~200m drop to SE), outer 44km cuesta rim,
+// concentric quartzite/sandstone ridges (~80m relief), eroded shale valleys, and central dome.
+const GRID_N = 96;
+const demData = new Float32Array(GRID_N * GRID_N);
 
-    centerLon = tileXToLon(currentTileX, zoom);
-    centerLat = Math.max(-85, Math.min(85, tileYToLat(currentTileY, zoom)));
-    render();
-  }, { passive: true });
+function generateRichatDEM() {
+  for (let j = 0; j < GRID_N; j++) {
+    for (let i = 0; i < GRID_N; i++) {
+      // Normalized coords [-1, 1] covering ~65km x 65km
+      const nx = (i / (GRID_N - 1)) * 2 - 1;
+      const ny = (j / (GRID_N - 1)) * 2 - 1;
 
-  container.addEventListener('touchend', () => { isDragging = false; });
+      // Slight elliptical stretch (NE-SW axis) matching actual Richat geometry
+      const angle = -0.45;
+      const rx = nx * Math.cos(angle) - ny * Math.sin(angle);
+      const ry = (nx * Math.sin(angle) + ny * Math.cos(angle)) * 1.08;
+      const r = Math.sqrt(rx * rx + ry * ry);
+      const theta = Math.atan2(ry, rx);
 
-  // Zoom logic
-  function setZoom(newZoom) {
-    const maxZ = LAYERS[currentLayer].maxZoom;
-    zoom = Math.max(3, Math.min(maxZ, newZoom));
-    render();
+      // Base Adrar plateau elevation (~420m) sloping down toward Erg Ouarane dunes in SE
+      let elev = 430 - 55 * (nx * 0.6 + ny * 0.8);
+
+      // Asymmetric escarpment drop in far southeast
+      if (nx + ny > 0.85) {
+        elev -= Math.min(90, (nx + ny - 0.85) * 140);
+      }
+
+      // Concentric geological rings (Cuestas & Valleys)
+      // Outer rim at r ~ 0.68 (~22km radius)
+      const outerRim = Math.exp(-Math.pow((r - 0.68) / 0.055, 2)) * 115;
+      // Outer annular valley at r ~ 0.56
+      const outerValley = -Math.exp(-Math.pow((r - 0.56) / 0.05, 2)) * 55;
+      // Middle prominent quartzite ridge at r ~ 0.44 (~14km radius)
+      const midRidge = Math.exp(-Math.pow((r - 0.44) / 0.045, 2)) * 135;
+      // Inner depression at r ~ 0.31
+      const innerValley = -Math.exp(-Math.pow((r - 0.31) / 0.045, 2)) * 65;
+      // Inner ring cuesta at r ~ 0.20 (~6.5km radius)
+      const innerRidge = Math.exp(-Math.pow((r - 0.20) / 0.038, 2)) * 110;
+      // Central breccia/carbonatite dome & moat
+      const coreMoat = -Math.exp(-Math.pow((r - 0.10) / 0.03, 2)) * 45;
+      const centralDome = Math.exp(-Math.pow(r / 0.065, 2)) * 85;
+
+      // Radial gullies / wadi erosion channels cutting across rings
+      const wadi = Math.sin(theta * 9 + r * 6) * Math.cos(theta * 5 - r * 4) * 14 * Math.min(1, r * 2);
+      // Fine desert sand dune ripples outside structure
+      const dunes = (r > 0.72) ? Math.sin((nx * 18 + ny * 12)) * 8 : 0;
+
+      elev += outerRim + outerValley + midRidge + innerValley + innerRidge + coreMoat + centralDome + wadi + dunes;
+      demData[j * GRID_N + i] = elev;
+    }
+  }
+}
+generateRichatDEM();
+
+// 3D Camera & Projection State
+let yaw = -0.65;
+let pitch = 0.62;
+let camZoom = 1.05;
+let exaggeration = 3.5;
+let renderStyle = 'textured';
+let autoSpin = false;
+let isDragging3D = false;
+let dragButton = 0;
+let lastMouse3D = { x: 0, y: 0 };
+
+function project3D(x, y, z, w, h) {
+  // Rotate around Y (yaw)
+  const cosY = Math.cos(yaw), sinY = Math.sin(yaw);
+  const x1 = x * cosY - z * sinY;
+  const z1 = x * sinY + z * cosY;
+
+  // Rotate around X (pitch)
+  const cosP = Math.cos(pitch), sinP = Math.sin(pitch);
+  const y2 = y * cosP - z1 * sinP;
+  const z2 = y * sinP + z1 * cosP;
+
+  const fov = 720 * camZoom;
+  const dist = 3.2;
+  const scale = fov / (dist + z2);
+  return {
+    sx: w / 2 + x1 * scale,
+    sy: h / 2 - y2 * scale + 35,
+    depth: z2
+  };
+}
+
+function getHypsometricColor(elev) {
+  // Maps 340m - 610m to topographic relief palette
+  const t = Math.max(0, Math.min(1, (elev - 340) / 260));
+  if (t < 0.25) {
+    // Low desert sands: warm tan
+    return [214, 185, 138];
+  } else if (t < 0.5) {
+    // Valley floor: ochre / muted olive-sand
+    return [188, 152, 102];
+  } else if (t < 0.75) {
+    // Cuesta slopes: terracotta / burnt sienna
+    return [168, 108, 72];
+  } else {
+    // High quartzite ridges: dark iron-brown / pale crest highlight
+    return [135, 82, 58];
+  }
+}
+
+function draw3D() {
+  if (mode !== '3d') return;
+  const w = canvas3d.width;
+  const h = canvas3d.height;
+  ctx3d.clearRect(0, 0, w, h);
+
+  // Build projected vertex grid
+  const verts = new Array(GRID_N * GRID_N);
+  const scaleXZ = 1.65;
+  const scaleY = 0.00055 * exaggeration;
+
+  for (let j = 0; j < GRID_N; j++) {
+    for (let i = 0; i < GRID_N; i++) {
+      const idx = j * GRID_N + i;
+      const vx = ((i / (GRID_N - 1)) * 2 - 1) * scaleXZ;
+      const vz = ((j / (GRID_N - 1)) * 2 - 1) * scaleXZ;
+      const elev = demData[idx];
+      const vy = (elev - 410) * scaleY;
+      const proj = project3D(vx, vy, vz, w, h);
+      verts[idx] = { sx: proj.sx, sy: proj.sy, depth: proj.depth, elev, i, j };
+    }
   }
 
-  container.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    if (e.deltaY < 0) setZoom(zoom + 1);
-    else setZoom(zoom - 1);
-  }, { passive: false });
-
-  document.getElementById('zoom-in').addEventListener('click', () => setZoom(zoom + 1));
-  document.getElementById('zoom-out').addEventListener('click', () => setZoom(zoom - 1));
-  document.getElementById('reset-btn').addEventListener('click', () => {
-    centerLat = CENTER_LAT;
-    centerLon = CENTER_LON;
-    zoom = DEFAULT_ZOOM;
-    render();
-  });
-
-  document.getElementById('layer-select').addEventListener('change', (e) => {
-    currentLayer = e.target.value;
-    attrText.textContent = LAYERS[currentLayer].name;
-    failedTiles = 0;
-    loadedTiles = 0;
-    if (zoom > LAYERS[currentLayer].maxZoom) {
-      zoom = LAYERS[currentLayer].maxZoom;
+  // Create quad cells and depth-sort (Painter's algorithm)
+  const quads = [];
+  for (let j = 0; j < GRID_N - 1; j++) {
+    for (let i = 0; i < GRID_N - 1; i++) {
+      const v00 = verts[j * GRID_N + i];
+      const v10 = verts[j * GRID_N + (i + 1)];
+      const v11 = verts[(j + 1) * GRID_N + (i + 1)];
+      const v01 = verts[(j + 1) * GRID_N + i];
+      const avgDepth = (v00.depth + v10.depth + v11.depth + v01.depth) * 0.25;
+      quads.push({ v00, v10, v11, v01, avgDepth, i, j });
     }
-    render();
-  });
+  }
+  quads.sort((a, b) => b.avgDepth - a.avgDepth);
 
-  window.addEventListener('resize', resize);
-  resize();
-})();
+  // Sun light vector for hillshading
+  const lightDir = { x: -0.65, y: 0.55, z: -0.52 };
+
+  for (let q = 0; q < quads.length; q++) {
+    const { v00, v10, v11, v01, i, j } = quads[q];
+
+    // Compute surface normal for directional hillshading
+    const dzdx = (v10.elev - v00.elev) * 0.035 * exaggeration;
+    const dzdz = (v01.elev - v00.elev) * 0.035 * exaggeration;
+    const nx = -dzdx, ny = 1.0, nz = -dzdz;
+    const nLen = Math.sqrt(nx * nx + ny * ny + nz * nz);
+    const shade = Math.max(0.35, Math.min(1.35, ((nx * lightDir.x + ny * lightDir.y + nz * lightDir.z) / nLen) + 0.65));
+
+    ctx3d.beginPath();
+    ctx3d.moveTo(v00.sx, v00.sy);
+    ctx3d.lineTo(v10.sx, v10.sy);
+    ctx3d.lineTo(v11.sx, v11.sy);
+    ctx3d.lineTo(v01.sx, v01.sy);
+    ctx3d.closePath();
+
+    if (renderStyle === 'wireframe') {
+      const t = Math.max(0, Math.min(1, (v00.elev - 350) / 240));
+      ctx3d.fillStyle = 'rgba(15, 23, 42, 0.75)';
+      ctx3d.fill();
+      ctx3d.strokeStyle = `hsl(${200 - t * 165}, 85%, 55%)`;
+      ctx3d.lineWidth = 0.7;
+      ctx3d.stroke();
+    } else if (renderStyle === 'hypsometric') {
+      const [r, g, b] = getHypsometricColor(v00.elev);
+      ctx3d.fillStyle = `rgb(${Math.min(255, r * shade)|0}, ${Math.min(255, g * shade)|0}, ${Math.min(255, b * shade)|0})`;
+      ctx3d.fill();
+
+      // Contour lines every 25m
+      if (Math.floor(v00.elev / 25) !== Math.floor(v10.elev / 25) || Math.floor(v00.elev / 25) !== Math.floor(v01.elev / 25)) {
+        ctx3d.strokeStyle = 'rgba(30, 20, 10, 0.45)';
+        ctx3d.lineWidth = 0.8;
+        ctx3d.stroke();
+      }
+    } else {
+      // Textured with hillshading
+      const [r, g, b] = getHypsometricColor(v00.elev);
+      ctx3d.fillStyle = `rgb(${Math.min(255, r * shade)|0}, ${Math.min(255, g * shade)|0}, ${Math.min(255, b * shade)|0})`;
+      ctx3d.fill();
+    }
+
+    // Geological Ring Highlight Overlay in 3D
+    if (showRings && renderStyle !== 'wireframe') {
+      const nxGrid = (i / (GRID_N - 1)) * 2 - 1;
+      const nyGrid = (j / (GRID_N - 1)) * 2 - 1;
+      const dist = Math.sqrt(nxGrid * nxGrid + nyGrid * nyGrid);
+      if (Math.abs(dist - 0.68) < 0.014) {
+        ctx3d.fillStyle = 'rgba(56, 189, 248, 0.55)';
+        ctx3d.fill();
+      } else if (Math.abs(dist - 0.44) < 0.012) {
+        ctx3d.fillStyle = 'rgba(245, 158, 11, 0.55)';
+        ctx3d.fill();
+      }
+    }
+  }
+
+  // Project live map texture onto 3D mesh using affine triangle mapping when textured & ready
+  if (renderStyle === 'textured' && texReady) {
+    renderTexturedOverlay(verts);
+  }
+
+  // Draw 3D Compass & Elevation Scale Legend
+  draw3DHUD(w, h);
+}
+
+function renderTexturedOverlay(verts) {
+  ctx3d.save();
+  ctx3d.globalAlpha = 0.72;
+  ctx3d.globalCompositeOperation = 'multiply';
+
+  // Use coarser 32x32 step for fast smooth affine texture mapping
+  const step = 3;
+  for (let j = 0; j < GRID_N - step; j += step) {
+    for (let i = 0; i < GRID_N - step; i += step) {
+      const v00 = verts[j * GRID_N + i];
+      const v10 = verts[j * GRID_N + (i + step)];
+      const v11 = verts[(j + step) * GRID_N + (i + step)];
+      const v01 = verts[(j + step) * GRID_N + i];
+
+      // Cull backfacing / extreme edge
+      const u0 = (i / (GRID_N - 1)) * texSize;
+      const v0 = (j / (GRID_N - 1)) * texSize;
+      const u1 = ((i + step) / (GRID_N - 1)) * texSize;
+      const v1 = ((j + step) / (GRID_N - 1)) * texSize;
+
+      drawTexturedTriangle(texCanvas, u0, v0, u1, v0, u1, v1, v00.sx, v00.sy, v10.sx, v10.sy, v11.sx, v11.sy);
+      drawTexturedTriangle(texCanvas, u0, v0, u1, v1, u0, v1, v00.sx, v00.sy, v11.sx, v11.sy, v01.sx, v01.sy);
+    }
+  }
+  ctx3d.restore();
+}
+
+function drawTexturedTriangle(img, u0, v0, u1, v1, u2, v2, x0, y0, x1, y1, x2, y2) {
+  ctx3d.save();
+  ctx3d.beginPath();
+  ctx3d.moveTo(x0, y0);
+  ctx3d.lineTo(x1, y1);
+  ctx3d.lineTo(x2, y2);
+  ctx3d.closePath();
+  ctx3d.clip();
+
+  const denom = u0 * (v1 - v2) - v0 * (u1 - u2) + (u1 * v2 - u2 * v1);
+  if (Math.abs(denom) < 0.001) { ctx3d.restore(); return; }
+
+  const m11 = -(v0 * (x2 - x1) - v1 * x2 + v2 * x1 + (v1 - v2) * x0) / denom;
+  const m12 = (v0 * (y2 - y1) - v1 * y2 + v2 * y1 + (v1 - v2) * y0) / denom;
+  const m21 = (u0 * (x2 - x1) - u1 * x2 + u2 * x1 + (u1 - u2) * x0) / denom;
+  const m22 = -(u0 * (y2 - y1) - u1 * y2 + u2 * y1 + (u1 - u2) * y0) / denom;
+  const dx = (u0 * (v2 * x1 - v1 * x2) + v0 * (u1 * x2 - u2 * x1) + (u2 * v1 - u1 * v2) * x0) / denom;
+  const dy = (u0 * (v2 * y1 - v1 * y2) + v0 * (u1 * y2 - u2 * y1) + (u2 * v1 - u1 * v2) * y0) / denom;
+
+  ctx3d.transform(m11, -m12, m21, -m22, dx, dy);
+  ctx3d.drawImage(img, 0, 0);
+  ctx3d.restore();
+}
+
+function draw3DHUD(w, h) {
+  // Elevation Peak Label
+  const centerProj = project3D(0, (520 - 410) * 0.00055 * exaggeration, 0, w, h);
+  ctx3d.fillStyle = 'rgba(15, 23, 42, 0.85)';
+  ctx3d.strokeStyle = '#38bdf8';
+  ctx3d.lineWidth = 1;
+  ctx3d.beginPath();
+  ctx3d.roundRect(centerProj.sx - 68, centerProj.sy - 46, 136, 22, 5);
+  ctx3d.fill();
+  ctx3d.stroke();
+
+  ctx3d.fillStyle = '#f8fafc';
+  ctx3d.font = 'bold 11px system-ui';
+  ctx3d.textAlign = 'center';
+  ctx3d.fillText('Central Dome (~485 m)', centerProj.sx, centerProj.sy - 31);
+  ctx3d.textAlign = 'left';
+
+  // Compass Indicator in top-right
+  const cx = w - 48, cy = 48, r = 24;
+  ctx3d.save();
+  ctx3d.beginPath();
+  ctx3d.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx3d.fillStyle = 'rgba(15, 23, 42, 0.85)';
+  ctx3d.fill();
+  ctx3d.strokeStyle = 'rgba(148, 163, 184, 0.35)';
+  ctx3d.stroke();
+
+  const nx = cx - Math.sin(yaw) * (r - 6);
+  const ny = cy - Math.cos(yaw) * (r - 6);
+  ctx3d.beginPath();
+  ctx3d.moveTo(cx, cy);
+  ctx3d.lineTo(nx, ny);
+  ctx3d.strokeStyle = '#f43f5e';
+  ctx3d.lineWidth = 2.5;
+  ctx3d.stroke();
+
+  ctx3d.fillStyle = '#f43f5e';
+  ctx3d.font = 'bold 10px system-ui';
+  ctx3d.fillText('N', nx - 3, ny - 3);
+  ctx3d.restore();
+}
+
+// 3D Mouse & Touch Controls
+canvas3d.addEventListener('mousedown', e => {
+  isDragging3D = true;
+  dragButton = e.button;
+  lastMouse3D = { x: e.clientX, y: e.clientY };
+});
+canvas3d.addEventListener('contextmenu', e => e.preventDefault());
+canvas3d.addEventListener('mousemove', e => {
+  if (!isDragging3D) return;
+  const dx = e.clientX - lastMouse3D.x;
+  const dy = e.clientY - lastMouse3D.y;
+  lastMouse3D = { x: e.clientX, y: e.clientY };
+
+  yaw += dx * 0.007;
+  pitch = Math.max(0.15, Math.min(1.45, pitch + dy * 0.007));
+  draw3D();
+});
+canvas3d.addEventListener('wheel', e => {
+  e.preventDefault();
+  camZoom = Math.max(0.55, Math.min(2.4, camZoom * (e.deltaY < 0 ? 1.08 : 0.92)));
+  draw3D();
+}, { passive: false });
+
+// Animation loop for Auto-Rotate
+function animate() {
+  if (mode === '3d' && autoSpin && !isDragging3D) {
+    yaw += 0.005;
+    draw3D();
+  }
+  requestAnimationFrame(animate);
+}
+animate();
+
+// ==========================================
+// UI EVENT LISTENERS
+// ==========================================
+const btn2d = document.getElementById('btn-mode-2d');
+const btn3d = document.getElementById('btn-mode-3d');
+const extra2d = document.getElementById('controls-2d-extra');
+const extra3d = document.getElementById('controls-3d-extra');
+
+btn2d.onclick = () => {
+  mode = '2d';
+  btn2d.classList.add('active');
+  btn3d.classList.remove('active');
+  canvas2d.style.display = 'block';
+  canvas3d.style.display = 'none';
+  extra2d.style.display = 'block';
+  extra3d.style.display = 'none';
+  draw2D();
+};
+
+btn3d.onclick = () => {
+  mode = '3d';
+  btn3d.classList.add('active');
+  btn2d.classList.remove('active');
+  canvas2d.style.display = 'none';
+  canvas3d.style.display = 'block';
+  extra2d.style.display = 'none';
+  extra3d.style.display = 'block';
+  build3DTexture();
+  draw3D();
+};
+
+document.getElementById('layer-select').onchange = e => {
+  currentLayer = e.target.value;
+  if (mode === '2d') draw2D();
+  else build3DTexture();
+};
+
+document.getElementById('toggle-rings').onchange = e => {
+  showRings = e.target.checked;
+  if (mode === '2d') draw2D();
+  else draw3D();
+};
+
+document.getElementById('exaggeration').oninput = e => {
+  exaggeration = parseFloat(e.target.value);
+  document.getElementById('exag-val').textContent = exaggeration.toFixed(1) + 'x';
+  draw3D();
+};
+
+document.getElementById('render-style').onchange = e => {
+  renderStyle = e.target.value;
+  draw3D();
+};
+
+document.getElementById('toggle-spin').onclick = e => {
+  autoSpin = !autoSpin;
+  e.target.textContent = `Auto-Rotate: ${autoSpin ? 'On' : 'Off'}`;
+};
+
+document.getElementById('reset-3d').onclick = () => {
+  yaw = -0.65;
+  pitch = 0.62;
+  camZoom = 1.05;
+  exaggeration = 3.5;
+  document.getElementById('exaggeration').value = 3.5;
+  document.getElementById('exag-val').textContent = '3.5x';
+  draw3D();
+};
+
+window.addEventListener('resize', resizeCanvases);
+resizeCanvases();
 </script>
 </body>
 </html>
