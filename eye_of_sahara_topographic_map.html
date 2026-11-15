@@ -3,802 +3,924 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Global 3D Topographic Map Explorer (DEM Terrain)</title>
+<title>Seamless Global 3D Terrain Map (WebGL Engine v8)</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body {
-    width: 100%; height: 100%; overflow: hidden;
-    background: #0b111e; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    color: #f1f5f9; user-select: none;
-  }
-  #mapCanvas {
-    display: block; width: 100%; height: 100%; cursor: grab;
-  }
-  #mapCanvas:active { cursor: grabbing; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #070b14; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #e2e8f0; }
+  #glCanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
+  #glCanvas:active { cursor: grabbing; }
 
-  .panel {
-    position: absolute; top: 14px; left: 14px; width: 325px;
-    background: rgba(15, 23, 42, 0.90); backdrop-filter: blur(10px);
+  #uiPanel {
+    position: absolute; top: 14px; left: 14px; z-index: 10;
+    width: 325px; max-height: calc(100vh - 28px); overflow-y: auto;
+    background: rgba(11, 17, 30, 0.90); backdrop-filter: blur(12px);
     border: 1px solid rgba(148, 163, 184, 0.22); border-radius: 12px;
-    padding: 14px 16px; box-shadow: 0 12px 32px rgba(0,0,0,0.5);
-    z-index: 10; max-height: calc(100vh - 28px); overflow-y: auto;
+    padding: 14px; box-shadow: 0 12px 32px rgba(0,0,0,0.6);
   }
-  .panel h1 {
-    font-size: 15px; font-weight: 700; color: #f8fafc; margin-bottom: 2px;
-    display: flex; align-items: center; justify-content: space-between;
+  .header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .title { font-size: 14px; font-weight: 700; color: #f8fafc; letter-spacing: 0.2px; }
+  .badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: rgba(56, 189, 248, 0.16); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); }
+
+  .search-box { display: flex; gap: 6px; margin-bottom: 10px; }
+  .search-box input {
+    flex: 1; background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(148, 163, 184, 0.3);
+    border-radius: 7px; padding: 7px 9px; color: #f8fafc; font-size: 12px; outline: none;
   }
-  .badge {
-    font-size: 10px; font-weight: 600; background: #0284c7; color: #fff;
-    padding: 2px 7px; border-radius: 999px; letter-spacing: 0.4px;
+  .search-box input:focus { border-color: #38bdf8; }
+  .search-box button {
+    background: #0284c7; color: #fff; border: none; border-radius: 7px;
+    padding: 0 11px; font-size: 12px; font-weight: 600; cursor: pointer;
   }
-  .sub { font-size: 11.5px; color: #94a3b8; margin-bottom: 12px; }
+  .search-box button:hover { background: #0369a1; }
+
+  .presets { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
+  .preset-btn {
+    background: rgba(30, 41, 59, 0.85); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 6px; padding: 4px 8px; font-size: 11px; cursor: pointer; transition: 0.15s;
+  }
+  .preset-btn:hover { background: rgba(56, 189, 248, 0.2); color: #fff; border-color: #38bdf8; }
 
   .group { margin-bottom: 11px; }
-  .group label {
-    display: flex; justify-content: space-between;
-    font-size: 11.5px; font-weight: 600; color: #cbd5e1; margin-bottom: 4px;
+  .group label { display: flex; justify-content: space-between; font-size: 11.5px; color: #94a3b8; margin-bottom: 4px; }
+  .group label span.val { color: #38bdf8; font-weight: 600; font-variant-numeric: tabular-nums; }
+  select {
+    width: 100%; background: rgba(15, 23, 42, 0.95); color: #f1f5f9;
+    border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 7px; padding: 6px 8px; font-size: 12px; outline: none;
   }
-  .group label span { color: #38bdf8; font-variant-numeric: tabular-nums; }
+  input[type="range"] { width: 100%; accent-color: #38bdf8; cursor: pointer; }
 
-  select, input[type="text"] {
-    width: 100%; padding: 7px 10px; border-radius: 7px;
-    border: 1px solid rgba(148, 163, 184, 0.28);
-    background: #1e293b; color: #f8fafc; font-size: 12.5px; outline: none;
+  .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+  .action-btn {
+    background: rgba(30, 41, 59, 0.9); color: #e2e8f0; border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: 7px; padding: 6px 8px; font-size: 11.5px; font-weight: 600; cursor: pointer;
   }
-  select:focus, input[type="text"]:focus { border-color: #38bdf8; }
+  .action-btn:hover { background: rgba(51, 65, 85, 0.95); }
+  .action-btn.active { background: rgba(14, 165, 233, 0.25); border-color: #38bdf8; color: #7dd3fc; }
 
-  .search-row { display: flex; gap: 6px; }
-  .btn {
-    padding: 7px 11px; border-radius: 7px; border: 1px solid rgba(148, 163, 184, 0.25);
-    background: #1e293b; color: #e2e8f0; font-size: 12px; font-weight: 600;
-    cursor: pointer; transition: background 0.15s, border-color 0.15s;
-  }
-  .btn:hover { background: #334155; border-color: #38bdf8; }
-  .btn-primary { background: #0284c7; border-color: #0284c7; color: #fff; }
-  .btn-primary:hover { background: #0369a1; }
+  .divider { height: 1px; background: rgba(148, 163, 184, 0.16); margin: 10px 0; }
+  .telemetry { font-size: 11px; color: #94a3b8; line-height: 1.55; font-variant-numeric: tabular-nums; }
+  .telemetry strong { color: #e2e8f0; }
 
-  .presets { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
-  .chip {
-    font-size: 11px; padding: 4px 8px; border-radius: 6px;
-    background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(148, 163, 184, 0.2);
-    color: #cbd5e1; cursor: pointer;
+  #hintBar {
+    position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); z-index: 10;
+    background: rgba(11, 17, 30, 0.85); backdrop-filter: blur(8px);
+    border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 999px;
+    padding: 6px 14px; font-size: 11.5px; color: #cbd5e1; white-space: nowrap; pointer-events: none;
   }
-  .chip:hover { border-color: #38bdf8; color: #fff; background: #1e293b; }
-
-  input[type="range"] {
-    width: 100%; accent-color: #38bdf8; cursor: pointer; height: 5px;
+  #statusPill {
+    position: absolute; top: 14px; right: 14px; z-index: 10;
+    background: rgba(11, 17, 30, 0.88); border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 999px; padding: 5px 12px; font-size: 11px; color: #94a3b8;
   }
-
-  .toggle-row {
-    display: flex; align-items: center; justify-content: space-between;
-    font-size: 12px; color: #cbd5e1; padding: 4px 0;
-  }
-  .toggle-row input { accent-color: #38bdf8; width: 15px; height: 15px; cursor: pointer; }
-
-  .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
-
-  .hud {
-    position: absolute; bottom: 14px; left: 14px;
-    background: rgba(15, 23, 42, 0.86); backdrop-filter: blur(8px);
-    border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 9px;
-    padding: 8px 13px; font-size: 11.5px; color: #cbd5e1;
-    display: flex; gap: 16px; flex-wrap: wrap; z-index: 10;
-    font-variant-numeric: tabular-nums;
-  }
-  .hud strong { color: #38bdf8; font-weight: 600; }
-
-  .help-box {
-    position: absolute; top: 14px; right: 14px;
-    background: rgba(15, 23, 42, 0.86); backdrop-filter: blur(8px);
-    border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 10px;
-    padding: 10px 14px; font-size: 11.5px; color: #cbd5e1;
-    line-height: 1.55; z-index: 10; max-width: 245px;
-  }
-  .help-box strong { color: #f8fafc; }
-  .status-dot {
-    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
-    background: #22c55e; margin-right: 5px;
-  }
-  .status-dot.loading { background: #f59e0b; }
+  #statusPill.loading { color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); }
 </style>
 </head>
 <body>
 
-<canvas id="mapCanvas"></canvas>
+<canvas id="glCanvas"></canvas>
 
-<div class="panel">
-  <h1>Global 3D Topographic Map <span class="badge">LIVE DEM</span></h1>
-  <div class="sub">Real global elevation tiles + perspective 3D camera</div>
+<div id="uiPanel">
+  <div class="header-row">
+    <span class="title">Global 3D Terrain Explorer</span>
+    <span class="badge">WebGL Seamless</span>
+  </div>
 
-  <div class="group">
-    <label>Search Location or Coordinates</label>
-    <div class="search-row">
-      <input type="text" id="searchInput" placeholder="e.g. Everest, 21.11, -11.39">
-      <button class="btn btn-primary" id="searchBtn">Go</button>
-    </div>
-    <div class="presets">
-      <span class="chip" data-lat="21.1147" data-lon="-11.3942" data-z="11" data-p="52" data-b="-20">Eye of Sahara</span>
-      <span class="chip" data-lat="27.9881" data-lon="86.9250" data-z="11.5" data-p="58" data-b="15">Mt. Everest</span>
-      <span class="chip" data-lat="36.1069" data-lon="-112.1129" data-z="12" data-p="55" data-b="35">Grand Canyon</span>
-      <span class="chip" data-lat="35.3606" data-lon="138.7274" data-z="11.5" data-p="55" data-b="-30">Mt. Fuji</span>
-      <span class="chip" data-lat="45.9766" data-lon="7.6585" data-z="12.5" data-p="60" data-b="10">Matterhorn</span>
-    </div>
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="Search place or Lat, Lon..." />
+    <button id="searchBtn">Go</button>
+  </div>
+
+  <div class="presets">
+    <button class="preset-btn" data-lat="21.1147" data-lon="-11.3942" data-z="11.2" data-p="58" data-b="25">Eye of Sahara</button>
+    <button class="preset-btn" data-lat="27.9881" data-lon="86.9250" data-z="11.8" data-p="65" data-b="-20">Mt. Everest</button>
+    <button class="preset-btn" data-lat="36.1069" data-lon="-112.1129" data-z="12.2" data-p="62" data-b="40">Grand Canyon</button>
+    <button class="preset-btn" data-lat="35.3606" data-lon="138.7274" data-z="11.8" data-p="60" data-b="15">Mt. Fuji</button>
+    <button class="preset-btn" data-lat="45.9766" data-lon="7.6585" data-z="12.5" data-p="64" data-b="-35">Matterhorn</button>
   </div>
 
   <div class="group">
-    <label>Base Map Layer</label>
+    <label>Map Surface Layer</label>
     <select id="layerSelect">
-      <option value="esri_topo">Esri World Topographic</option>
-      <option value="esri_sat" selected>Esri Satellite Imagery</option>
-      <option value="opentopo">OpenTopoMap (Contours)</option>
-      <option value="esri_street">Esri World Street Map</option>
-      <option value="esri_hillshade">Esri Shaded Relief</option>
+      <option value="satellite" selected>Esri World Satellite Imagery</option>
+      <option value="topo">Esri World Topographic</option>
+      <option value="opentopo">OpenTopoMap (Contours + Relief)</option>
+      <option value="street">Esri World Street Map</option>
+      <option value="hillshade">Esri Shaded Relief</option>
     </select>
   </div>
 
   <div class="group">
-    <label>3D Camera Pitch (Tilt) <span id="pitchVal">52°</span></label>
-    <input type="range" id="pitchSlider" min="0" max="72" step="1" value="52">
+    <label>3D Camera Tilt (Pitch) <span class="val" id="pitchVal">58°</span></label>
+    <input type="range" id="pitchSlider" min="0" max="75" step="1" value="58" />
   </div>
 
   <div class="group">
-    <label>Camera Bearing (Rotation) <span id="bearingVal">0°</span></label>
-    <input type="range" id="bearingSlider" min="-180" max="180" step="1" value="0">
+    <label>Compass Rotation (Bearing) <span class="val" id="bearingVal">25°</span></label>
+    <input type="range" id="bearingSlider" min="-180" max="180" step="1" value="25" />
   </div>
 
   <div class="group">
-    <label>Elevation Exaggeration <span id="exagVal">2.2x</span></label>
-    <input type="range" id="exagSlider" min="0.5" max="6.0" step="0.1" value="2.2">
+    <label>Terrain Elevation Scale <span class="val" id="exagVal">2.2x</span></label>
+    <input type="range" id="exagSlider" min="0" max="6" step="0.1" value="2.2" />
   </div>
 
-  <div class="toggle-row">
-    <span>Directional Terrain Hillshading</span>
-    <input type="checkbox" id="shadeCheck" checked>
-  </div>
-  <div class="toggle-row">
-    <span>Richat Structure Reference Rings</span>
-    <input type="checkbox" id="ringsCheck" checked>
+  <div class="btn-row">
+    <button class="action-btn" id="toggle2dBtn">Flat 2D Top-Down</button>
+    <button class="action-btn" id="orbitBtn">Auto-Orbit: Off</button>
   </div>
 
-  <div class="btn-grid">
-    <button class="btn" id="btn2D">Flat 2D View</button>
-    <button class="btn" id="btn3D">3D Tilted View</button>
+  <div class="divider"></div>
+  <div class="telemetry" id="telemetryBox">
+    Center: <strong>21.1147° N, 11.3942° W</strong><br>
+    Zoom: <strong>11.2</strong> &nbsp;|&nbsp; Ground Elev: <strong>405 m</strong><br>
+    Mesh: <strong>Zero-Crack Continuous WebGL</strong>
   </div>
 </div>
 
-<div class="help-box">
-  <div><span class="status-dot" id="statusDot"></span><strong id="statusText">DEM Terrain Ready</strong></div>
-  <div style="margin-top:6px;">
-    <strong>Left-Drag:</strong> Pan anywhere<br>
-    <strong>Right-Drag / Shift+Drag:</strong> Tilt 3D &amp; Rotate<br>
-    <strong>Scroll Wheel:</strong> Zoom in / out
-  </div>
-</div>
-
-<div class="hud">
-  <div>Center: <strong id="hudCoord">21.1147° N, 11.3942° W</strong></div>
-  <div>Cursor Elev: <strong id="hudElev">-- m</strong></div>
-  <div>Zoom: <strong id="hudZoom">11.0</strong></div>
-</div>
+<div id="statusPill">Ready</div>
+<div id="hintBar">Left-Drag: Pan &nbsp;•&nbsp; Right-Drag or Shift+Drag: 3D Tilt & Rotate &nbsp;•&nbsp; Scroll: Zoom</div>
 
 <script>
 (function() {
-  const canvas = document.getElementById('mapCanvas');
-  const ctx = canvas.getContext('2d');
+  const canvas = document.getElementById('glCanvas');
+  const gl = canvas.getContext('webgl', { antialias: true, alpha: false });
+  if (!gl) {
+    alert('WebGL is not supported in this browser.');
+    return;
+  }
 
-  // Camera & Map State
+  // Enable standard derivatives for crisp procedural hillshading & anti-aliased water/horizon
+  const extDeriv = gl.getExtension('OES_standard_derivatives');
+
+  // State
   const state = {
     lat: 21.1147,
     lon: -11.3942,
-    zoom: 11.0,
-    pitch: 52,      // degrees (0 = flat top-down, 72 = steep 3D horizon view)
-    bearing: -15,   // degrees
-    exag: 2.2,      // vertical elevation multiplier
-    layer: 'esri_sat',
-    shading: true,
-    showRings: true,
-    hoverElev: null
+    zoom: 11.2,
+    pitch: 58,     // degrees (0 = top-down, 75 = steep horizon view)
+    bearing: 25,   // degrees
+    exag: 2.2,
+    layer: 'satellite',
+    autoOrbit: false,
+    centerElev: 405
   };
 
-  // Tile URL Templates (Key-free public endpoints)
   const LAYERS = {
-    esri_topo: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/${z}/${y}/${x}`,
-    esri_sat: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`,
-    opentopo: (z, x, y) => `https://a.tile.opentopomap.org/${z}/${x}/${y}.png`,
-    esri_street: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${z}/${y}/${x}`,
-    esri_hillshade: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/${z}/${y}/${x}`
+    satellite: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`,
+    topo:      (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/${z}/${y}/${x}`,
+    opentopo:  (z, x, y) => `https://a.tile.opentopomap.org/${z}/${x}/${y}.png`,
+    street:    (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${z}/${y}/${x}`,
+    hillshade: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/${z}/${y}/${x}`
   };
-
-  // AWS Open Data Terrarium Global DEM Tiles
   const demUrl = (z, x, y) => `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${x}/${y}.png`;
 
-  const imgCache = new Map();
-  const demCache = new Map();
-  let pendingLoads = 0;
-  let renderScheduled = false;
+  // WebGL Shaders: Vertex shader displaces a seamless grid + drops edge skirts to completely eliminate gaps!
+  const vsSource = `
+    attribute vec2 aPos;     // [0..1] across tile, slightly outside [0..1] for skirt vertices
+    attribute float aSkirt;  // 0.0 for surface, 1.0 for downward skirt
 
-  function scheduleRender() {
-    if (!renderScheduled) {
-      renderScheduled = true;
-      requestAnimationFrame(() => {
-        renderScheduled = false;
-        render();
-      });
+    uniform mat4 uMVP;
+    uniform vec2 uTileOrigin; // World mercator [0..1] top-left of tile
+    uniform float uTileSize;  // World mercator width of tile
+    uniform sampler2D uDemTex;
+    uniform float uHasDem;
+    uniform float uExag;
+    uniform float uMetersToWorld;
+    uniform float uSkirtDepth;
+
+    varying vec2 vUv;
+    varying float vElev;
+    varying vec3 vWorldPos;
+    varying float vSkirt;
+
+    void main() {
+      vec2 uv = clamp(aPos, 0.0, 1.0);
+      vUv = uv;
+      vSkirt = aSkirt;
+
+      float elevMeters = 0.0;
+      if (uHasDem > 0.5) {
+        // Sample Terrarium RGB elevation with slight inset to avoid border clamp artifacts
+        vec2 demUv = uv * (255.0 / 256.0) + (0.5 / 256.0);
+        vec4 c = texture2D(uDemTex, demUv) * 255.0;
+        elevMeters = (c.r * 256.0 + c.g + c.b / 256.0) - 32768.0;
+        // Clamp extreme bathymetry so ocean floors stay clean
+        elevMeters = max(elevMeters, -100.0);
+      }
+
+      vElev = elevMeters;
+      float zWorld = elevMeters * uMetersToWorld * uExag - aSkirt * uSkirtDepth;
+
+      vec2 merc = uTileOrigin + uv * uTileSize;
+      vWorldPos = vec3(merc.x, merc.y, zWorld);
+      gl_Position = uMVP * vec4(vWorldPos, 1.0);
     }
+  `;
+
+  const fsSource = `
+    #extension GL_OES_standard_derivatives : enable
+    precision mediump float;
+
+    uniform sampler2D uColorTex;
+    uniform float uHasColor;
+    uniform vec3 uCamPos;
+    uniform vec3 uSkyColor;
+    uniform float uExag;
+    uniform float uFade;
+
+    varying vec2 vUv;
+    varying float vElev;
+    varying vec3 vWorldPos;
+    varying float vSkirt;
+
+    void main() {
+      vec3 baseColor = vec3(0.14, 0.18, 0.24);
+      if (uHasColor > 0.5) {
+        baseColor = texture2D(uColorTex, vUv).rgb;
+      }
+
+      // Compute smooth surface normal from screen-space derivatives of 3D world position
+      #ifdef GL_OES_standard_derivatives
+        vec3 dx = dFdx(vWorldPos);
+        vec3 dy = dFdy(vWorldPos);
+        vec3 n = normalize(cross(dx, dy));
+        if (n.z < 0.0) n = -n;
+
+        // Directional sun lighting from NW to bring out ridges & canyons
+        vec3 sunDir = normalize(vec3(-0.55, -0.55, 0.63));
+        float diff = max(dot(n, sunDir), 0.0);
+        float shade = mix(1.0, 0.62 + 0.55 * diff, clamp(uExag * 0.45, 0.0, 0.85));
+        if (vSkirt < 0.5) {
+          baseColor *= shade;
+        }
+      #endif
+
+      // Atmospheric horizon haze (Google Earth style distance fog)
+      float dist = length(vWorldPos - uCamPos);
+      float fogFactor = smoothstep(0.015, 0.14, dist);
+      // Adjust fog relative to camera altitude
+      float alt = max(uCamPos.z, 0.0001);
+      float relDist = dist / alt;
+      float horizonFog = smoothstep(3.2, 11.5, relDist);
+
+      vec3 finalColor = mix(baseColor, uSkyColor, clamp(horizonFog, 0.0, 0.92));
+      gl_FragColor = vec4(finalColor, uFade);
+    }
+  `;
+
+  function compileShader(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+      console.error(gl.getShaderInfoLog(s));
+    }
+    return s;
   }
+
+  const prog = gl.createProgram();
+  gl.attachShader(prog, compileShader(gl.VERTEX_SHADER, vsSource));
+  gl.attachShader(prog, compileShader(gl.FRAGMENT_SHADER, fsSource));
+  gl.linkProgram(prog);
+  gl.useProgram(prog);
+
+  const locs = {
+    aPos: gl.getAttribLocation(prog, 'aPos'),
+    aSkirt: gl.getAttribLocation(prog, 'aSkirt'),
+    uMVP: gl.getUniformLocation(prog, 'uMVP'),
+    uTileOrigin: gl.getUniformLocation(prog, 'uTileOrigin'),
+    uTileSize: gl.getUniformLocation(prog, 'uTileSize'),
+    uDemTex: gl.getUniformLocation(prog, 'uDemTex'),
+    uHasDem: gl.getUniformLocation(prog, 'uHasDem'),
+    uColorTex: gl.getUniformLocation(prog, 'uColorTex'),
+    uHasColor: gl.getUniformLocation(prog, 'uHasColor'),
+    uExag: gl.getUniformLocation(prog, 'uExag'),
+    uMetersToWorld: gl.getUniformLocation(prog, 'uMetersToWorld'),
+    uSkirtDepth: gl.getUniformLocation(prog, 'uSkirtDepth'),
+    uCamPos: gl.getUniformLocation(prog, 'uCamPos'),
+    uSkyColor: gl.getUniformLocation(prog, 'uSkyColor'),
+    uFade: gl.getUniformLocation(prog, 'uFade')
+  };
+
+  // Build high-density terrain grid (64x64 cells) + perimeter skirts to seal all tile seams
+  const GRID = 64;
+  function createTerrainMesh(N) {
+    const verts = []; // x, y, skirt
+    const indices = [];
+
+    // Main surface vertices (N+1) x (N+1)
+    for (let j = 0; j <= N; j++) {
+      for (let i = 0; i <= N; i++) {
+        verts.push(i / N, j / N, 0.0);
+      }
+    }
+    const rowStride = N + 1;
+    for (let j = 0; j < N; j++) {
+      for (let i = 0; i < N; i++) {
+        const a = j * rowStride + i;
+        const b = a + 1;
+        const c = a + rowStride;
+        const d = c + 1;
+        indices.push(a, c, b, b, c, d);
+      }
+    }
+
+    // Add downward skirts along all 4 edges so zero cracks ever show between tiles or LODs
+    function addEdgeSkirt(edgeCoords) {
+      const baseStart = verts.length / 3;
+      for (let k = 0; k < edgeCoords.length; k++) {
+        const [u, v, topIdx] = edgeCoords[k];
+        verts.push(u, v, 1.0); // skirt bottom vertex
+        if (k > 0) {
+          const prevTop = edgeCoords[k - 1][2];
+          const currTop = topIdx;
+          const prevBot = baseStart + k - 1;
+          const currBot = baseStart + k;
+          indices.push(prevTop, prevBot, currTop, currTop, prevBot, currBot);
+        }
+      }
+    }
+
+    // Top edge (j=0, i=0..N)
+    const topEdge = [];
+    for (let i = 0; i <= N; i++) topEdge.push([i / N, 0, i]);
+    addEdgeSkirt(topEdge);
+
+    // Bottom edge (j=N, i=N..0)
+    const botEdge = [];
+    for (let i = N; i >= 0; i--) botEdge.push([i / N, 1, N * rowStride + i]);
+    addEdgeSkirt(botEdge);
+
+    // Left edge (i=0, j=N..0)
+    const leftEdge = [];
+    for (let j = N; j >= 0; j--) leftEdge.push([0, j / N, j * rowStride]);
+    addEdgeSkirt(leftEdge);
+
+    // Right edge (i=N, j=0..N)
+    const rightEdge = [];
+    for (let j = 0; j <= N; j++) rightEdge.push([1, j / N, j * rowStride + N]);
+    addEdgeSkirt(rightEdge);
+
+    const vbo = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
+
+    const ibo = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+
+    return { vbo, ibo, count: indices.length };
+  }
+
+  const mesh = createTerrainMesh(GRID);
+
+  // Dummy 1x1 texture fallback
+  function createSolidTex(r, g, b) {
+    const t = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([r, g, b, 255]));
+    return t;
+  }
+  const fallbackColorTex = createSolidTex(30, 41, 59);
+  const fallbackDemTex = createSolidTex(128, 0, 0); // 0m in Terrarium
+
+  // Tile Cache & Loader
+  const colorCache = new Map();
+  const demCache = new Map();
+  let activeDownloads = 0;
+  const statusPill = document.getElementById('statusPill');
 
   function updateStatus() {
-    const dot = document.getElementById('statusDot');
-    const txt = document.getElementById('statusText');
-    if (pendingLoads > 0) {
-      dot.classList.add('loading');
-      txt.textContent = `Streaming Tiles (${pendingLoads})...`;
+    if (activeDownloads > 0) {
+      statusPill.textContent = `Streaming 3D Tiles (${activeDownloads})...`;
+      statusPill.className = 'loading';
     } else {
-      dot.classList.remove('loading');
-      txt.textContent = 'Global 3D DEM Active';
+      statusPill.textContent = '3D Terrain Synced';
+      statusPill.className = '';
     }
   }
 
-  // Web Mercator Helpers (Normalized [0, 1] world coordinates)
-  function lonToNormX(lon) {
-    return (lon + 180) / 360;
-  }
-  function latToNormY(lat) {
-    const rad = Math.max(-85.0511, Math.min(85.0511, lat)) * Math.PI / 180;
-    return (1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2;
-  }
-  function normXToLon(nx) {
-    return nx * 360 - 180;
-  }
-  function normYToLat(ny) {
-    const n = Math.PI - 2 * Math.PI * ny;
-    return (180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+  function setupTexture(img, clamp) {
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, clamp ? gl.CLAMP_TO_EDGE : gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, clamp ? gl.CLAMP_TO_EDGE : gl.REPEAT);
+    return tex;
   }
 
-  // Fetch Imagery Tile
-  function getMapTile(layer, z, x, y) {
+  // Offscreen canvas to read center elevation from DEM tiles
+  const demReadCanvas = document.createElement('canvas');
+  demReadCanvas.width = 256;
+  demReadCanvas.height = 256;
+  const demReadCtx = demReadCanvas.getContext('2d', { willReadFrequently: true });
+
+  function getColorTile(layer, z, x, y) {
     const maxT = 1 << z;
     const wx = ((x % maxT) + maxT) % maxT;
     if (y < 0 || y >= maxT) return null;
     const key = `${layer}/${z}/${wx}/${y}`;
-    if (imgCache.has(key)) return imgCache.get(key);
+    if (colorCache.has(key)) return colorCache.get(key);
 
-    const entry = { img: null, ready: false };
-    imgCache.set(key, entry);
-    pendingLoads++;
-    updateStatus();
+    const entry = { tex: null, loaded: false, time: 0 };
+    colorCache.set(key, entry);
 
     const img = new Image();
     img.crossOrigin = 'anonymous';
+    activeDownloads++;
+    updateStatus();
+
     img.onload = () => {
-      entry.img = img;
-      entry.ready = true;
-      pendingLoads = Math.max(0, pendingLoads - 1);
+      entry.tex = setupTexture(img, true);
+      entry.loaded = true;
+      entry.time = performance.now();
+      activeDownloads = Math.max(0, activeDownloads - 1);
       updateStatus();
-      scheduleRender();
+      requestRender();
     };
     img.onerror = () => {
-      pendingLoads = Math.max(0, pendingLoads - 1);
+      activeDownloads = Math.max(0, activeDownloads - 1);
       updateStatus();
     };
     img.src = LAYERS[layer](z, wx, y);
     return entry;
   }
 
-  // Fetch & Decode Terrarium DEM Tile -> Float32Array (256x256 meters)
   function getDemTile(z, x, y) {
-    const dz = Math.min(14, z); // Terrarium max zoom is 15; cap at 14 for fast loading
-    const scaleShift = z - dz;
-    const tx = x >> scaleShift;
-    const ty = y >> scaleShift;
+    // Terrarium DEM max zoom is 15
+    const dz = Math.min(z, 15);
+    const scale = 1 << (z - dz);
+    const dx = Math.floor(x / scale);
+    const dy = Math.floor(y / scale);
     const maxT = 1 << dz;
-    const wx = ((tx % maxT) + maxT) % maxT;
-    if (ty < 0 || ty >= maxT) return null;
+    const wx = ((dx % maxT) + maxT) % maxT;
+    if (dy < 0 || dy >= maxT) return null;
 
-    const key = `${dz}/${wx}/${ty}`;
+    const key = `${dz}/${wx}/${dy}`;
     if (demCache.has(key)) return demCache.get(key);
 
-    const entry = { heights: null, ready: false };
+    const entry = { tex: null, loaded: false, pixels: null, z: dz, x: wx, y: dy };
     demCache.set(key, entry);
-    pendingLoads++;
-    updateStatus();
 
     const img = new Image();
     img.crossOrigin = 'anonymous';
+    activeDownloads++;
+    updateStatus();
+
     img.onload = () => {
+      entry.tex = setupTexture(img, true);
       try {
-        const off = document.createElement('canvas');
-        off.width = 256; off.height = 256;
-        const octx = off.getContext('2d');
-        octx.drawImage(img, 0, 0);
-        const data = octx.getImageData(0, 0, 256, 256).data;
-        const heights = new Float32Array(256 * 256);
-        for (let i = 0, p = 0; i < heights.length; i++, p += 4) {
-          // Terrarium formula: (R * 256 + G + B / 256) - 32768
-          heights[i] = (data[p] * 256 + data[p + 1] + data[p + 2] / 256) - 32768;
-        }
-        entry.heights = heights;
-        entry.ready = true;
-      } catch (e) {
-        // Fallback flat if canvas read blocked
-      }
-      pendingLoads = Math.max(0, pendingLoads - 1);
+        demReadCtx.drawImage(img, 0, 0);
+        entry.pixels = demReadCtx.getImageData(0, 0, 256, 256).data;
+      } catch (e) {}
+      entry.loaded = true;
+      activeDownloads = Math.max(0, activeDownloads - 1);
       updateStatus();
-      scheduleRender();
+      requestRender();
     };
     img.onerror = () => {
-      pendingLoads = Math.max(0, pendingLoads - 1);
+      activeDownloads = Math.max(0, activeDownloads - 1);
       updateStatus();
     };
-    img.src = demUrl(dz, wx, ty);
+    img.src = demUrl(dz, wx, dy);
     return entry;
   }
 
-  // Sample elevation in meters at normalized world coordinates (nx, ny)
-  function sampleElevation(nx, ny, z) {
-    const dz = Math.min(14, z);
-    const nTiles = 1 << dz;
-    const fx = (((nx % 1) + 1) % 1) * nTiles;
-    const fy = Math.max(0, Math.min(nTiles - 0.0001, ny * nTiles));
-    const tx = Math.floor(fx);
-    const ty = Math.floor(fy);
+  // Mercator helpers [0..1]
+  function latLonToMerc(lat, lon) {
+    const x = (lon + 180) / 360;
+    const sinLat = Math.sin((lat * Math.PI) / 180);
+    const y = 0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI);
+    return [x, Math.max(0.001, Math.min(0.999, y))];
+  }
 
+  function mercToLatLon(x, y) {
+    const lon = x * 360 - 180;
+    const n = Math.PI - 2 * Math.PI * y;
+    const lat = (180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+    return [lat, lon];
+  }
+
+  function sampleElevationAt(lat, lon, z) {
+    const dz = Math.min(Math.floor(z), 14);
+    const [mx, my] = latLonToMerc(lat, lon);
+    const n = 1 << dz;
+    const tx = Math.floor(mx * n);
+    const ty = Math.floor(my * n);
     const entry = getDemTile(dz, tx, ty);
-    if (!entry || !entry.ready || !entry.heights) return 0;
-
-    const px = Math.min(255, Math.floor((fx - tx) * 256));
-    const py = Math.min(255, Math.floor((fy - ty) * 256));
-    return entry.heights[py * 256 + px];
-  }
-
-  // Perspective 3D Camera Projection
-  // Standard forward-looking 3D map tilt:
-  // Top of screen (North / forward along camera view) tilts AWAY toward the horizon (smaller perspective scale).
-  // Bottom of screen (South / foreground near viewer) tilts CLOSER toward the viewer (larger perspective scale).
-  function createProjector(w, h) {
-    const tileZ = Math.max(2, Math.min(16, Math.round(state.zoom)));
-    const scaleFactor = Math.pow(2, state.zoom - tileZ);
-    const tilePx = 256 * scaleFactor;
-    const worldPx = (1 << tileZ) * tilePx;
-
-    const cx = lonToNormX(state.lon) * worldPx;
-    const cy = latToNormY(state.lat) * worldPx;
-
-    const pitchRad = state.pitch * Math.PI / 180;
-    const bearRad = state.bearing * Math.PI / 180;
-    const cosB = Math.cos(bearRad);
-    const sinB = Math.sin(bearRad);
-    const cosP = Math.cos(pitchRad);
-    const sinP = Math.sin(pitchRad);
-
-    // Focal length in pixels
-    const fov = 45 * Math.PI / 180;
-    const cameraDist = (h * 0.5) / Math.tan(fov * 0.5);
-
-    // Meters per pixel at current latitude & zoom
-    const metersPerPx = (156543.03392 * Math.cos(state.lat * Math.PI / 180)) / Math.pow(2, state.zoom);
-
-    function project(nx, ny, elevMeters) {
-      // Delta in ground pixels from screen center
-      let dx = nx * worldPx - cx;
-      const dy = ny * worldPx - cy;
-
-      // Wrap shortest longitudinal distance
-      if (dx > worldPx * 0.5) dx -= worldPx;
-      if (dx < -worldPx * 0.5) dx += worldPx;
-
-      // Rotate ground plane by camera bearing
-      // rx: right on screen; ry: screen-downward (South when bearing=0)
-      const rx = dx * cosB - dy * sinB;
-      const ry = dx * sinB + dy * cosB;
-
-      // Vertical terrain displacement in pixels
-      const zPx = (elevMeters * state.exag) / metersPerPx;
-
-      // Forward-looking tilt camera:
-      // Moving toward top of screen (ry < 0) moves deeper into the scene (depth increases),
-      // while moving toward bottom of screen (ry > 0) brings terrain closer to the camera (depth decreases).
-      const depth = cameraDist - ry * sinP - zPx * cosP;
-      if (depth < 40) return null; // Behind near clipping plane
-
-      const screenYOffset = ry * cosP - zPx * sinP;
-      const persp = cameraDist / depth;
-
-      return {
-        sx: w * 0.5 + rx * persp,
-        sy: h * 0.5 + screenYOffset * persp,
-        depth: depth,
-        persp: persp
-      };
+    if (entry && entry.pixels) {
+      const px = Math.min(255, Math.max(0, Math.floor((mx * n - tx) * 256)));
+      const py = Math.min(255, Math.max(0, Math.floor((my * n - ty) * 256)));
+      const idx = (py * 256 + px) * 4;
+      const r = entry.pixels[idx];
+      const g = entry.pixels[idx + 1];
+      const b = entry.pixels[idx + 2];
+      return Math.round((r * 256 + g + b / 256) - 32768);
     }
-
-    return { project, tileZ, worldPx, cx, cy, metersPerPx };
+    return state.centerElev;
   }
 
-  // Draw a textured triangle using affine canvas transform
-  function drawTexturedTriangle(img, p0, p1, p2, u0, v0, u1, v1, u2, v2, shadeAlpha) {
-    // Expand vertices slightly by ~0.6px around centroid to prevent sub-pixel hairline seams
-    const cx = (p0.sx + p1.sx + p2.sx) / 3;
-    const cy = (p0.sy + p1.sy + p2.sy) / 3;
-    const pad = 0.65;
-    const ax = p0.sx + (p0.sx - cx) * (pad / (Math.hypot(p0.sx - cx, p0.sy - cy) || 1));
-    const ay = p0.sy + (p0.sy - cy) * (pad / (Math.hypot(p0.sx - cx, p0.sy - cy) || 1));
-    const bx = p1.sx + (p1.sx - cx) * (pad / (Math.hypot(p1.sx - cx, p1.sy - cy) || 1));
-    const by = p1.sy + (p1.sy - cy) * (pad / (Math.hypot(p1.sx - cx, p1.sy - cy) || 1));
-    const dx = p2.sx + (p2.sx - cx) * (pad / (Math.hypot(p2.sx - cx, p2.sy - cy) || 1));
-    const dy = p2.sy + (p2.sy - cy) * (pad / (Math.hypot(p2.sx - cx, p2.sy - cy) || 1));
-
-    ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(ax, ay);
-    ctx.lineTo(bx, by);
-    ctx.lineTo(dx, dy);
-    ctx.closePath();
-    ctx.clip();
-
-    const du1 = u1 - u0, dv1 = v1 - v0;
-    const du2 = u2 - u0, dv2 = v2 - v0;
-    const det = du1 * dv2 - du2 * dv1;
-    if (Math.abs(det) > 1e-6) {
-      const dx1 = p1.sx - p0.sx, dy1 = p1.sy - p0.sy;
-      const dx2 = p2.sx - p0.sx, dy2 = p2.sy - p0.sy;
-
-      const a = (dx1 * dv2 - dx2 * dv1) / det;
-      const b = (dy1 * dv2 - dy2 * dv1) / det;
-      const c = (dx2 * du1 - dx1 * du2) / det;
-      const d = (dy2 * du1 - dy1 * du2) / det;
-      const e = p0.sx - a * u0 - c * v0;
-      const f = p0.sy - b * u0 - d * v0;
-
-      ctx.setTransform(a, b, c, d, e, f);
-      ctx.drawImage(img, 0, 0);
-
-      if (shadeAlpha !== 0) {
-        ctx.fillStyle = shadeAlpha > 0
-          ? `rgba(255, 250, 235, ${Math.min(0.32, shadeAlpha)})`
-          : `rgba(10, 18, 35, ${Math.min(0.45, -shadeAlpha)})`;
-        ctx.fillRect(0, 0, 256, 256);
+  // Minimal 4x4 Matrix Math (Column-Major for WebGL)
+  function mat4Multiply(a, b) {
+    const out = new Float32Array(16);
+    for (let c = 0; c < 4; c++) {
+      for (let r = 0; r < 4; r++) {
+        out[c * 4 + r] =
+          a[0 * 4 + r] * b[c * 4 + 0] +
+          a[1 * 4 + r] * b[c * 4 + 1] +
+          a[2 * 4 + r] * b[c * 4 + 2] +
+          a[3 * 4 + r] * b[c * 4 + 3];
       }
     }
-    ctx.restore();
+    return out;
   }
 
+  function mat4Perspective(fovRad, aspect, near, far) {
+    const f = 1.0 / Math.tan(fovRad / 2);
+    const nf = 1 / (near - far);
+    return new Float32Array([
+      f / aspect, 0, 0, 0,
+      0, f, 0, 0,
+      0, 0, (far + near) * nf, -1,
+      0, 0, (2 * far * near) * nf, 0
+    ]);
+  }
+
+  function mat4LookAt(eye, target, up) {
+    let zx = eye[0] - target[0], zy = eye[1] - target[1], zz = eye[2] - target[2];
+    let len = Math.hypot(zx, zy, zz);
+    zx /= len; zy /= len; zz /= len;
+
+    let xx = up[1] * zz - up[2] * zy;
+    let xy = up[2] * zx - up[0] * zz;
+    let xz = up[0] * zy - up[1] * zx;
+    len = Math.hypot(xx, xy, xz);
+    xx /= len; xy /= len; xz /= len;
+
+    const yx = zy * xz - zz * xy;
+    const yy = zz * xx - zx * xz;
+    const yz = zx * xy - zy * xx;
+
+    return new Float32Array([
+      xx, yx, zx, 0,
+      xy, yy, zy, 0,
+      xz, yz, zz, 0,
+      -(xx * eye[0] + xy * eye[1] + xz * eye[2]),
+      -(yx * eye[0] + yy * eye[1] + yz * eye[2]),
+      -(zx * eye[0] + zy * eye[1] + zz * eye[2]),
+      1
+    ]);
+  }
+
+  // Camera computation: standard forward-looking map camera where bottom of screen is foreground
+  function getCamera() {
+    const [cx, cy] = latLonToMerc(state.lat, state.lon);
+    const cosLat = Math.cos((state.lat * Math.PI) / 180);
+    const metersToWorld = 1.0 / (40075016.686 * Math.max(0.15, cosLat));
+
+    // Target ground altitude
+    state.centerElev = sampleElevationAt(state.lat, state.lon, state.zoom);
+    const targetZ = Math.max(0, state.centerElev) * metersToWorld * state.exag;
+
+    // Camera distance based on zoom level
+    const fov = (45 * Math.PI) / 180;
+    const tileSpan = Math.pow(2, -state.zoom);
+    const camDist = tileSpan * 2.25;
+
+    const pitchRad = (state.pitch * Math.PI) / 180;
+    const bearRad = (state.bearing * Math.PI) / 180;
+
+    // Note: in Mercator, +Y is South (bottom of screen), -Y is North (top of screen).
+    // When bearing = 0 and pitch > 0, camera sits South (+Y) looking North (-Y) so bottom is closer!
+    const horizDist = camDist * Math.sin(pitchRad);
+    const vertDist = Math.max(camDist * Math.cos(pitchRad), camDist * 0.12);
+
+    const eyeX = cx - Math.sin(bearRad) * horizDist;
+    const eyeY = cy + Math.cos(bearRad) * horizDist;
+    const eyeZ = targetZ + vertDist;
+
+    // Up vector handles bearing cleanly even when pitch = 0
+    const upX = Math.sin(bearRad);
+    const upY = -Math.cos(bearRad);
+
+    const aspect = canvas.width / Math.max(1, canvas.height);
+    const near = Math.max(0.000002, camDist * 0.02);
+    const far = camDist * 35.0;
+
+    const proj = mat4Perspective(fov, aspect, near, far);
+    const view = mat4LookAt([eyeX, eyeY, eyeZ], [cx, cy, targetZ], [upX, upY, 0]);
+    const mvp = mat4Multiply(proj, view);
+
+    return { cx, cy, targetZ, eye: [eyeX, eyeY, eyeZ], mvp, metersToWorld, camDist, bearRad };
+  }
+
+  let renderScheduled = false;
+  function requestRender() {
+    if (!renderScheduled) {
+      renderScheduled = true;
+      requestAnimationFrame(render);
+    }
+  }
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.floor(window.innerWidth * dpr);
+    const h = Math.floor(window.innerHeight * dpr);
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+      gl.viewport(0, 0, w, h);
+    }
+    requestRender();
+  }
+  window.addEventListener('resize', resize);
+
   function render() {
-    const dpr = window.devicePixelRatio || 1;
-    const w = canvas.clientWidth;
-    const h = canvas.clientHeight;
-    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
-      canvas.width = Math.round(w * dpr);
-      canvas.height = Math.round(h * dpr);
+    renderScheduled = false;
+
+    if (state.autoOrbit) {
+      state.bearing = ((state.bearing + 0.25 + 180) % 360) - 180;
+      document.getElementById('bearingSlider').value = Math.round(state.bearing);
+      document.getElementById('bearingVal').textContent = `${Math.round(state.bearing)}°`;
+      requestRender();
     }
 
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const sky = [0.55, 0.72, 0.89]; // Crisp atmospheric horizon sky
+    gl.clearColor(sky[0], sky[1], sky[2], 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.DEPTH_TEST);
+    gl.depthFunc(gl.LEQUAL);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-    // Sky / Atmosphere Backdrop when pitched
-    if (state.pitch > 15) {
-      const grad = ctx.createLinearGradient(0, 0, 0, h * 0.55);
-      grad.addColorStop(0, '#091326');
-      grad.addColorStop(1, '#1e3a5f');
-      ctx.fillStyle = grad;
-    } else {
-      ctx.fillStyle = '#0b111e';
-    }
-    ctx.fillRect(0, 0, w, h);
+    const cam = getCamera();
 
-    const { project, tileZ, metersPerPx } = createProjector(w, h);
-    const nTiles = 1 << tileZ;
-    const centerTx = Math.floor(lonToNormX(state.lon) * nTiles);
-    const centerTy = Math.floor(latToNormY(state.lat) * nTiles);
+    gl.useProgram(prog);
+    gl.bindBuffer(gl.ARRAY_BUFFER, mesh.vbo);
+    gl.enableVertexAttribArray(locs.aPos);
+    gl.vertexAttribPointer(locs.aPos, 2, gl.FLOAT, false, 12, 0);
+    gl.enableVertexAttribArray(locs.aSkirt);
+    gl.vertexAttribPointer(locs.aSkirt, 1, gl.FLOAT, false, 12, 8);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh.ibo);
 
-    // Determine visible tile radius (larger radius needed when tilted toward horizon)
-    const radius = state.pitch > 35 ? 4 : 3;
-    const meshSteps = state.pitch > 5 ? 8 : 1; // 8x8 elevation grid per tile in 3D, 1x1 in flat 2D
+    gl.uniformMatrix4fv(locs.uMVP, false, cam.mvp);
+    gl.uniform1f(locs.uExag, state.exag);
+    gl.uniform1f(locs.uMetersToWorld, cam.metersToWorld);
+    gl.uniform3fv(locs.uCamPos, cam.eye);
+    gl.uniform3fv(locs.uSkyColor, sky);
 
-    // Collect visible tiles and sort back-to-front (Painter's algorithm)
+    // Determine visible tile grid around camera focus + forward horizon
+    const zInt = Math.min(16, Math.max(2, Math.round(state.zoom)));
+    const nTiles = 1 << zInt;
+    const tileSize = 1.0 / nTiles;
+    const skirtDepth = tileSize * 0.35; // Deep enough to hide any LOD step completely
+    gl.uniform1f(locs.uSkirtDepth, skirtDepth);
+
+    // Shift tile search center slightly forward along look direction when pitched
+    const forwardShift = (state.pitch / 75) * tileSize * 2.2;
+    const lookX = cam.cx + Math.sin(cam.bearRad) * forwardShift;
+    const lookY = cam.cy - Math.cos(cam.bearRad) * forwardShift;
+
+    const centerTx = Math.floor(lookX * nTiles);
+    const centerTy = Math.floor(lookY * nTiles);
+    const radius = state.pitch > 35 ? 5 : 4;
+
     const tilesToDraw = [];
     for (let dy = -radius; dy <= radius; dy++) {
       for (let dx = -radius; dx <= radius; dx++) {
         const tx = centerTx + dx;
         const ty = centerTy + dy;
         if (ty < 0 || ty >= nTiles) continue;
-
-        const midNx = (tx + 0.5) / nTiles;
-        const midNy = (ty + 0.5) / nTiles;
-        const midElev = state.pitch > 5 ? sampleElevation(midNx, midNy, tileZ) : 0;
-        const proj = project(midNx, midNy, midElev);
-        if (!proj) continue;
-
-        tilesToDraw.push({ tx, ty, depth: proj.depth });
+        const distSq = dx * dx + dy * dy;
+        if (distSq <= radius * radius + 2) {
+          tilesToDraw.push({ tx, ty, distSq });
+        }
       }
     }
-
-    // Farthest tiles first, nearest tiles last
-    tilesToDraw.sort((a, b) => b.depth - a.depth);
-
-    const tileMeters = metersPerPx * 256 * Math.pow(2, state.zoom - tileZ);
-    const cellMeters = tileMeters / meshSteps;
+    // Sort front-to-back for optimal depth buffer efficiency
+    tilesToDraw.sort((a, b) => a.distSq - b.distSq);
 
     for (const t of tilesToDraw) {
-      const mapEntry = getMapTile(state.layer, tileZ, t.tx, t.ty);
-      if (!mapEntry || !mapEntry.ready || !mapEntry.img) continue;
+      const originX = t.tx * tileSize;
+      const originY = t.ty * tileSize;
+      gl.uniform2f(locs.uTileOrigin, originX, originY);
+      gl.uniform1f(locs.uTileSize, tileSize);
 
-      // Build vertex grid for this tile
-      const grid = [];
-      for (let gy = 0; gy <= meshSteps; gy++) {
-        const row = [];
-        const ny = (t.ty + gy / meshSteps) / nTiles;
-        for (let gx = 0; gx <= meshSteps; gx++) {
-          const nx = (t.tx + gx / meshSteps) / nTiles;
-          const elev = state.pitch > 5 ? sampleElevation(nx, ny, tileZ) : 0;
-          const p = project(nx, ny, elev);
-          row.push({ p, elev, u: (gx / meshSteps) * 256, v: (gy / meshSteps) * 256 });
-        }
-        grid.push(row);
-      }
-
-      // Render subdivided triangles
-      for (let gy = 0; gy < meshSteps; gy++) {
-        for (let gx = 0; gx < meshSteps; gx++) {
-          const v00 = grid[gy][gx];
-          const v10 = grid[gy][gx + 1];
-          const v01 = grid[gy + 1][gx];
-          const v11 = grid[gy + 1][gx + 1];
-
-          if (!v00.p || !v10.p || !v01.p || !v11.p) continue;
-
-          // Quick frustum cull
-          const minX = Math.min(v00.p.sx, v10.p.sx, v01.p.sx, v11.p.sx);
-          const maxX = Math.max(v00.p.sx, v10.p.sx, v01.p.sx, v11.p.sx);
-          const minY = Math.min(v00.p.sy, v10.p.sy, v01.p.sy, v11.p.sy);
-          const maxY = Math.max(v00.p.sy, v10.p.sy, v01.p.sy, v11.p.sy);
-          if (maxX < -50 || minX > w + 50 || maxY < -50 || minY > h + 50) continue;
-
-          // Compute slope shading from NW light source
-          let shade = 0;
-          if (state.shading && state.pitch > 5) {
-            const dzdx = ((v10.elev - v00.elev) * state.exag) / (cellMeters || 1);
-            const dzdy = ((v01.elev - v00.elev) * state.exag) / (cellMeters || 1);
-            // Light vector from NW (-0.65, -0.65)
-            shade = (-dzdx * 0.65 - dzdy * 0.65) * 0.35;
+      // Find best available color texture (exact zoom or fallback parent zoom so there's never an empty hole)
+      let colorTex = fallbackColorTex;
+      let hasColor = 0.0;
+      let cEntry = getColorTile(state.layer, zInt, t.tx, t.ty);
+      if (cEntry && cEntry.loaded && cEntry.tex) {
+        colorTex = cEntry.tex;
+        hasColor = 1.0;
+      } else {
+        // Fallback to parent tile if still downloading
+        for (let pz = zInt - 1; pz >= Math.max(2, zInt - 3); pz--) {
+          const scale = 1 << (zInt - pz);
+          const pEntry = getColorTile(state.layer, pz, Math.floor(t.tx / scale), Math.floor(t.ty / scale));
+          if (pEntry && pEntry.loaded && pEntry.tex) {
+            colorTex = pEntry.tex;
+            hasColor = 1.0;
+            break;
           }
-
-          drawTexturedTriangle(
-            mapEntry.img,
-            v00.p, v10.p, v11.p,
-            v00.u, v00.v, v10.u, v10.v, v11.u, v11.v,
-            shade
-          );
-          drawTexturedTriangle(
-            mapEntry.img,
-            v00.p, v11.p, v01.p,
-            v00.u, v00.v, v11.u, v11.v, v01.u, v01.v,
-            shade
-          );
         }
       }
+
+      // Find DEM elevation texture
+      let demTex = fallbackDemTex;
+      let hasDem = 0.0;
+      const dEntry = getDemTile(zInt, t.tx, t.ty);
+      if (dEntry && dEntry.loaded && dEntry.tex) {
+        demTex = dEntry.tex;
+        hasDem = 1.0;
+      }
+
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, colorTex);
+      gl.uniform1i(locs.uColorTex, 0);
+      gl.uniform1f(locs.uHasColor, hasColor);
+
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, demTex);
+      gl.uniform1i(locs.uDemTex, 1);
+      gl.uniform1f(locs.uHasDem, hasDem);
+      gl.uniform1f(locs.uFade, 1.0);
+
+      gl.drawElements(gl.TRIANGLES, mesh.count, gl.UNSIGNED_SHORT, 0);
     }
 
-    // Draw Richat Structure 3D Draped Rings when toggled & nearby
-    if (state.showRings && Math.abs(state.lat - 21.1147) < 2.5 && Math.abs(state.lon - (-11.3942)) < 2.5) {
-      drawGeoCircle(project, tileZ, 21.1147, -11.3942, 22.0, 'rgba(56, 189, 248, 0.85)', 2);
-      drawGeoCircle(project, tileZ, 21.1147, -11.3942, 10.0, 'rgba(250, 204, 21, 0.85)', 1.5);
-    }
-
-    updateHUD();
+    updateTelemetry();
   }
 
-  function drawGeoCircle(project, tileZ, cLat, cLon, radiusKm, color, lineWidth) {
-    const steps = 72;
-    const latDegPerKm = 1 / 110.574;
-    const lonDegPerKm = 1 / (111.320 * Math.cos(cLat * Math.PI / 180));
-
-    ctx.save();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = lineWidth;
-    ctx.beginPath();
-    let started = false;
-
-    for (let i = 0; i <= steps; i++) {
-      const ang = (i / steps) * Math.PI * 2;
-      const lat = cLat + Math.sin(ang) * radiusKm * latDegPerKm;
-      const lon = cLon + Math.cos(ang) * radiusKm * lonDegPerKm;
-      const nx = lonToNormX(lon);
-      const ny = latToNormY(lat);
-      const elev = state.pitch > 5 ? sampleElevation(nx, ny, tileZ) + 15 : 0;
-      const p = project(nx, ny, elev);
-      if (!p) { started = false; continue; }
-      if (!started) { ctx.moveTo(p.sx, p.sy); started = true; }
-      else { ctx.lineTo(p.sx, p.sy); }
-    }
-    ctx.stroke();
-    ctx.restore();
+  function updateTelemetry() {
+    const latStr = `${Math.abs(state.lat).toFixed(4)}° ${state.lat >= 0 ? 'N' : 'S'}`;
+    const lonStr = `${Math.abs(state.lon).toFixed(4)}° ${state.lon >= 0 ? 'E' : 'W'}`;
+    document.getElementById('telemetryBox').innerHTML = `
+      Center: <strong>${latStr}, ${lonStr}</strong><br>
+      Zoom: <strong>${state.zoom.toFixed(1)}</strong> &nbsp;|&nbsp; Ground Elev: <strong>${state.centerElev} m</strong><br>
+      Mesh: <strong>Zero-Crack Continuous WebGL</strong>
+    `;
   }
 
-  function updateHUD() {
-    const latDir = state.lat >= 0 ? 'N' : 'S';
-    const lonDir = state.lon >= 0 ? 'E' : 'W';
-    document.getElementById('hudCoord').textContent =
-      `${Math.abs(state.lat).toFixed(4)}° ${latDir}, ${Math.abs(state.lon).toFixed(4)}° ${lonDir}`;
-    document.getElementById('hudZoom').textContent = state.zoom.toFixed(1);
-    document.getElementById('hudElev').textContent =
-      state.hoverElev !== null ? `${Math.round(state.hoverElev)} m` : '-- m';
-
-    document.getElementById('pitchSlider').value = state.pitch;
-    document.getElementById('pitchVal').textContent = `${Math.round(state.pitch)}°`;
-    document.getElementById('bearingSlider').value = state.bearing;
-    document.getElementById('bearingVal').textContent = `${Math.round(state.bearing)}°`;
-    document.getElementById('exagSlider').value = state.exag;
-    document.getElementById('exagVal').textContent = `${state.exag.toFixed(1)}x`;
-  }
-
-  // Mouse & Touch Controls
+  // Interactive Pointer Controls (Pan, Tilt, Rotate, Zoom)
   let dragging = false;
   let dragMode = 'pan'; // 'pan' or 'orbit'
   let lastX = 0, lastY = 0;
 
   canvas.addEventListener('contextmenu', e => e.preventDefault());
 
-  canvas.addEventListener('mousedown', e => {
+  canvas.addEventListener('pointerdown', e => {
     dragging = true;
     lastX = e.clientX;
     lastY = e.clientY;
-    dragMode = (e.button === 2 || e.shiftKey) ? 'orbit' : 'pan';
+    dragMode = (e.button === 2 || e.shiftKey || e.ctrlKey) ? 'orbit' : 'pan';
+    canvas.setPointerCapture(e.pointerId);
   });
 
-  window.addEventListener('mouseup', () => { dragging = false; });
-
-  window.addEventListener('mousemove', e => {
-    // Update live elevation readout under cursor when in flat/low-tilt view
-    const rect = canvas.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
-
-    if (!dragging) {
-      const worldPx = 256 * Math.pow(2, state.zoom);
-      const bearRad = state.bearing * Math.PI / 180;
-      const cosB = Math.cos(bearRad), sinB = Math.sin(bearRad);
-      const rx = mx - rect.width * 0.5;
-      const ry = (my - rect.height * 0.5) / Math.max(0.25, Math.cos(state.pitch * Math.PI / 180));
-      const dx = rx * cosB + ry * sinB;
-      const dy = -rx * sinB + ry * cosB;
-      const nx = lonToNormX(state.lon) + dx / worldPx;
-      const ny = latToNormY(state.lat) + dy / worldPx;
-      const tileZ = Math.max(2, Math.min(14, Math.round(state.zoom)));
-      state.hoverElev = sampleElevation(nx, ny, tileZ);
-      document.getElementById('hudElev').textContent = `${Math.round(state.hoverElev)} m`;
-      return;
-    }
-
+  canvas.addEventListener('pointermove', e => {
+    if (!dragging) return;
     const dx = e.clientX - lastX;
     const dy = e.clientY - lastY;
     lastX = e.clientX;
     lastY = e.clientY;
 
     if (dragMode === 'orbit') {
-      state.bearing = ((state.bearing + dx * 0.45 + 540) % 360) - 180;
-      // Dragging upward increases 3D tilt (horizon recedes, foreground comes closer)
-      state.pitch = Math.max(0, Math.min(72, state.pitch - dy * 0.35));
+      state.bearing = ((state.bearing - dx * 0.35 + 180) % 360) - 180;
+      state.pitch = Math.max(0, Math.min(75, state.pitch - dy * 0.32));
+      document.getElementById('bearingSlider').value = Math.round(state.bearing);
+      document.getElementById('bearingVal').textContent = `${Math.round(state.bearing)}°`;
+      document.getElementById('pitchSlider').value = Math.round(state.pitch);
+      document.getElementById('pitchVal').textContent = `${Math.round(state.pitch)}°`;
     } else {
-      // Pan ground plane aligned with camera bearing
-      const worldPx = 256 * Math.pow(2, state.zoom);
-      const bearRad = state.bearing * Math.PI / 180;
-      const cosB = Math.cos(bearRad), sinB = Math.sin(bearRad);
-      const pitchComp = 1 / Math.max(0.35, Math.cos(state.pitch * Math.PI / 180));
+      // Bearing-aligned ground pan
+      const bearRad = (state.bearing * Math.PI) / 180;
+      const cosB = Math.cos(bearRad);
+      const sinB = Math.sin(bearRad);
+      const scale = Math.pow(2, -state.zoom) * 0.0022;
 
-      const gx = dx * cosB + (dy * pitchComp) * sinB;
-      const gy = -dx * sinB + (dy * pitchComp) * cosB;
+      const worldDx = (-dx * cosB + dy * sinB) * scale;
+      const worldDy = (-dx * sinB - dy * cosB) * scale;
 
-      const nx = lonToNormX(state.lon) - gx / worldPx;
-      const ny = Math.max(0.01, Math.min(0.99, latToNormY(state.lat) - gy / worldPx));
-      state.lon = ((normXToLon(nx) + 540) % 360) - 180;
-      state.lat = normYToLat(ny);
+      const [mx, my] = latLonToMerc(state.lat, state.lon);
+      const [newLat, newLon] = mercToLatLon(mx + worldDx, Math.max(0.02, Math.min(0.98, my + worldDy)));
+      state.lat = Math.max(-82, Math.min(82, newLat));
+      state.lon = ((newLon + 540) % 360) - 180;
     }
-    scheduleRender();
+    requestRender();
+  });
+
+  canvas.addEventListener('pointerup', e => {
+    dragging = false;
+    try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
   });
 
   canvas.addEventListener('wheel', e => {
     e.preventDefault();
-    const delta = -Math.sign(e.deltaY) * 0.45;
-    state.zoom = Math.max(2.5, Math.min(16, state.zoom + delta));
-    scheduleRender();
+    const zoomDelta = -e.deltaY * 0.0015;
+    state.zoom = Math.max(3.0, Math.min(16.0, state.zoom + zoomDelta));
+    requestRender();
   }, { passive: false });
 
-  // UI Control Bindings
+  // UI Event Bindings
   document.getElementById('layerSelect').addEventListener('change', e => {
     state.layer = e.target.value;
-    scheduleRender();
+    requestRender();
   });
 
   document.getElementById('pitchSlider').addEventListener('input', e => {
     state.pitch = parseFloat(e.target.value);
-    scheduleRender();
+    document.getElementById('pitchVal').textContent = `${Math.round(state.pitch)}°`;
+    requestRender();
   });
 
   document.getElementById('bearingSlider').addEventListener('input', e => {
     state.bearing = parseFloat(e.target.value);
-    scheduleRender();
+    document.getElementById('bearingVal').textContent = `${Math.round(state.bearing)}°`;
+    requestRender();
   });
 
   document.getElementById('exagSlider').addEventListener('input', e => {
     state.exag = parseFloat(e.target.value);
-    scheduleRender();
+    document.getElementById('exagVal').textContent = `${state.exag.toFixed(1)}x`;
+    requestRender();
   });
 
-  document.getElementById('shadeCheck').addEventListener('change', e => {
-    state.shading = e.target.checked;
-    scheduleRender();
+  document.getElementById('toggle2dBtn').addEventListener('click', () => {
+    state.pitch = state.pitch > 5 ? 0 : 58;
+    document.getElementById('pitchSlider').value = state.pitch;
+    document.getElementById('pitchVal').textContent = `${state.pitch}°`;
+    requestRender();
   });
 
-  document.getElementById('ringsCheck').addEventListener('change', e => {
-    state.showRings = e.target.checked;
-    scheduleRender();
+  const orbitBtn = document.getElementById('orbitBtn');
+  orbitBtn.addEventListener('click', () => {
+    state.autoOrbit = !state.autoOrbit;
+    orbitBtn.textContent = `Auto-Orbit: ${state.autoOrbit ? 'On' : 'Off'}`;
+    orbitBtn.classList.toggle('active', state.autoOrbit);
+    if (state.autoOrbit) requestRender();
   });
 
-  document.getElementById('btn2D').addEventListener('click', () => {
-    state.pitch = 0;
-    state.bearing = 0;
-    scheduleRender();
-  });
-
-  document.getElementById('btn3D').addEventListener('click', () => {
-    if (state.pitch < 20) state.pitch = 52;
-    scheduleRender();
-  });
-
-  document.querySelectorAll('.chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      state.lat = parseFloat(chip.dataset.lat);
-      state.lon = parseFloat(chip.dataset.lon);
-      state.zoom = parseFloat(chip.dataset.z);
-      state.pitch = parseFloat(chip.dataset.p);
-      state.bearing = parseFloat(chip.dataset.b);
-      scheduleRender();
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.lat = parseFloat(btn.dataset.lat);
+      state.lon = parseFloat(btn.dataset.lon);
+      state.zoom = parseFloat(btn.dataset.z);
+      state.pitch = parseFloat(btn.dataset.p);
+      state.bearing = parseFloat(btn.dataset.b);
+      document.getElementById('pitchSlider').value = state.pitch;
+      document.getElementById('pitchVal').textContent = `${state.pitch}°`;
+      document.getElementById('bearingSlider').value = state.bearing;
+      document.getElementById('bearingVal').textContent = `${state.bearing}°`;
+      requestRender();
     });
   });
 
-  // Global Geocoder Search (Nominatim + Direct Coordinate Parsing)
-  async function handleSearch() {
+  // Search via OpenStreetMap Nominatim or direct Lat, Lon input
+  async function runSearch() {
     const q = document.getElementById('searchInput').value.trim();
     if (!q) return;
 
-    // Check if user entered "lat, lon"
     const coordMatch = q.match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
     if (coordMatch) {
-      state.lat = Math.max(-85, Math.min(85, parseFloat(coordMatch[1])));
-      state.lon = Math.max(-180, Math.min(180, parseFloat(coordMatch[2])));
-      if (state.zoom < 10) state.zoom = 11;
-      scheduleRender();
+      state.lat = Math.max(-82, Math.min(82, parseFloat(coordMatch[1])));
+      state.lon = parseFloat(coordMatch[2]);
+      state.zoom = 12.0;
+      requestRender();
       return;
     }
 
-    const btn = document.getElementById('searchBtn');
-    btn.textContent = '...';
+    statusPill.textContent = 'Searching location...';
+    statusPill.className = 'loading';
     try {
       const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`);
-      const results = await resp.json();
-      if (results && results.length > 0) {
-        state.lat = parseFloat(results[0].lat);
-        state.lon = parseFloat(results[0].lon);
-        state.zoom = 11.5;
-        if (state.pitch < 25) state.pitch = 50;
-        scheduleRender();
+      const data = await resp.json();
+      if (data && data.length > 0) {
+        state.lat = parseFloat(data[0].lat);
+        state.lon = parseFloat(data[0].lon);
+        state.zoom = 12.0;
+        if (state.pitch < 30) {
+          state.pitch = 55;
+          document.getElementById('pitchSlider').value = 55;
+          document.getElementById('pitchVal').textContent = '55°';
+        }
+        requestRender();
       } else {
-        alert('Location not found. Try a city, mountain name, or "lat, lon" coordinates.');
+        statusPill.textContent = 'Location not found';
       }
     } catch (err) {
-      alert('Search network error. You can also enter "lat, lon" directly (e.g., 27.98, 86.92).');
-    } finally {
-      btn.textContent = 'Go';
+      statusPill.textContent = 'Search unavailable offline';
     }
   }
 
-  document.getElementById('searchBtn').addEventListener('click', handleSearch);
+  document.getElementById('searchBtn').addEventListener('click', runSearch);
   document.getElementById('searchInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') handleSearch();
+    if (e.key === 'Enter') runSearch();
   });
 
-  window.addEventListener('resize', scheduleRender);
-  scheduleRender();
+  // Initialize
+  resize();
 })();
 </script>
 </body>
