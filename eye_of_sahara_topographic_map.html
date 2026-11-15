@@ -1,57 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Global 3D Topographic & Terrain Explorer</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Global 3D Topographic Map Explorer</title>
 <style>
   * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+    user-select: none;
   }
   html, body {
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background: #060911;
+    background: #070b14;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     color: #f1f5f9;
-    user-select: none;
   }
-  #stage {
-    position: relative;
+  #glcanvas {
+    position: fixed;
+    inset: 0;
     width: 100vw;
     height: 100vh;
-    overflow: hidden;
-    background: radial-gradient(circle at 50% 45%, #16233b 0%, #050810 85%);
-    transition: border-radius 0.08s ease-out, box-shadow 0.12s ease-out;
-    border-radius: 0px;
-  }
-  #glCanvas {
     display: block;
-    width: 100%;
-    height: 100%;
     cursor: grab;
   }
-  #glCanvas:active {
+  #glcanvas:active {
     cursor: grabbing;
   }
-  .panel {
-    position: absolute;
-    top: 16px;
-    left: 16px;
-    width: 300px;
+  #controls-panel {
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    width: 310px;
+    max-height: calc(100vh - 70px);
+    overflow-y: auto;
     background: rgba(13, 19, 33, 0.88);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(148, 163, 184, 0.22);
     border-radius: 14px;
     padding: 14px;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
     z-index: 20;
-    max-height: calc(100vh - 64px);
-    overflow-y: auto;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
   }
   .panel-header {
     display: flex;
@@ -67,58 +60,46 @@
   }
   .badge {
     font-size: 10px;
-    font-weight: 700;
+    font-weight: 600;
     padding: 2px 7px;
     border-radius: 999px;
-    background: rgba(56, 189, 248, 0.18);
-    color: #7dd3fc;
+    background: rgba(14, 165, 233, 0.2);
+    color: #38bdf8;
     border: 1px solid rgba(56, 189, 248, 0.35);
   }
   .search-row {
     display: flex;
     gap: 6px;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
   }
   .search-row input {
     flex: 1;
+    min-width: 0;
     background: rgba(15, 23, 42, 0.9);
     border: 1px solid rgba(148, 163, 184, 0.28);
     border-radius: 8px;
     padding: 7px 10px;
-    color: #f8fafc;
     font-size: 12px;
+    color: #f8fafc;
     outline: none;
+    user-select: text;
   }
   .search-row input:focus {
     border-color: #38bdf8;
   }
-  .btn {
+  .btn-primary {
     background: #0284c7;
-    color: #ffffff;
+    color: #fff;
     border: none;
     border-radius: 8px;
     padding: 7px 12px;
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.15s ease;
+    transition: background 0.15s;
   }
-  .btn:hover {
+  .btn-primary:hover {
     background: #0369a1;
-  }
-  .btn-secondary {
-    background: rgba(30, 41, 59, 0.9);
-    border: 1px solid rgba(148, 163, 184, 0.25);
-    color: #e2e8f0;
-    padding: 5px 8px;
-    font-size: 11px;
-    border-radius: 7px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
-  .btn-secondary:hover {
-    background: rgba(51, 65, 85, 0.95);
-    border-color: #38bdf8;
   }
   .presets {
     display: flex;
@@ -126,43 +107,61 @@
     gap: 5px;
     margin-bottom: 12px;
   }
-  .control-group {
-    margin-bottom: 11px;
+  .preset-btn {
+    background: rgba(30, 41, 59, 0.85);
+    color: #cbd5e1;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
   }
-  .control-label {
+  .preset-btn:hover {
+    background: rgba(51, 65, 85, 0.95);
+    color: #fff;
+    border-color: rgba(56, 189, 248, 0.5);
+  }
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #94a3b8;
+    margin-bottom: 5px;
     display: flex;
     justify-content: space-between;
-    font-size: 11px;
-    color: #cbd5e1;
-    margin-bottom: 4px;
-    font-weight: 500;
   }
-  .control-val {
+  .section-label span.val {
     color: #38bdf8;
-    font-weight: 600;
+    font-variant-numeric: tabular-nums;
   }
   select {
     width: 100%;
     background: rgba(15, 23, 42, 0.92);
+    color: #f1f5f9;
     border: 1px solid rgba(148, 163, 184, 0.28);
     border-radius: 8px;
     padding: 7px 9px;
-    color: #f8fafc;
     font-size: 12px;
+    margin-bottom: 12px;
     outline: none;
     cursor: pointer;
+  }
+  .slider-group {
+    margin-bottom: 11px;
   }
   input[type="range"] {
     width: 100%;
     accent-color: #38bdf8;
     cursor: pointer;
     height: 5px;
+    background: rgba(51, 65, 85, 0.8);
+    border-radius: 4px;
   }
   .tools-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 6px;
-    margin-top: 6px;
+    margin-top: 4px;
   }
   .tools-grid-3 {
     display: grid;
@@ -170,425 +169,400 @@
     gap: 6px;
     margin-top: 6px;
   }
-  .hud-bottom {
-    position: absolute;
-    bottom: 14px;
-    left: 16px;
-    right: 16px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-    pointer-events: none;
-    z-index: 20;
-    flex-wrap: wrap;
+  .tool-btn {
+    background: rgba(30, 41, 59, 0.9);
+    color: #e2e8f0;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: 8px;
+    padding: 7px 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
   }
-  .pill {
-    pointer-events: auto;
-    background: rgba(13, 19, 33, 0.86);
+  .tool-btn:hover {
+    background: rgba(51, 65, 85, 0.95);
+    border-color: #38bdf8;
+    color: #fff;
+  }
+  .tool-btn.active {
+    background: #0284c7;
+    border-color: #38bdf8;
+    color: #fff;
+  }
+  .hud-pill {
+    position: fixed;
+    bottom: 12px;
+    background: rgba(13, 19, 33, 0.85);
     backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border: 1px solid rgba(148, 163, 184, 0.22);
     border-radius: 999px;
-    padding: 5px 12px;
+    padding: 6px 13px;
     font-size: 11px;
     color: #cbd5e1;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    z-index: 20;
+    pointer-events: none;
+    white-space: nowrap;
   }
-  .pill-status {
-    color: #86efac;
-    border-color: rgba(74, 222, 128, 0.3);
+  #hud-coords {
+    left: 14px;
   }
-  .pill-error {
-    color: #fca5a5;
-    border-color: rgba(248, 113, 113, 0.45);
-    background: rgba(69, 10, 10, 0.88);
+  #hud-help {
+    left: 50%;
+    transform: translateX(-50%);
   }
-  #searchMsg {
-    font-size: 11px;
-    color: #fda4af;
-    margin-bottom: 8px;
-    display: none;
+  #hud-status {
+    right: 14px;
+  }
+  @media (max-width: 900px) {
+    #hud-help { display: none; }
   }
 </style>
 </head>
 <body>
-<div id="stage">
-  <canvas id="glCanvas"></canvas>
 
-  <div class="panel">
-    <div class="panel-header">
-      <span class="panel-title">Global 3D Terrain Explorer</span>
-      <span class="badge">WebGL DEM</span>
-    </div>
+<canvas id="glcanvas"></canvas>
 
-    <div class="search-row">
-      <input id="searchInput" type="text" placeholder="Place or Lat, Lon (e.g. 21.11, -11.39)" />
-      <button id="searchBtn" class="btn">Go</button>
-    </div>
-    <div id="searchMsg"></div>
-
-    <div class="presets">
-      <button class="btn-secondary" data-lat="21.1147" data-lon="-11.3942" data-zoom="10.2" data-pitch="48" data-bearing="0">Eye of Sahara</button>
-      <button class="btn-secondary" data-lat="27.9881" data-lon="86.9250" data-zoom="11.2" data-pitch="58" data-bearing="-20">Mt. Everest</button>
-      <button class="btn-secondary" data-lat="36.1069" data-lon="-112.1129" data-zoom="11.5" data-pitch="55" data-bearing="25">Grand Canyon</button>
-      <button class="btn-secondary" data-lat="35.3606" data-lon="138.7274" data-zoom="11.3" data-pitch="52" data-bearing="15">Mt. Fuji</button>
-      <button class="btn-secondary" data-lat="45.9766" data-lon="7.6585" data-zoom="12.0" data-pitch="56" data-bearing="-15">Matterhorn</button>
-    </div>
-
-    <div class="control-group">
-      <div class="control-label"><span>Surface Map Layer</span></div>
-      <select id="layerSelect">
-        <option value="esri_topo">Esri World Topographic</option>
-        <option value="esri_sat" selected>Esri World Satellite Imagery</option>
-        <option value="opentopo">OpenTopoMap (Contours + Relief)</option>
-        <option value="esri_street">Esri World Street Map (Labels)</option>
-        <option value="esri_hillshade">Esri Shaded Relief</option>
-      </select>
-    </div>
-
-    <div class="control-group">
-      <div class="control-label">
-        <span>3D Camera Pitch (Tilt)</span>
-        <span id="pitchVal" class="control-val">48°</span>
-      </div>
-      <input id="pitchSlider" type="range" min="0" max="72" step="1" value="48" />
-    </div>
-
-    <div class="control-group">
-      <div class="control-label">
-        <span>Camera Rotation (Bearing)</span>
-        <span id="bearingVal" class="control-val">0°</span>
-      </div>
-      <input id="bearingSlider" type="range" min="-180" max="180" step="1" value="0" />
-    </div>
-
-    <div class="control-group">
-      <div class="control-label">
-        <span>Elevation Exaggeration</span>
-        <span id="exagVal" class="control-val">2.2x</span>
-      </div>
-      <input id="exagSlider" type="range" min="0.5" max="6.0" step="0.1" value="2.2" />
-    </div>
-
-    <div class="control-group">
-      <div class="control-label"><span>Map &amp; Camera Tools</span></div>
-      <div class="tools-grid">
-        <button id="zoomInBtn" class="btn">+ Zoom In</button>
-        <button id="zoomOutBtn" class="btn-secondary">− Zoom Out</button>
-      </div>
-      <div class="tools-grid-3">
-        <button id="view2dBtn" class="btn-secondary">2D Top View</button>
-        <button id="view3dBtn" class="btn-secondary">3D Oblique</button>
-        <button id="orbitBtn" class="btn-secondary">Auto-Orbit: Off</button>
-      </div>
-    </div>
+<div id="controls-panel">
+  <div class="panel-header">
+    <span class="panel-title">Global 3D Terrain Explorer</span>
+    <span class="badge">WebGL DEM</span>
   </div>
 
-  <div class="hud-bottom">
-    <div id="coordPill" class="pill">Center: 21.1147° N, 11.3942° W | Zoom: 10.2</div>
-    <div class="pill">Left-Drag: Pan | Right-Drag / Shift+Drag: 3D Tilt &amp; Rotate | Scroll: Zoom</div>
-    <div id="statusPill" class="pill pill-status">Initializing WebGL...</div>
+  <div class="search-row">
+    <input id="search-input" type="text" placeholder="Place or Lat, Lon (e.g. 21.11, -11.39)" />
+    <button id="search-btn" class="btn-primary">Go</button>
+  </div>
+
+  <div class="presets">
+    <button class="preset-btn" data-lat="21.1147" data-lon="-11.3942" data-zoom="10.2" data-pitch="54" data-bearing="18">Eye of Sahara</button>
+    <button class="preset-btn" data-lat="27.9881" data-lon="86.9250" data-zoom="11.0" data-pitch="62" data-bearing="32">Mt. Everest</button>
+    <button class="preset-btn" data-lat="36.1069" data-lon="-112.1129" data-zoom="11.2" data-pitch="58" data-bearing="-25">Grand Canyon</button>
+    <button class="preset-btn" data-lat="35.3606" data-lon="138.7274" data-zoom="11.4" data-pitch="60" data-bearing="15">Mt. Fuji</button>
+    <button class="preset-btn" data-lat="45.9766" data-lon="7.6585" data-zoom="11.8" data-pitch="62" data-bearing="-18">Matterhorn</button>
+  </div>
+
+  <div class="section-label"><span>Surface Map Layer</span></div>
+  <select id="layer-select">
+    <option value="esri_topo">Esri World Topographic</option>
+    <option value="opentopo">OpenTopoMap (Contours + Relief)</option>
+    <option value="esri_sat">Esri World Satellite Imagery</option>
+    <option value="esri_street">Esri World Street Map</option>
+    <option value="esri_hillshade">Esri Shaded Hillshade Relief</option>
+  </select>
+
+  <div class="slider-group">
+    <div class="section-label">
+      <span>3D Camera Pitch (Tilt)</span>
+      <span class="val" id="pitch-val">54°</span>
+    </div>
+    <input id="pitch-slider" type="range" min="0" max="72" step="1" value="54" />
+  </div>
+
+  <div class="slider-group">
+    <div class="section-label">
+      <span>Camera Rotation (Bearing)</span>
+      <span class="val" id="bearing-val">18°</span>
+    </div>
+    <input id="bearing-slider" type="range" min="-180" max="180" step="1" value="18" />
+  </div>
+
+  <div class="slider-group">
+    <div class="section-label">
+      <span>Elevation Exaggeration</span>
+      <span class="val" id="exag-val">2.4x</span>
+    </div>
+    <input id="exag-slider" type="range" min="0.5" max="6.0" step="0.1" value="2.4" />
+  </div>
+
+  <div class="section-label"><span>Map &amp; Camera Tools</span></div>
+  <div class="tools-grid">
+    <button id="zoom-in-btn" class="tool-btn active">+ Zoom In</button>
+    <button id="zoom-out-btn" class="tool-btn">− Zoom Out</button>
+  </div>
+  <div class="tools-grid-3">
+    <button id="view-2d-btn" class="tool-btn">2D Top View</button>
+    <button id="view-3d-btn" class="tool-btn">3D Oblique</button>
+    <button id="orbit-btn" class="tool-btn">Auto-Orbit: Off</button>
   </div>
 </div>
 
+<div id="hud-coords" class="hud-pill">Center: 21.1147° N, 11.3942° W | Zoom: 10.2</div>
+<div id="hud-help" class="hud-pill">Left-Drag: Pan | Right-Drag / Shift+Drag: 3D Tilt &amp; Rotate | Scroll: Zoom</div>
+<div id="hud-status" class="hud-pill">Initializing WebGL...</div>
+
 <script>
 (function() {
-  const stage = document.getElementById("stage");
-  const canvas = document.getElementById("glCanvas");
-  const statusPill = document.getElementById("statusPill");
-  const coordPill = document.getElementById("coordPill");
+  const canvas = document.getElementById("glcanvas");
+  const statusEl = document.getElementById("hud-status");
+  const coordsEl = document.getElementById("hud-coords");
 
-  const pitchSlider = document.getElementById("pitchSlider");
-  const bearingSlider = document.getElementById("bearingSlider");
-  const exagSlider = document.getElementById("exagSlider");
-  const pitchVal = document.getElementById("pitchVal");
-  const bearingVal = document.getElementById("bearingVal");
-  const exagVal = document.getElementById("exagVal");
-  const layerSelect = document.getElementById("layerSelect");
+  const gl = canvas.getContext("webgl", { antialias: true, alpha: false }) ||
+             canvas.getContext("experimental-webgl", { antialias: true, alpha: false });
 
-  const gl = canvas.getContext("webgl", { antialias: true, alpha: true });
   if (!gl) {
-    statusPill.className = "pill pill-error";
-    statusPill.textContent = "WebGL unavailable in this browser";
+    statusEl.textContent = "WebGL unavailable in this browser.";
     return;
   }
 
-  // Application State (Standard Web Mercator world coordinates: x in [0,1] West->East, y in [0,1] North->South)
+  // Strictly matched GLSL ES 1.00 Vertex & Fragment Shaders
+  const VS_SOURCE = [
+    "attribute vec2 aPos;",
+    "attribute vec2 aUV;",
+    "attribute float aElev;",
+    "uniform mat4 uMVP;",
+    "uniform vec2 uTileOffset;",
+    "uniform float uTileScale;",
+    "uniform float uElevScale;",
+    "varying vec2 vUV;",
+    "varying float vElev;",
+    "varying float vDepth;",
+    "void main(void) {",
+    "  vec2 worldXY = uTileOffset + aPos * uTileScale;",
+    "  float worldZ = aElev * uElevScale;",
+    "  vec4 clipPos = uMVP * vec4(worldXY.x, worldXY.y, worldZ, 1.0);",
+    "  gl_Position = clipPos;",
+    "  vUV = aUV;",
+    "  vElev = aElev;",
+    "  vDepth = clipPos.w;",
+    "}"
+  ].join("
+");
+
+  const FS_SOURCE = [
+    "precision mediump float;",
+    "uniform sampler2D uTex;",
+    "uniform float uHasTex;",
+    "uniform float uSunAngle;",
+    "varying vec2 vUV;",
+    "varying float vElev;",
+    "varying float vDepth;",
+    "vec3 hypsometric(float h) {",
+    "  if (h < 1.0) return vec3(0.06, 0.22, 0.42);",
+    "  if (h < 250.0) return mix(vec3(0.24, 0.47, 0.28), vec3(0.68, 0.65, 0.42), h / 250.0);",
+    "  if (h < 1200.0) return mix(vec3(0.68, 0.65, 0.42), vec3(0.62, 0.42, 0.28), (h - 250.0) / 950.0);",
+    "  if (h < 3500.0) return mix(vec3(0.62, 0.42, 0.28), vec3(0.55, 0.52, 0.50), (h - 1200.0) / 2300.0);",
+    "  return mix(vec3(0.55, 0.52, 0.50), vec3(0.95, 0.96, 0.98), clamp((h - 3500.0) / 3000.0, 0.0, 1.0));",
+    "}",
+    "void main(void) {",
+    "  vec3 baseCol = hypsometric(vElev);",
+    "  if (uHasTex > 0.5) {",
+    "    baseCol = texture2D(uTex, vUV).rgb;",
+    "  }",
+    "  float shade = clamp(0.84 + 0.16 * sin(vElev * 0.015 + uSunAngle), 0.72, 1.15);",
+    "  vec3 litCol = baseCol * shade;",
+    "  float fogFactor = clamp((vDepth - 1.6) / 2.8, 0.0, 0.65);",
+    "  vec3 skyCol = vec3(0.06, 0.10, 0.18);",
+    "  vec3 finalCol = mix(litCol, skyCol, fogFactor);",
+    "  gl_FragColor = vec4(finalCol, 1.0);",
+    "}"
+  ].join("
+");
+
+  function compileShader(type, src) {
+    const sh = gl.createShader(type);
+    gl.shaderSource(sh, src);
+    gl.compileShader(sh);
+    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+      const err = gl.getShaderInfoLog(sh) || "Unknown shader error";
+      statusEl.textContent = "Shader compile error: " + err;
+      gl.deleteShader(sh);
+      return null;
+    }
+    return sh;
+  }
+
+  const vs = compileShader(gl.VERTEX_SHADER, VS_SOURCE);
+  const fs = compileShader(gl.FRAGMENT_SHADER, FS_SOURCE);
+  if (!vs || !fs) return;
+
+  const prog = gl.createProgram();
+  gl.attachShader(prog, vs);
+  gl.attachShader(prog, fs);
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+    const err = gl.getProgramInfoLog(prog) || "Unknown link error";
+    statusEl.textContent = "Shader link error: " + err;
+    return;
+  }
+  gl.useProgram(prog);
+
+  const aPosLoc = gl.getAttribLocation(prog, "aPos");
+  const aUVLoc = gl.getAttribLocation(prog, "aUV");
+  const aElevLoc = gl.getAttribLocation(prog, "aElev");
+  const uMVPLoc = gl.getUniformLocation(prog, "uMVP");
+  const uTileOffsetLoc = gl.getUniformLocation(prog, "uTileOffset");
+  const uTileScaleLoc = gl.getUniformLocation(prog, "uTileScale");
+  const uElevScaleLoc = gl.getUniformLocation(prog, "uElevScale");
+  const uTexLoc = gl.getUniformLocation(prog, "uTex");
+  const uHasTexLoc = gl.getUniformLocation(prog, "uHasTex");
+  const uSunAngleLoc = gl.getUniformLocation(prog, "uSunAngle");
+
+  // Build shared grid mesh (GRID x GRID) + perimeter skirts to seal all tile seams
+  const GRID = 40;
+  const SKIRT_DROP = -450.0;
+  const positions = [];
+  const uvs = [];
+  const indices = [];
+
+  // Main surface grid: row 0 = North (v=0, y=+1), row GRID = South (v=1, y=0)
+  for (let r = 0; r <= GRID; r++) {
+    const v = r / GRID;
+    const y = 1.0 - v;
+    for (let c = 0; c <= GRID; c++) {
+      const u = c / GRID;
+      const x = u;
+      positions.push(x, y);
+      uvs.push(u, v);
+    }
+  }
+
+  const rowStride = GRID + 1;
+  for (let r = 0; r < GRID; r++) {
+    for (let c = 0; c < GRID; c++) {
+      const i0 = r * rowStride + c;
+      const i1 = i0 + 1;
+      const i2 = i0 + rowStride;
+      const i3 = i2 + 1;
+      indices.push(i0, i2, i1);
+      indices.push(i1, i2, i3);
+    }
+  }
+
+  // Append 4 skirt strips around perimeter
+  const surfaceVertCount = rowStride * rowStride;
+  const skirtSourceIndices = [];
+
+  function addSkirtEdge(edgeIndices) {
+    const startIdx = positions.length / 2;
+    for (let k = 0; k < edgeIndices.length; k++) {
+      const srcIdx = edgeIndices[k];
+      positions.push(positions[srcIdx * 2], positions[srcIdx * 2 + 1]);
+      uvs.push(uvs[srcIdx * 2], uvs[srcIdx * 2 + 1]);
+      skirtSourceIndices.push(srcIdx);
+    }
+    for (let k = 0; k < edgeIndices.length - 1; k++) {
+      const topA = edgeIndices[k];
+      const topB = edgeIndices[k + 1];
+      const botA = startIdx + k;
+      const botB = startIdx + k + 1;
+      indices.push(topA, botA, topB);
+      indices.push(topB, botA, botB);
+    }
+  }
+
+  const northEdge = [], southEdge = [], westEdge = [], eastEdge = [];
+  for (let c = 0; c <= GRID; c++) northEdge.push(c);
+  for (let c = GRID; c >= 0; c--) southEdge.push(GRID * rowStride + c);
+  for (let r = GRID; r >= 0; r--) westEdge.push(r * rowStride);
+  for (let r = 0; r <= GRID; r++) eastEdge.push(r * rowStride + GRID);
+
+  addSkirtEdge(northEdge);
+  addSkirtEdge(southEdge);
+  addSkirtEdge(westEdge);
+  addSkirtEdge(eastEdge);
+
+  const totalVertCount = positions.length / 2;
+
+  const posBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+
+  const uvBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, uvBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(uvs), gl.STATIC_DRAW);
+
+  const idxBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idxBuf);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+
+  const flatElevArray = new Float32Array(totalVertCount);
+  for (let i = surfaceVertCount; i < totalVertCount; i++) {
+    flatElevArray[i] = SKIRT_DROP;
+  }
+  const defaultElevBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, defaultElevBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, flatElevArray, gl.STATIC_DRAW);
+
+  gl.enable(gl.DEPTH_TEST);
+  gl.depthFunc(gl.LEQUAL);
+
+  // Map State (Default: Eye of the Sahara)
   const state = {
     lat: 21.1147,
     lon: -11.3942,
     zoom: 10.2,
-    pitch: 48,      // degrees: 0 = flat top-down, 72 = steep oblique
-    bearing: 0,     // degrees: 0 = North up, positive = clockwise
-    exag: 2.2,
-    layer: "esri_sat",
+    pitch: 54,
+    bearing: 18,
+    exag: 2.4,
+    layer: "esri_topo",
     autoOrbit: false
   };
 
-  function lonToMercX(lon) {
-    return (lon + 180.0) / 360.0;
-  }
-  function latToMercY(lat) {
-    const clamped = Math.max(-85.05112878, Math.min(85.05112878, lat));
-    const rad = clamped * Math.PI / 180.0;
-    return (1.0 - Math.log(Math.tan(rad) + 1.0 / Math.cos(rad)) / Math.PI) * 0.5;
-  }
-  function mercXToLon(x) {
-    return x * 360.0 - 180.0;
-  }
-  function mercYToLat(y) {
-    const n = Math.PI - 2.0 * Math.PI * y;
-    return 180.0 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
-  }
-
-  // Update rounded corners smoothly with camera pitch
-  function updateViewportRounding() {
-    const t = Math.max(0, Math.min(1, state.pitch / 72.0));
-    const eased = t * t * (3 - 2 * t);
-    const minDim = Math.min(window.innerWidth, window.innerHeight);
-    const radiusPx = Math.round(eased * (minDim * 0.46));
-    stage.style.borderRadius = radiusPx + "px";
-    if (eased > 0.02) {
-      const glowAlpha = (0.18 + eased * 0.25).toFixed(2);
-      stage.style.boxShadow = "inset 0 0 " + Math.round(24 + eased * 36) + "px rgba(56, 189, 248, " + glowAlpha + "), 0 0 40px rgba(0, 0, 0, 0.9)";
-    } else {
-      stage.style.boxShadow = "none";
-    }
-  }
-
-  // Strict GLSL ES 1.00 Shaders (verified ANGLE/Direct3D compatible)
-  const vsSource = [
-    "attribute vec2 aGridUV;",
-    "attribute float aElev;",
-    "attribute float aSkirt;",
-    "",
-    "uniform mat4 uMVP;",
-    "uniform vec2 uTileOrigin;",
-    "uniform float uTileSize;",
-    "uniform float uElevScale;",
-    "uniform float uSkirtDepth;",
-    "",
-    "varying vec2 vUV;",
-    "varying float vElev;",
-    "varying float vSkirt;",
-    "varying float vClipW;",
-    "",
-    "void main() {",
-    "  vec2 worldXY = uTileOrigin + aGridUV * uTileSize;",
-    "  float z = aElev * uElevScale - aSkirt * uSkirtDepth;",
-    "  vec4 clipPos = uMVP * vec4(worldXY.x, worldXY.y, z, 1.0);",
-    "  gl_Position = clipPos;",
-    "  vUV = vec2(aGridUV.x, 1.0 - aGridUV.y);",
-    "  vElev = aElev;",
-    "  vSkirt = aSkirt;",
-    "  vClipW = clipPos.w;",
-    "}"
-  ].join("\n");
-
-  const fsSource = [
-    "precision mediump float;",
-    "",
-    "uniform sampler2D uTex;",
-    "uniform float uHasTex;",
-    "uniform float uFogDensity;",
-    "",
-    "varying vec2 vUV;",
-    "varying float vElev;",
-    "varying float vSkirt;",
-    "varying float vClipW;",
-    "",
-    "vec3 hypsometric(float h) {",
-    "  if (h < 0.0) return vec3(0.08, 0.22, 0.42);",
-    "  float t = clamp(h / 4500.0, 0.0, 1.0);",
-    "  vec3 low = vec3(0.76, 0.67, 0.52);",
-    "  vec3 mid = vec3(0.55, 0.46, 0.36);",
-    "  vec3 high = vec3(0.92, 0.93, 0.95);",
-    "  if (t < 0.5) return mix(low, mid, t * 2.0);",
-    "  return mix(mid, high, (t - 0.5) * 2.0);",
-    "}",
-    "",
-    "void main() {",
-    "  vec3 baseColor;",
-    "  if (uHasTex > 0.5) {",
-    "    baseColor = texture2D(uTex, vUV).rgb;",
-    "  } else {",
-    "    baseColor = hypsometric(vElev);",
-    "  }",
-    "  if (vSkirt > 0.5) {",
-    "    baseColor *= 0.78;",
-    "  }",
-    "  float fog = clamp((vClipW - 1.4) * uFogDensity, 0.0, 0.65);",
-    "  vec3 skyColor = vec3(0.56, 0.72, 0.88);",
-    "  vec3 finalColor = mix(baseColor, skyColor, fog);",
-    "  gl_FragColor = vec4(finalColor, 1.0);",
-    "}"
-  ].join("\n");
-
-  function compileShader(type, source) {
-    const shader = gl.createShader(type);
-    gl.shaderSource(shader, source);
-    gl.compileShader(shader);
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      const info = gl.getShaderInfoLog(shader) || "Unknown compile error";
-      gl.deleteShader(shader);
-      throw new Error(info);
-    }
-    return shader;
-  }
-
-  let program;
-  try {
-    const vs = compileShader(gl.VERTEX_SHADER, vsSource);
-    const fs = compileShader(gl.FRAGMENT_SHADER, fsSource);
-    program = gl.createProgram();
-    gl.attachShader(program, vs);
-    gl.attachShader(program, fs);
-    gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      throw new Error(gl.getProgramInfoLog(program) || "Shader link failed");
-    }
-  } catch (err) {
-    statusPill.className = "pill pill-error";
-    statusPill.textContent = "Shader error: " + err.message;
-    return;
-  }
-
-  gl.useProgram(program);
-
-  const loc = {
-    aGridUV: gl.getAttribLocation(program, "aGridUV"),
-    aElev: gl.getAttribLocation(program, "aElev"),
-    aSkirt: gl.getAttribLocation(program, "aSkirt"),
-    uMVP: gl.getUniformLocation(program, "uMVP"),
-    uTileOrigin: gl.getUniformLocation(program, "uTileOrigin"),
-    uTileSize: gl.getUniformLocation(program, "uTileSize"),
-    uElevScale: gl.getUniformLocation(program, "uElevScale"),
-    uSkirtDepth: gl.getUniformLocation(program, "uSkirtDepth"),
-    uTex: gl.getUniformLocation(program, "uTex"),
-    uHasTex: gl.getUniformLocation(program, "uHasTex"),
-    uFogDensity: gl.getUniformLocation(program, "uFogDensity")
+  const TILE_LAYERS = {
+    esri_topo: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/${z}/${y}/${x}`,
+    opentopo: (z, x, y) => {
+      const sub = ["a", "b", "c"][(x + y) % 3];
+      return `https://${sub}.tile.opentopomap.org/${z}/${x}/${y}.png`;
+    },
+    esri_sat: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`,
+    esri_street: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${z}/${y}/${x}`,
+    esri_hillshade: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/${z}/${y}/${x}`
   };
 
-  // Build static grid UV + skirt buffers for a 32x32 tile mesh with perimeter skirts
-  const GRID = 32;
-  const VERTS_PER_SIDE = GRID + 1;
-  const MAIN_VERTS = VERTS_PER_SIDE * VERTS_PER_SIDE;
-  const SKIRT_VERTS = VERTS_PER_SIDE * 4;
-  const TOTAL_VERTS = MAIN_VERTS + SKIRT_VERTS;
-
-  const gridUVArray = new Float32Array(TOTAL_VERTS * 2);
-  const skirtArray = new Float32Array(TOTAL_VERTS);
-
-  let ptr = 0;
-  for (let r = 0; r <= GRID; r++) {
-    const v = r / GRID;
-    for (let c = 0; c <= GRID; c++) {
-      const u = c / GRID;
-      gridUVArray[ptr * 2] = u;
-      gridUVArray[ptr * 2 + 1] = v;
-      skirtArray[ptr] = 0.0;
-      ptr++;
-    }
-  }
-  // Skirt vertices along the 4 edges (Top, Right, Bottom, Left)
-  const skirtSourceIndices = [];
-  for (let c = 0; c <= GRID; c++) skirtSourceIndices.push(c); // top row r=0
-  for (let r = 0; r <= GRID; r++) skirtSourceIndices.push(r * VERTS_PER_SIDE + GRID); // right col c=GRID
-  for (let c = GRID; c >= 0; c--) skirtSourceIndices.push(GRID * VERTS_PER_SIDE + c); // bottom row r=GRID
-  for (let r = GRID; r >= 0; r--) skirtSourceIndices.push(r * VERTS_PER_SIDE); // left col c=0
-
-  for (let i = 0; i < skirtSourceIndices.length; i++) {
-    const src = skirtSourceIndices[i];
-    gridUVArray[ptr * 2] = gridUVArray[src * 2];
-    gridUVArray[ptr * 2 + 1] = gridUVArray[src * 2 + 1];
-    skirtArray[ptr] = 1.0;
-    ptr++;
-  }
-
-  // Triangle indices
-  const indices = [];
-  for (let r = 0; r < GRID; r++) {
-    for (let c = 0; c < GRID; c++) {
-      const i0 = r * VERTS_PER_SIDE + c;
-      const i1 = i0 + 1;
-      const i2 = i0 + VERTS_PER_SIDE;
-      const i3 = i2 + 1;
-      // Front-facing when looking from +Z down onto (+X East, +Y South)
-      indices.push(i0, i1, i2);
-      indices.push(i1, i3, i2);
-    }
-  }
-  // Skirt quads
-  for (let i = 0; i < skirtSourceIndices.length - 1; i++) {
-    const topA = skirtSourceIndices[i];
-    const topB = skirtSourceIndices[i + 1];
-    const botA = MAIN_VERTS + i;
-    const botB = MAIN_VERTS + i + 1;
-    indices.push(topA, botA, topB);
-    indices.push(topB, botA, botB);
-  }
-  const indexArray = new Uint16Array(indices);
-
-  const uvBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, uvBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, gridUVArray, gl.STATIC_DRAW);
-
-  const skirtBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, skirtBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, skirtArray, gl.STATIC_DRAW);
-
-  const indexBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indexArray, gl.STATIC_DRAW);
-
-  const flatElevArray = new Float32Array(TOTAL_VERTS);
-  const flatElevBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, flatElevBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, flatElevArray, gl.STATIC_DRAW);
-
-  // Tile URL templates
-  function getTileUrl(layer, z, x, y) {
-    if (layer === "esri_sat") {
-      return "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/" + z + "/" + y + "/" + x;
-    }
-    if (layer === "esri_topo") {
-      return "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/" + z + "/" + y + "/" + x;
-    }
-    if (layer === "opentopo") {
-      const sub = ["a", "b", "c"][(x + y) % 3];
-      return "https://" + sub + ".tile.opentopomap.org/" + z + "/" + x + "/" + y + ".png";
-    }
-    if (layer === "esri_street") {
-      return "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/" + z + "/" + y + "/" + x;
-    }
-    return "https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/" + z + "/" + y + "/" + x;
-  }
-
   function getDemUrl(z, x, y) {
-    return "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/" + z + "/" + x + "/" + y + ".png";
+    const dz = Math.min(z, 14);
+    const scale = Math.pow(2, z - dz);
+    const dx = Math.floor(x / scale);
+    const dy = Math.floor(y / scale);
+    return {
+      url: `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${dz}/${dx}/${dy}.png`,
+      dz, dx, dy
+    };
   }
 
-  // Tile caches
+  // Mercator projection helpers in normalized [0..1] world space
+  // +X = East (0 to 1), +Y = North (0 at South Pole, 1 at North Pole)
+  function lonToNormX(lon) {
+    return (lon + 180.0) / 360.0;
+  }
+  function latToNormY(lat) {
+    const clamped = Math.max(-85.05112878, Math.min(85.05112878, lat));
+    const rad = clamped * Math.PI / 180.0;
+    const merc = Math.log(Math.tan(Math.PI / 4.0 + rad / 2.0));
+    return 0.5 + merc / (2.0 * Math.PI);
+  }
+  function normXToLon(nx) {
+    return nx * 360.0 - 180.0;
+  }
+  function normYToLat(ny) {
+    const merc = (ny - 0.5) * 2.0 * Math.PI;
+    return (2.0 * Math.atan(Math.exp(merc)) - Math.PI / 2.0) * 180.0 / Math.PI;
+  }
+
+  // Tile & DEM caches
   const imgCache = new Map();
   const demCache = new Map();
-  const offCanvas = document.createElement("canvas");
-  offCanvas.width = 256;
-  offCanvas.height = 256;
-  const offCtx = offCanvas.getContext("2d", { willReadFrequently: true });
+  const demCanvas = document.createElement("canvas");
+  demCanvas.width = 256;
+  demCanvas.height = 256;
+  const demCtx = demCanvas.getContext("2d", { willReadFrequently: true });
 
-  let imgLoadedCount = 0;
-  let demLoadedCount = 0;
+  let loadedImgCount = 0;
+  let loadedDemCount = 0;
 
-  function requestImageryTile(layer, z, x, y) {
-    const key = layer + "/" + z + "/" + x + "/" + y;
+  function requestImageryTile(layerKey, z, x, y) {
+    const key = `${layerKey}:${z}/${x}/${y}`;
     if (imgCache.has(key)) return imgCache.get(key);
 
-    const entry = { status: "loading", texture: null, lastUsed: performance.now() };
+    const entry = { tex: null, ready: false, failed: false };
     imgCache.set(key, entry);
 
     const img = new Image();
     img.crossOrigin = "anonymous";
-    img.onload = function() {
+    img.onload = () => {
       const tex = gl.createTexture();
       gl.bindTexture(gl.TEXTURE_2D, tex);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -596,72 +570,102 @@
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-      entry.texture = tex;
-      entry.status = "ready";
-      imgLoadedCount++;
+      entry.tex = tex;
+      entry.ready = true;
+      loadedImgCount++;
     };
-    img.onerror = function() {
-      entry.status = "error";
+    img.onerror = () => {
+      entry.failed = true;
     };
-    img.src = getTileUrl(layer, z, x, y);
+    img.src = TILE_LAYERS[layerKey](z, x, y);
     return entry;
   }
 
   function requestDemTile(z, x, y) {
-    const cappedZ = Math.min(z, 14);
-    const scaleDiff = z - cappedZ;
-    const dx = x >> scaleDiff;
-    const dy = y >> scaleDiff;
-    const key = cappedZ + "/" + dx + "/" + dy;
+    const { url, dz, dx, dy } = getDemUrl(z, x, y);
+    const key = `${dz}/${dx}/${dy}`;
     if (demCache.has(key)) return demCache.get(key);
 
-    const entry = { status: "loading", buffer: null, lastUsed: performance.now() };
+    const entry = { heights: null, ready: false };
     demCache.set(key, entry);
 
     const img = new Image();
     img.crossOrigin = "anonymous";
-    img.onload = function() {
+    img.onload = () => {
       try {
-        offCtx.clearRect(0, 0, 256, 256);
-        offCtx.drawImage(img, 0, 0, 256, 256);
-        const data = offCtx.getImageData(0, 0, 256, 256).data;
-        const elevs = new Float32Array(TOTAL_VERTS);
-
-        let p = 0;
-        for (let r = 0; r <= GRID; r++) {
-          const py = Math.min(255, Math.round(((GRID - r) / GRID) * 255));
-          for (let c = 0; c <= GRID; c++) {
-            const px = Math.min(255, Math.round((c / GRID) * 255));
-            const idx = (py * 256 + px) * 4;
-            const red = data[idx];
-            const green = data[idx + 1];
-            const blue = data[idx + 2];
-            const h = (red * 256.0 + green + blue / 256.0) - 32768.0;
-            elevs[p++] = h;
-          }
+        demCtx.clearRect(0, 0, 256, 256);
+        demCtx.drawImage(img, 0, 0, 256, 256);
+        const data = demCtx.getImageData(0, 0, 256, 256).data;
+        const hGrid = new Float32Array(256 * 256);
+        for (let i = 0; i < 256 * 256; i++) {
+          const r = data[i * 4];
+          const g = data[i * 4 + 1];
+          const b = data[i * 4 + 2];
+          hGrid[i] = (r * 256.0 + g + b / 256.0) - 32768.0;
         }
-        for (let i = 0; i < skirtSourceIndices.length; i++) {
-          elevs[p++] = elevs[skirtSourceIndices[i]];
-        }
-
-        const buf = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-        gl.bufferData(gl.ARRAY_BUFFER, elevs, gl.STATIC_DRAW);
-        entry.buffer = buf;
-        entry.status = "ready";
-        demLoadedCount++;
+        entry.heights = hGrid;
+        entry.ready = true;
+        loadedDemCount++;
       } catch (e) {
-        entry.status = "error";
+        entry.ready = false;
       }
     };
-    img.onerror = function() {
-      entry.status = "error";
-    };
-    img.src = getDemUrl(cappedZ, dx, dy);
+    img.src = url;
     return entry;
   }
 
-  // Matrix math (Column-Major 4x4 for WebGL)
+  const tileElevBuffers = new Map();
+
+  function getOrBuildElevBuffer(z, x, y) {
+    const { dz, dx, dy } = getDemUrl(z, x, y);
+    const demEntry = requestDemTile(z, x, y);
+    if (!demEntry.ready || !demEntry.heights) {
+      return defaultElevBuf;
+    }
+
+    const bufKey = `${z}/${x}/${y}:${dz}/${dx}/${dy}`;
+    if (tileElevBuffers.has(bufKey)) {
+      return tileElevBuffers.get(bufKey);
+    }
+
+    const scale = Math.pow(2, z - dz);
+    const subX = (x % scale) / scale;
+    const subY = (y % scale) / scale;
+    const subSpan = 1.0 / scale;
+
+    const elevArr = new Float32Array(totalVertCount);
+    const heights = demEntry.heights;
+
+    for (let r = 0; r <= GRID; r++) {
+      const py = Math.min(255, Math.floor((subY + (r / GRID) * subSpan) * 255.99));
+      for (let c = 0; c <= GRID; c++) {
+        const px = Math.min(255, Math.floor((subX + (c / GRID) * subSpan) * 255.99));
+        elevArr[r * rowStride + c] = heights[py * 256 + px];
+      }
+    }
+
+    for (let k = 0; k < skirtSourceIndices.length; k++) {
+      const srcIdx = skirtSourceIndices[k];
+      elevArr[surfaceVertCount + k] = elevArr[srcIdx] + SKIRT_DROP;
+    }
+
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, elevArr, gl.STATIC_DRAW);
+    tileElevBuffers.set(bufKey, buf);
+    return buf;
+  }
+
+  // Matrix math utilities (Column-major 4x4)
+  function mat4Identity() {
+    return new Float32Array([
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1
+    ]);
+  }
+
   function mat4Multiply(a, b) {
     const out = new Float32Array(16);
     for (let c = 0; c < 4; c++) {
@@ -676,16 +680,15 @@
     return out;
   }
 
-  function mat4Perspective(fovYRad, aspect, near, far) {
-    const f = 1.0 / Math.tan(fovYRad * 0.5);
+  function mat4Perspective(fovRad, aspect, near, far) {
+    const f = 1.0 / Math.tan(fovRad / 2.0);
     const nf = 1.0 / (near - far);
-    const out = new Float32Array(16);
-    out[0] = f / aspect;
-    out[5] = f;
-    out[10] = (far + near) * nf;
-    out[11] = -1.0;
-    out[14] = (2.0 * far * near) * nf;
-    return out;
+    return new Float32Array([
+      f / aspect, 0, 0, 0,
+      0, f, 0, 0,
+      0, 0, (far + near) * nf, -1,
+      0, 0, 2 * far * near * nf, 0
+    ]);
   }
 
   function mat4LookAt(eye, target, up) {
@@ -705,143 +708,101 @@
     const yy = zz * xx - zx * xz;
     const yz = zx * xy - zy * xx;
 
-    const out = new Float32Array(16);
-    out[0] = xx; out[4] = xy; out[8]  = xz; out[12] = -(xx * eye[0] + xy * eye[1] + xz * eye[2]);
-    out[1] = yx; out[5] = yy; out[9]  = yz; out[13] = -(yx * eye[0] + yy * eye[1] + yz * eye[2]);
-    out[2] = zx; out[6] = zy; out[10] = zz; out[14] = -(zx * eye[0] + zy * eye[1] + zz * eye[2]);
-    out[3] = 0;  out[7] = 0;  out[11] = 0;  out[15] = 1;
-    return out;
+    return new Float32Array([
+      xx, yx, zx, 0,
+      xy, yy, zy, 0,
+      xz, yz, zz, 0,
+      -(xx * eye[0] + xy * eye[1] + xz * eye[2]),
+      -(yx * eye[0] + yy * eye[1] + yz * eye[2]),
+      -(zx * eye[0] + zy * eye[1] + zz * eye[2]),
+      1
+    ]);
   }
 
-  // Right-handed Web Mercator world coordinate system:
-  // +X = East, +Y = South, +Z = Up (Elevation)
-  // Looking from +Z down toward Z=0:
-  // When bearing = 0, Up on screen is North (-Y), Right on screen is East (+X).
-  // Cross(Forward=(0,0,-1), Up=(0,-1,0)) = (-1,0,0) -> wait:
-  // In standard LookAt: right = normalize(cross(forward_dir, world_up))
-  // If eye is at (cx, cy + d*sin(pitch), d*cos(pitch)) and target is (cx, cy, 0):
-  // forward_dir = (0, -sin(pitch), -cos(pitch))
-  // world_up = (0, -cos(pitch), sin(pitch))  [points North (-Y) when pitch=0, and Up (+Z) when pitch=90]
-  // cross(forward_dir, world_up) =
-  //   x = (-sin)*sin - (-cos)*(-cos) = -(sin^2 + cos^2) = -1  (Wait: that puts +X on left!)
-  // Let's flip world X to West->East by mapping worldX = -mercX OR setting right = +X:
-  // With worldX = mercX (+X East), worldY = mercY (+Y South), worldZ = +Elevation:
-  // cross(North=(0,-1,0), Up=(0,0,1)) = (-1*1 - 0, 0, 0) = (-1, 0, 0), so +X is cross(Up, North)!
-  // Therefore, to keep +X (East) on the RIGHT side of the screen and -Y (North) at the TOP:
-  // Simply use worldX = mercX, worldY = -mercY (+Y = North!), worldZ = +Elevation!
-  // Let's verify:
-  // +X = East (Right), +Y = North (Up on screen), +Z = Altitude (Toward viewer).
-  // cross(East=(1,0,0), North=(0,1,0)) = (0,0,1) = +Z (Right-handed!).
-  // When bearing = 0, pitch = 0:
-  //   eye = (cx, cy, dist), target = (cx, cy, 0), up = (0, 1, 0) [North]
-  //   forward = (0, 0, -1)
-  //   right = cross(forward, up) = cross((0,0,-1), (0,1,0)) = (1, 0, 0) [+X East is on the RIGHT!]
-  //   North (+Y) is at the TOP! Letters read cleanly left-to-right, top-to-bottom!
-
-  function buildCamera() {
-    const cx = lonToMercX(state.lon);
-    const cy = -latToMercY(state.lat); // +Y = North, range [-1, 0]
-
-    const fovY = 42.0 * Math.PI / 180.0;
-    const aspect = canvas.width / Math.max(1, canvas.height);
-
-    // Match standard 256px Web Mercator zoom scale at pitch = 0
-    const worldPixels = 256.0 * Math.pow(2.0, state.zoom);
-    const visibleHeightWorld = canvas.height / worldPixels;
-    const dist = (visibleHeightWorld * 0.5) / Math.tan(fovY * 0.5);
-
-    const pitchRad = state.pitch * Math.PI / 180.0;
-    const bearingRad = state.bearing * Math.PI / 180.0;
-
-    // When bearing = 0, camera sits South (-Y) of target looking North (+Y) and Down (-Z)
-    const horizDist = dist * Math.sin(pitchRad);
-    const vertDist = dist * Math.cos(pitchRad);
-
-    // Rotate horizontal offset by bearing clockwise
-    const offsetX = -horizDist * Math.sin(bearingRad);
-    const offsetY = -horizDist * Math.cos(bearingRad);
-
-    const eye = [cx + offsetX, cy + offsetY, vertDist];
-    const target = [cx, cy, 0.0];
-
-    // Camera up vector perpendicular to view ray
-    const upX = Math.cos(pitchRad) * Math.sin(bearingRad);
-    const upY = Math.cos(pitchRad) * Math.cos(bearingRad);
-    const upZ = Math.sin(pitchRad);
-    const up = [upX, upY, upZ];
-
-    const near = Math.max(1e-7, dist * 0.02);
-    const far = Math.max(2.5, dist * 25.0);
-
-    const proj = mat4Perspective(fovY, aspect, near, far);
-    const view = mat4LookAt(eye, target, up);
-    return {
-      mvp: mat4Multiply(proj, view),
-      cx: cx,
-      cy: cy,
-      dist: dist
-    };
-  }
-
-  function resizeCanvas() {
+  function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const w = Math.floor(stage.clientWidth * dpr);
-    const h = Math.floor(stage.clientHeight * dpr);
+    const w = Math.floor(window.innerWidth * dpr);
+    const h = Math.floor(window.innerHeight * dpr);
     if (canvas.width !== w || canvas.height !== h) {
       canvas.width = w;
       canvas.height = h;
       gl.viewport(0, 0, w, h);
     }
-    updateViewportRounding();
   }
-  window.addEventListener("resize", resizeCanvas);
-  resizeCanvas();
+  window.addEventListener("resize", resize);
+  resize();
 
-  function renderFrame() {
+  // Render frame
+  function render() {
     if (state.autoOrbit) {
       state.bearing = ((state.bearing + 0.15 + 180) % 360) - 180;
-      bearingSlider.value = state.bearing.toFixed(0);
-      bearingVal.textContent = state.bearing.toFixed(0) + "°";
+      bearingSlider.value = Math.round(state.bearing);
+      bearingVal.textContent = Math.round(state.bearing) + "°";
     }
 
-    gl.clearColor(0.03, 0.05, 0.09, 1.0);
+    gl.clearColor(0.03, 0.05, 0.10, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.enable(gl.DEPTH_TEST);
-    gl.depthFunc(gl.LEQUAL);
 
-    const cam = buildCamera();
-    gl.uniformMatrix4fv(loc.uMVP, false, cam.mvp);
+    const cx = lonToNormX(state.lon);
+    const cy = latToNormY(state.lat);
 
-    // Elevation scale in world units (1 world unit = Earth circumference at equator ~40,075,017 m)
-    const metersToWorld = 1.0 / 40075017.0;
-    const cosLat = Math.max(0.2, Math.cos(state.lat * Math.PI / 180.0));
-    const elevScale = (metersToWorld / cosLat) * state.exag;
-    gl.uniform1f(loc.uElevScale, elevScale);
+    // Distance from camera to target based on zoom level
+    const fov = 42.0 * Math.PI / 180.0;
+    const worldSpan = Math.pow(2.0, -state.zoom) * 2.2;
+    const dist = worldSpan / (2.0 * Math.tan(fov / 2.0));
 
-    const fogDensity = (state.pitch / 72.0) * 0.45;
-    gl.uniform1f(loc.uFogDensity, fogDensity);
+    const pitchRad = state.pitch * Math.PI / 180.0;
+    const bearingRad = state.bearing * Math.PI / 180.0;
 
-    // Bind shared static buffers
-    gl.bindBuffer(gl.ARRAY_BUFFER, uvBuffer);
-    gl.enableVertexAttribArray(loc.aGridUV);
-    gl.vertexAttribPointer(loc.aGridUV, 2, gl.FLOAT, false, 0, 0);
+    // Right-handed map space: +X = East, +Y = North, +Z = Up
+    // When pitch > 0, camera shifts South (-Y) and looks North (+Y) so bottom is foreground & top is horizon
+    const horizDist = dist * Math.sin(pitchRad);
+    const vertDist = dist * Math.cos(pitchRad);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, skirtBuffer);
-    gl.enableVertexAttribArray(loc.aSkirt);
-    gl.vertexAttribPointer(loc.aSkirt, 1, gl.FLOAT, false, 0, 0);
+    const eyeX = cx - horizDist * Math.sin(bearingRad);
+    const eyeY = cy - horizDist * Math.cos(bearingRad);
+    const eyeZ = vertDist;
 
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    // Up vector tilts forward along bearing so pitch=0 looks straight down with North up
+    const upX = Math.sin(bearingRad) * Math.cos(pitchRad);
+    const upY = Math.cos(bearingRad) * Math.cos(pitchRad);
+    const upZ = Math.sin(pitchRad);
 
-    const z = Math.max(1, Math.min(17, Math.round(state.zoom)));
-    const numTiles = 1 << z;
+    const aspect = canvas.width / Math.max(1, canvas.height);
+    const near = Math.max(0.00001, dist * 0.02);
+    const far = Math.max(4.0, dist * 14.0);
+
+    const proj = mat4Perspective(fov, aspect, near, far);
+    const view = mat4LookAt([eyeX, eyeY, eyeZ], [cx, cy, 0.0], [upX, upY, upZ]);
+    const mvp = mat4Multiply(proj, view);
+
+    gl.uniformMatrix4fv(uMVPLoc, false, mvp);
+
+    // Earth circumference at equator ~40,075,017 meters -> convert meters to normalized world units
+    const metersToWorld = 1.0 / (40075017.0 * Math.cos(state.lat * Math.PI / 180.0));
+    gl.uniform1f(uElevScaleLoc, metersToWorld * state.exag);
+    gl.uniform1f(uSunAngleLoc, bearingRad);
+
+    // Bind static position, UV, and index buffers
+    gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
+    gl.enableVertexAttribArray(aPosLoc);
+    gl.vertexAttribPointer(aPosLoc, 2, gl.FLOAT, false, 0, 0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, uvBuf);
+    gl.enableVertexAttribArray(aUVLoc);
+    gl.vertexAttribPointer(aUVLoc, 2, gl.FLOAT, false, 0, 0);
+
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idxBuf);
+
+    // Determine visible tile grid around center
+    const z = Math.max(2, Math.min(16, Math.round(state.zoom)));
+    const numTiles = Math.pow(2, z);
     const tileSize = 1.0 / numTiles;
-    gl.uniform1f(loc.uTileSize, tileSize);
-    gl.uniform1f(loc.uSkirtDepth, tileSize * 0.08);
 
-    const centerTileX = Math.floor(lonToMercX(state.lon) * numTiles);
-    const centerTileY = Math.floor(latToMercY(state.lat) * numTiles);
+    const centerTileX = Math.floor(cx * numTiles);
+    // In slippy map Y, 0 is North (ny = 1) and numTiles-1 is South (ny = 0)
+    const centerTileY = Math.floor((1.0 - cy) * numTiles);
 
-    // Expand tile radius when tilted so horizon fills cleanly
     const radius = state.pitch > 35 ? 4 : 3;
 
     for (let dy = -radius; dy <= radius; dy++) {
@@ -849,248 +810,214 @@
       if (ty < 0 || ty >= numTiles) continue;
 
       for (let dx = -radius; dx <= radius; dx++) {
-        const tx = ((centerTileX + dx) % numTiles + numTiles) % numTiles;
-        const originX = (centerTileX + dx) * tileSize;
-        // In our +Y North world space, tile ty covers Y from -(ty+1)*tileSize (South) to -ty*tileSize (North)
-        // Wait: in imagery & DEM, v=0 is North (top of PNG) and v=1 is South (bottom of PNG)!
-        // So at aGridUV.y = 0 (North), worldY must be -ty * tileSize.
-        // At aGridUV.y = 1 (South), worldY must be -(ty + 1) * tileSize.
-        // Therefore worldY = -ty * tileSize - aGridUV.y * tileSize!
-        // Because shader computes: worldXY = uTileOrigin + aGridUV * uTileSize,
-        // we pass negative uTileSize? No, uTileSize is scalar!
-        // Let's handle North-to-South Y cleanly by passing uTileOrigin.y = -ty * tileSize and flipping V?
-        // Even simpler: keep uTileOrigin.y = -(ty + 1) * tileSize, and flip V in fragment/vertex!
-        // Wait: let's check both! If uTileOrigin.y = -(ty + 1) * tileSize:
-        //   when aGridUV.y = 0 -> worldY = -(ty + 1) * tileSize (South edge of tile)
-        //   when aGridUV.y = 1 -> worldY = -ty * tileSize (North edge of tile)
-        // And in texture/DEM, v=0 is North, v=1 is South, so texture V = 1.0 - aGridUV.y!
-        const originY = -(ty + 1) * tileSize;
-        gl.uniform2f(loc.uTileOrigin, originX, originY);
+        const rawTx = centerTileX + dx;
+        const wrappedTx = ((rawTx % numTiles) + numTiles) % numTiles;
 
-        const imgEntry = requestImageryTile(state.layer, z, tx, ty);
-        const demEntry = requestDemTile(z, tx, ty);
+        const worldTileX = rawTx * tileSize;
+        const worldTileY = 1.0 - (ty + 1) * tileSize;
 
-        if (demEntry.status === "ready" && demEntry.buffer) {
-          gl.bindBuffer(gl.ARRAY_BUFFER, demEntry.buffer);
-        } else {
-          gl.bindBuffer(gl.ARRAY_BUFFER, flatElevBuffer);
-        }
-        gl.enableVertexAttribArray(loc.aElev);
-        gl.vertexAttribPointer(loc.aElev, 1, gl.FLOAT, false, 0, 0);
+        gl.uniform2f(uTileOffsetLoc, worldTileX, worldTileY);
+        gl.uniform1f(uTileScaleLoc, tileSize);
 
-        if (imgEntry.status === "ready" && imgEntry.texture) {
+        // Bind elevation buffer
+        const elevBuf = getOrBuildElevBuffer(z, wrappedTx, ty);
+        gl.bindBuffer(gl.ARRAY_BUFFER, elevBuf);
+        gl.enableVertexAttribArray(aElevLoc);
+        gl.vertexAttribPointer(aElevLoc, 1, gl.FLOAT, false, 0, 0);
+
+        // Bind imagery texture (with parent zoom fallback if still loading)
+        let imgEntry = requestImageryTile(state.layer, z, wrappedTx, ty);
+        if (imgEntry && imgEntry.ready && imgEntry.tex) {
           gl.activeTexture(gl.TEXTURE0);
-          gl.bindTexture(gl.TEXTURE_2D, imgEntry.texture);
-          gl.uniform1i(loc.uTex, 0);
-          gl.uniform1f(loc.uHasTex, 1.0);
+          gl.bindTexture(gl.TEXTURE_2D, imgEntry.tex);
+          gl.uniform1i(uTexLoc, 0);
+          gl.uniform1f(uHasTexLoc, 1.0);
         } else {
-          gl.uniform1f(loc.uHasTex, 0.0);
+          gl.uniform1f(uHasTexLoc, 0.0);
         }
 
-        gl.drawElements(gl.TRIANGLES, indexArray.length, gl.UNSIGNED_SHORT, 0);
+        gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
       }
     }
 
-    const latStr = Math.abs(state.lat).toFixed(4) + "° " + (state.lat >= 0 ? "N" : "S");
-    const lonStr = Math.abs(state.lon).toFixed(4) + "° " + (state.lon >= 0 ? "E" : "W");
-    coordPill.textContent = "Center: " + latStr + ", " + lonStr + " | Zoom: " + state.zoom.toFixed(1);
-    statusPill.textContent = "WebGL Active | Imagery: " + imgLoadedCount + " | DEM: " + demLoadedCount;
+    const latDir = state.lat >= 0 ? "N" : "S";
+    const lonDir = state.lon >= 0 ? "E" : "W";
+    coordsEl.textContent = `Center: ${Math.abs(state.lat).toFixed(4)}° ${latDir}, ${Math.abs(state.lon).toFixed(4)}° ${lonDir} | Zoom: ${state.zoom.toFixed(1)}`;
+    statusEl.textContent = `WebGL Active | Imagery: ${loadedImgCount} | DEM: ${loadedDemCount}`;
 
-    requestAnimationFrame(renderFrame);
+    requestAnimationFrame(render);
   }
 
-  // Wait: Notice above we noted texture V = 1.0 - aGridUV.y! Let's patch vsSource vUV = vec2(aGridUV.x, 1.0 - aGridUV.y) and DEM row order!
-  // Let's verify before writing file:
-  // If aGridUV.y = 0 is South edge (worldY = -(ty+1)*tileSize) and aGridUV.y = 1 is North edge (worldY = -ty*tileSize):
-  // - Texture UV: North edge (aGridUV.y = 1) should sample top of PNG (v = 0). South edge (aGridUV.y = 0) should sample bottom of PNG (v = 1).
-  //   So vUV = vec2(aGridUV.x, 1.0 - aGridUV.y)!
-  // - DEM buffer: Vertex row r=0 has aGridUV.y = 0 (South edge), so it should sample py = 255 (bottom of DEM PNG).
-  //   Vertex row r=GRID has aGridUV.y = 1 (North edge), so it should sample py = 0 (top of DEM PNG).
-  //   So py = Math.min(255, Math.round(((GRID - r) / GRID) * 255))!
-  // - Winding order: (0,0)->(1,0)->(0,1) in (+X East, +Y North) has cross((1,0,0), (0,1,0)) = +Z (front-facing!).
-  //   In our loop: i0=(r,c), i1=(r,c+1) [+X], i2=(r+1,c) [+Y].
-  //   Triangle (i0, i1, i2) has edges +X and +Y -> cross(+X, +Y) = +Z (front-facing!).
+  // UI Bindings
+  const pitchSlider = document.getElementById("pitch-slider");
+  const pitchVal = document.getElementById("pitch-val");
+  const bearingSlider = document.getElementById("bearing-slider");
+  const bearingVal = document.getElementById("bearing-val");
+  const exagSlider = document.getElementById("exag-slider");
+  const exagVal = document.getElementById("exag-val");
+  const layerSelect = document.getElementById("layer-select");
 
-  // Interaction Handlers
+  function syncSliders() {
+    pitchSlider.value = Math.round(state.pitch);
+    pitchVal.textContent = Math.round(state.pitch) + "°";
+    bearingSlider.value = Math.round(state.bearing);
+    bearingVal.textContent = Math.round(state.bearing) + "°";
+    exagSlider.value = state.exag.toFixed(1);
+    exagVal.textContent = state.exag.toFixed(1) + "x";
+  }
+
+  pitchSlider.addEventListener("input", () => {
+    state.pitch = parseFloat(pitchSlider.value);
+    pitchVal.textContent = Math.round(state.pitch) + "°";
+  });
+
+  bearingSlider.addEventListener("input", () => {
+    state.bearing = parseFloat(bearingSlider.value);
+    bearingVal.textContent = Math.round(state.bearing) + "°";
+  });
+
+  exagSlider.addEventListener("input", () => {
+    state.exag = parseFloat(exagSlider.value);
+    exagVal.textContent = state.exag.toFixed(1) + "x";
+  });
+
+  layerSelect.addEventListener("change", () => {
+    state.layer = layerSelect.value;
+  });
+
+  document.getElementById("zoom-in-btn").addEventListener("click", () => {
+    state.zoom = Math.min(16, state.zoom + 0.7);
+  });
+
+  document.getElementById("zoom-out-btn").addEventListener("click", () => {
+    state.zoom = Math.max(2, state.zoom - 0.7);
+  });
+
+  document.getElementById("view-2d-btn").addEventListener("click", () => {
+    state.pitch = 0;
+    state.bearing = 0;
+    syncSliders();
+  });
+
+  document.getElementById("view-3d-btn").addEventListener("click", () => {
+    state.pitch = 56;
+    syncSliders();
+  });
+
+  const orbitBtn = document.getElementById("orbit-btn");
+  orbitBtn.addEventListener("click", () => {
+    state.autoOrbit = !state.autoOrbit;
+    orbitBtn.textContent = state.autoOrbit ? "Auto-Orbit: On" : "Auto-Orbit: Off";
+    orbitBtn.classList.toggle("active", state.autoOrbit);
+  });
+
+  document.querySelectorAll(".preset-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      state.lat = parseFloat(btn.dataset.lat);
+      state.lon = parseFloat(btn.dataset.lon);
+      state.zoom = parseFloat(btn.dataset.zoom);
+      state.pitch = parseFloat(btn.dataset.pitch);
+      state.bearing = parseFloat(btn.dataset.bearing);
+      syncSliders();
+    });
+  });
+
+  // Search place name via Nominatim or direct Lat, Lon
+  async function handleSearch() {
+    const q = document.getElementById("search-input").value.trim();
+    if (!q) return;
+
+    const coordMatch = q.match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
+    if (coordMatch) {
+      state.lat = Math.max(-85, Math.min(85, parseFloat(coordMatch[1])));
+      state.lon = ((parseFloat(coordMatch[2]) + 180) % 360 + 360) % 360 - 180;
+      state.zoom = Math.max(state.zoom, 10.5);
+      return;
+    }
+
+    try {
+      statusEl.textContent = "Searching location...";
+      const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`);
+      const data = await resp.json();
+      if (data && data.length > 0) {
+        state.lat = parseFloat(data[0].lat);
+        state.lon = parseFloat(data[0].lon);
+        state.zoom = 11.0;
+      } else {
+        statusEl.textContent = "Location not found.";
+      }
+    } catch (e) {
+      statusEl.textContent = "Search unavailable offline.";
+    }
+  }
+
+  document.getElementById("search-btn").addEventListener("click", handleSearch);
+  document.getElementById("search-input").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") handleSearch();
+  });
+
+  // Mouse & Wheel Navigation
   let isDragging = false;
   let dragMode = "pan";
   let lastX = 0;
   let lastY = 0;
 
-  canvas.addEventListener("contextmenu", function(e) { e.preventDefault(); });
+  canvas.addEventListener("contextmenu", e => e.preventDefault());
 
-  canvas.addEventListener("mousedown", function(e) {
+  canvas.addEventListener("mousedown", (e) => {
     isDragging = true;
     lastX = e.clientX;
     lastY = e.clientY;
-    dragMode = (e.button === 2 || e.shiftKey || e.ctrlKey) ? "tilt" : "pan";
+    dragMode = (e.button === 2 || e.shiftKey) ? "orbit" : "pan";
   });
 
-  window.addEventListener("mousemove", function(e) {
+  window.addEventListener("mousemove", (e) => {
     if (!isDragging) return;
     const dx = e.clientX - lastX;
     const dy = e.clientY - lastY;
     lastX = e.clientX;
     lastY = e.clientY;
 
-    if (dragMode === "tilt") {
+    if (dragMode === "orbit") {
       state.bearing = ((state.bearing + dx * 0.35 + 180) % 360) - 180;
-      state.pitch = Math.max(0, Math.min(72, state.pitch - dy * 0.3));
-      pitchSlider.value = state.pitch.toFixed(0);
-      bearingSlider.value = state.bearing.toFixed(0);
-      pitchVal.textContent = state.pitch.toFixed(0) + "°";
-      bearingVal.textContent = state.bearing.toFixed(0) + "°";
-      updateViewportRounding();
+      state.pitch = Math.max(0, Math.min(72, state.pitch - dy * 0.35));
+      syncSliders();
     } else {
-      // Natural drag-the-paper panning:
-      // Dragging mouse right (+dx) moves map east -> camera center moves west (-dLon)
-      // Dragging mouse down (+dy) moves map south -> camera center moves north (+dLat)
-      const worldPixels = 256.0 * Math.pow(2.0, state.zoom);
-      const scale = 1.0 / worldPixels;
+      // Natural drag: moving mouse right moves map right (center shifts West)
+      const scale = Math.pow(2.0, -state.zoom) * 0.0018;
       const rad = state.bearing * Math.PI / 180.0;
       const cosB = Math.cos(rad);
       const sinB = Math.sin(rad);
 
-      // Screen right (+dx) in world (+X East, +Y North) is (cosB, -sinB)
-      // Screen down (+dy) in world (+X East, +Y North) is (-sinB, -cosB)
-      const moveEast = -(dx * cosB - dy * sinB) * scale;
-      const moveNorth = -(-dx * sinB - dy * cosB) * scale;
+      const moveEast = (-dx * cosB + dy * sinB) * scale;
+      const moveNorth = (dx * sinB + dy * cosB) * scale;
 
-      const curX = lonToMercX(state.lon) + moveEast;
-      const curY = latToMercY(state.lat) - moveNorth;
-      state.lon = ((mercXToLon(curX) + 540) % 360) - 180;
-      state.lat = Math.max(-84, Math.min(84, mercYToLat(Math.max(0.001, Math.min(0.999, curY)))));
+      const curX = lonToNormX(state.lon) + moveEast;
+      const curY = Math.max(0.05, Math.min(0.95, latToNormY(state.lat) + moveNorth));
+
+      state.lon = ((normXToLon(curX) + 180) % 360 + 360) % 360 - 180;
+      state.lat = normYToLat(curY);
     }
   });
 
-  window.addEventListener("mouseup", function() {
+  window.addEventListener("mouseup", () => {
     isDragging = false;
   });
 
-  canvas.addEventListener("wheel", function(e) {
+  canvas.addEventListener("wheel", (e) => {
     e.preventDefault();
-    const delta = -e.deltaY * 0.0015;
-    state.zoom = Math.max(1.5, Math.min(17.0, state.zoom + delta));
+    const delta = e.deltaY > 0 ? -0.45 : 0.45;
+    state.zoom = Math.max(2, Math.min(16, state.zoom + delta));
   }, { passive: false });
 
-  // UI Controls
-  pitchSlider.addEventListener("input", function() {
-    state.pitch = parseFloat(this.value);
-    pitchVal.textContent = state.pitch.toFixed(0) + "°";
-    updateViewportRounding();
+  window.addEventListener("keydown", (e) => {
+    if (document.activeElement && document.activeElement.tagName === "INPUT") return;
+    if (e.key === "+" || e.key === "=") state.zoom = Math.min(16, state.zoom + 0.5);
+    if (e.key === "-" || e.key === "_") state.zoom = Math.max(2, state.zoom - 0.5);
   });
 
-  bearingSlider.addEventListener("input", function() {
-    state.bearing = parseFloat(this.value);
-    bearingVal.textContent = state.bearing.toFixed(0) + "°";
-  });
-
-  exagSlider.addEventListener("input", function() {
-    state.exag = parseFloat(this.value);
-    exagVal.textContent = state.exag.toFixed(1) + "x";
-  });
-
-  layerSelect.addEventListener("change", function() {
-    state.layer = this.value;
-  });
-
-  document.getElementById("zoomInBtn").addEventListener("click", function() {
-    state.zoom = Math.min(17.0, state.zoom + 0.8);
-  });
-
-  document.getElementById("zoomOutBtn").addEventListener("click", function() {
-    state.zoom = Math.max(1.5, state.zoom - 0.8);
-  });
-
-  document.getElementById("view2dBtn").addEventListener("click", function() {
-    state.pitch = 0;
-    state.bearing = 0;
-    pitchSlider.value = "0";
-    bearingSlider.value = "0";
-    pitchVal.textContent = "0°";
-    bearingVal.textContent = "0°";
-    updateViewportRounding();
-  });
-
-  document.getElementById("view3dBtn").addEventListener("click", function() {
-    state.pitch = 52;
-    pitchSlider.value = "52";
-    pitchVal.textContent = "52°";
-    updateViewportRounding();
-  });
-
-  const orbitBtn = document.getElementById("orbitBtn");
-  orbitBtn.addEventListener("click", function() {
-    state.autoOrbit = !state.autoOrbit;
-    orbitBtn.textContent = "Auto-Orbit: " + (state.autoOrbit ? "On" : "Off");
-  });
-
-  window.addEventListener("keydown", function(e) {
-    if (document.activeElement === document.getElementById("searchInput")) return;
-    if (e.key === "+" || e.key === "=") state.zoom = Math.min(17.0, state.zoom + 0.6);
-    if (e.key === "-" || e.key === "_") state.zoom = Math.max(1.5, state.zoom - 0.6);
-  });
-
-  // Preset buttons
-  document.querySelectorAll(".presets button").forEach(function(btn) {
-    btn.addEventListener("click", function() {
-      state.lat = parseFloat(this.dataset.lat);
-      state.lon = parseFloat(this.dataset.lon);
-      state.zoom = parseFloat(this.dataset.zoom);
-      state.pitch = parseFloat(this.dataset.pitch);
-      state.bearing = parseFloat(this.dataset.bearing);
-      pitchSlider.value = state.pitch;
-      bearingSlider.value = state.bearing;
-      pitchVal.textContent = state.pitch + "°";
-      bearingVal.textContent = state.bearing + "°";
-      updateViewportRounding();
-    });
-  });
-
-  // Search handler (Lat,Lon or Nominatim geocoding)
-  const searchInput = document.getElementById("searchInput");
-  const searchMsg = document.getElementById("searchMsg");
-  function runSearch() {
-    const q = searchInput.value.trim();
-    if (!q) return;
-    searchMsg.style.display = "none";
-
-    const coordMatch = q.match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
-    if (coordMatch) {
-      const lat = parseFloat(coordMatch[1]);
-      const lon = parseFloat(coordMatch[2]);
-      if (lat >= -85 && lat <= 85 && lon >= -180 && lon <= 180) {
-        state.lat = lat;
-        state.lon = lon;
-        state.zoom = Math.max(state.zoom, 11.0);
-        return;
-      }
-    }
-
-    fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(q))
-      .then(function(r) { return r.json(); })
-      .then(function(results) {
-        if (results && results.length > 0) {
-          state.lat = parseFloat(results[0].lat);
-          state.lon = parseFloat(results[0].lon);
-          state.zoom = 11.0;
-        } else {
-          searchMsg.textContent = "Location not found. Try Lat, Lon.";
-          searchMsg.style.display = "block";
-        }
-      })
-      .catch(function() {
-        searchMsg.textContent = "Search offline. Enter Lat, Lon directly.";
-        searchMsg.style.display = "block";
-      });
-  }
-  document.getElementById("searchBtn").addEventListener("click", runSearch);
-  searchInput.addEventListener("keydown", function(e) {
-    if (e.key === "Enter") runSearch();
-  });
-
-  updateViewportRounding();
-  requestAnimationFrame(renderFrame);
+  syncSliders();
+  requestAnimationFrame(render);
 })();
 </script>
 </body>
