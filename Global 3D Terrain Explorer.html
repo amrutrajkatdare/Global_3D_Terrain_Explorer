@@ -400,7 +400,8 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
       startLon: state.lon,
       startZoom: state.zoom,
       endLat: targetLat,
-      endLon: targetLon,
+      // Interpolate across the antimeridian using the shortest longitude arc.
+      endLon: state.lon + ((((targetLon - state.lon) % 360) + 540) % 360) - 180,
       endZoom: targetZoom,
       startTime: performance.now(),
       duration: 850
@@ -721,6 +722,42 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
   var textureCache = new Map();
   var demCache = new Map();
   var pendingFetches = new Set();
+  // Bounded retries prevent transient tile/CDN failures from becoming
+  // permanent blank tiles, without creating an uncontrolled request loop.
+  var tileRetryState = new Map();
+  var MAX_TILE_RETRIES = 3;
+
+  function retryBlocked(key) {
+    var retry = tileRetryState.get(key);
+    return !!retry && (retry.retryAt === Infinity || performance.now() < retry.retryAt);
+  }
+
+  function scheduleTileRetry(key, cacheMap, entry) {
+    if (cacheMap.get(key) === entry) cacheMap.delete(key);
+    var retry = tileRetryState.get(key) || { attempts: 0, retryAt: 0, timer: null };
+    if (retry.timer) clearTimeout(retry.timer);
+    retry.attempts += 1;
+    if (retry.attempts > MAX_TILE_RETRIES) {
+      retry.retryAt = Infinity;
+      retry.timer = null;
+      tileRetryState.set(key, retry);
+      return;
+    }
+    var delay = Math.min(750 * Math.pow(2, retry.attempts - 1), 6000);
+    retry.retryAt = performance.now() + delay;
+    retry.timer = setTimeout(function() {
+      retry.timer = null;
+      retry.retryAt = 0;
+      markDirty();
+    }, delay);
+    tileRetryState.set(key, retry);
+  }
+
+  function clearTileRetry(key) {
+    var retry = tileRetryState.get(key);
+    if (retry && retry.timer) clearTimeout(retry.timer);
+    tileRetryState.delete(key);
+  }
   var MAX_CACHE_TILES = 120;
   var MAX_CONCURRENT_IMG = 4;
   var MAX_CONCURRENT_DEM = 3;
@@ -769,6 +806,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
         img.onload = function() {
           activeImgLoads--;
           pendingFetches.delete(j.key);
+          clearTileRetry(j.key);
           var t = gl.createTexture();
           gl.bindTexture(gl.TEXTURE_2D, t);
           gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -788,6 +826,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
           activeImgLoads--;
           pendingFetches.delete(j.key);
           j.entry.loading = false;
+          scheduleTileRetry(j.key, textureCache, j.entry);
           pumpImgQueue();
         };
         img.src = getMapTileUrl(j.layer, j.z, j.x, j.y);
@@ -803,6 +842,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
       entry.lastUsed = performance.now();
       return entry;
     }
+    if (retryBlocked(key)) return { tex: null, ready: false, loading: false };
     if (pendingFetches.has(key)) {
       return { tex: null, ready: false, loading: true };
     }
@@ -843,6 +883,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
         img.onload = function() {
           activeDemLoads--;
           pendingFetches.delete(j.key);
+          clearTileRetry(j.key);
           try {
             offCtx.clearRect(0, 0, 256, 256);
             offCtx.drawImage(img, 0, 0, 256, 256);
@@ -881,12 +922,15 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
             } else {
               finishBuffer(decodeDemOnMainThread(imgData.data, subOffX, subOffY, subScale));
             }
-          } catch (err) {}
+          } catch (err) {
+            scheduleTileRetry(j.key, demCache, j.entry);
+          }
           pumpDemQueue();
         };
         img.onerror = function() {
           activeDemLoads--;
           pendingFetches.delete(j.key);
+          scheduleTileRetry(j.key, demCache, j.entry);
           pumpDemQueue();
         };
         img.src = getDemTileUrl(j.z, j.x, j.y);
@@ -902,6 +946,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
       entry.lastUsed = performance.now();
       return entry;
     }
+    if (retryBlocked(key)) return { buf: flatElevBuf, ready: false, loading: false };
     if (pendingFetches.has(key)) {
       return { buf: flatElevBuf, ready: false };
     }
@@ -992,6 +1037,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
       state.lon = flyAnim.startLon + (flyAnim.endLon - flyAnim.startLon) * ease;
       state.zoom = flyAnim.startZoom + (flyAnim.endZoom - flyAnim.startZoom) * ease;
       if (t >= 1) {
+        state.lon = ((state.lon + 180) % 360 + 360) % 360 - 180;
         flyAnim = null;
         syncSliders(); // Commit the final destination once, not every animation frame.
       }
