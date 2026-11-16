@@ -163,6 +163,14 @@ async function waitFor(predicate, timeout = 20000, interval = 250) {
       return value && /Lat 51\./.test(value) ? value : null;
     }, 5000);
     check("Saved place selection starts fly-to", !!oxfordHud, oxfordHud || await page.locator("#coordHud").textContent());
+    const pitchAfterPlaceSelect = await page.locator("#pitchVal").textContent();
+    check("Featured destination remains 2D until user requests 3D", /0/.test(pitchAfterPlaceSelect), pitchAfterPlaceSelect);
+    await page.locator("#btn3D").click();
+    const pitchAfter3D = await page.locator("#pitchVal").textContent();
+    check("3D activates only after explicit user action", /54/.test(pitchAfter3D), pitchAfter3D);
+    await page.locator("#btn2D").click();
+    const pitchAfter2D = await page.locator("#pitchVal").textContent();
+    check("User can return destination to 2D", /0/.test(pitchAfter2D), pitchAfter2D);
 
     // Featured-location dropdown contains the requested destinations.
     const savedPlaces = await page.locator("#savedLocationSelect option").allTextContents();
