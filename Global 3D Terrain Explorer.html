@@ -43,6 +43,9 @@
 /* Main Floating Tool Panel */ #toolPanel { position: fixed; top: calc(14px + env(safe-area-inset-top)); left: calc(14px + env(safe-area-inset-left)); width: 318px; max-height: calc(100vh - 76px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); overflow-y: auto; z-index: 20; background: rgba(13, 20, 36, 0.90); border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 14px; padding: 14px; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6); backdrop-filter: blur(12px); scrollbar-width: thin; scrollbar-color: rgba(148,163,184,0.3) transparent; } #toolPanel.minimized { display: none !important; }
 .panel-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid rgba(148, 163, 184, 0.18); } .panel-title h1 { font-size: 14px; font-weight: 700; color: #f8fafc; line-height: 1.2; } .panel-title span { font-size: 11px; color: #38bdf8; display: block; margin-top: 2px; } #hideToolsBtn { padding: 6px 10px; background: rgba(30, 41, 59, 0.95); color: #e2e8f0; border: 1px solid rgba(148, 163, 184, 0.35); border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; flex-shrink: 0; } #hideToolsBtn:hover { background: #334155; border-color: #38bdf8; color: #ffffff; }
 .section-box { background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(148, 163, 184, 0.14); border-radius: 10px; padding: 10px; margin-bottom: 10px; position: relative; } .section-label { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #94a3b8; margin-bottom: 7px; display: block; }
+.bhuvan-service-links { display: flex; flex-direction: column; gap: 6px; }
+.bhuvan-service-links a { display: block; padding: 8px 9px; border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 7px; color: #bae6fd; background: rgba(15, 23, 42, 0.75); font-size: 11.5px; line-height: 1.35; text-decoration: none; }
+.bhuvan-service-links a:hover, .bhuvan-service-links a:focus-visible { border-color: #38bdf8; color: #fff; outline: none; }
 select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; outline: none; user-select: text; -webkit-user-select: text; } select:focus, input[type="text"]:focus { border-color: #38bdf8; }
 .search-row { display: flex; gap: 6px; margin-bottom: 6px; } .btn-primary { background: #0284c7; color: #fff; border: none; border-radius: 8px; padding: 0 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; flex-shrink: 0; } .btn-primary:hover { background: #0369a1; }
 #searchResults { display: none; flex-direction: column; background: #0b1120; border: 1px solid rgba(56, 189, 248, 0.45); border-radius: 8px; margin-bottom: 8px; max-height: 150px; overflow-y: auto; } #searchStatus { min-height: 14px; margin: 2px 0 7px; font-size: 10.5px; line-height: 1.35; color: #7dd3fc; overflow-wrap: anywhere; } #searchStatus.error { color: #fca5a5; } .search-item { padding: 7px 10px; font-size: 11.5px; color: #e2e8f0; border-bottom: 1px solid rgba(148, 163, 184, 0.12); cursor: pointer; text-align: left; background: transparent; border-left: none; border-right: none; border-top: none; width: 100%; } .search-item:last-child { border-bottom: none; } .search-item:hover { background: rgba(2, 132, 199, 0.35); color: #ffffff; } .search-item small { display: block; color: #94a3b8; font-size: 10px; margin-top: 1px; }
@@ -79,6 +82,18 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
       <option value="esri_street">Esri World Street Map</option>
       <option value="esri_hillshade">Esri Shaded Hillshade Relief</option>
     </select>
+  </div>
+
+
+  <div class="section-box" id="bhuvanServices" aria-label="ISRO Bhuvan map services">
+    <span class="section-label">ISRO Bhuvan · Independent Services</span>
+    <p class="help-note" style="margin-bottom:8px">Open official Bhuvan services separately. These do not replace the current map surface or alter terrain, camera, or elevation settings.</p>
+    <div class="bhuvan-service-links">
+      <a href="https://bhuvan.nrsc.gov.in/" target="_blank" rel="noopener noreferrer">Satellite imagery &amp; terrain viewer ↗</a>
+      <a href="https://bhuvan-vec2.nrsc.gov.in/bhuvan/wms?service=WMS&amp;request=GetCapabilities" target="_blank" rel="noopener noreferrer">Land Use / Land Cover · WMS capabilities ↗</a>
+      <a href="https://bhuvan-vec2.nrsc.gov.in/bhuvan/gwc/service/wmts?REQUEST=GetCapabilities" target="_blank" rel="noopener noreferrer">Land Use / Land Cover · WMTS capabilities ↗</a>
+    </div>
+    <p class="help-note" style="margin-top:7px">Thematic coverage and available dates vary by layer and region. The links open the official service; they are not rendered as overlays in this explorer.</p>
   </div>
 
 
