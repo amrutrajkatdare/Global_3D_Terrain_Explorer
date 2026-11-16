@@ -149,13 +149,14 @@ async function waitFor(predicate, timeout = 20000, interval = 250) {
         hasEye: labels.includes("Eye of Sahara"),
         hasAndaman: labels.includes("Andaman Islands"),
         hasOxford: labels.includes("University of Oxford"),
+        hasCsmt: labels.includes("Mumbai · CSMT (formerly Victoria Terminus)"),
         hasLiberty: labels.includes("Statue of Liberty"),
         removedOldPresets: !labels.includes("Grand Canyon") && !labels.includes("Mt. Fuji")
       };
     });
     check("Saved places dropdown contains curated locations", savedPlaceCheck.present &&
       savedPlaceCheck.hasEye && savedPlaceCheck.hasAndaman && savedPlaceCheck.hasOxford &&
-      savedPlaceCheck.hasLiberty && savedPlaceCheck.removedOldPresets, JSON.stringify(savedPlaceCheck));
+      savedPlaceCheck.hasLiberty && savedPlaceCheck.hasCsmt && savedPlaceCheck.removedOldPresets, JSON.stringify(savedPlaceCheck));
     await page.locator("#savedLocationSelect").selectOption("51.75717365694981,-1.2538370726565802,13");
     const oxfordHud = await waitFor(async () => {
       const value = await page.locator("#coordHud").textContent();
@@ -166,9 +167,13 @@ async function waitFor(predicate, timeout = 20000, interval = 250) {
     // Featured-location dropdown contains the requested destinations.
     const savedPlaces = await page.locator("#savedLocationSelect option").allTextContents();
     const expectedPlaces = [
-      "Andaman Islands", "Maldives · Malé", "Lake Chad", "Eye of Sahara",
-      "Yatan Qitahe", "Gangotri Glacier · Ganges", "Yamunotri Glacier · Yamuna",
-      "University of Oxford", "Statue of Unity · Gujarat", "Statue of Liberty"
+      "Andaman Islands", "Maldives · Malé",
+      "Lake Chad · shrinking lake & paleochannels", "Eye of Sahara", "Yatan Qitahe",
+      "Gangotri Glacier · Ganges", "Yamunotri Glacier · Yamuna",
+      "Satopanth Glacier · Alaknanda", "Upper Gê'gyai · Indus source region",
+      "Angsi Glacier region · Yarlung Tsangpo / Brahmaputra",
+      "Mumbai · CSMT (formerly Victoria Terminus)", "University of Oxford",
+      "Statue of Unity · Gujarat", "Statue of Liberty"
     ];
     check("Featured locations dropdown includes requested destinations",
       expectedPlaces.every(name => savedPlaces.includes(name)),
