@@ -64,7 +64,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
   <div class="panel-header">
     <div class="panel-title">
       <h1>Global 3D Terrain Explorer</h1>
-      <span>Optimized Request Throttling</span>
+      <span>Progressive Center-Out Tile Loading</span>
     </div>
     <button id="hideToolsBtn" type="button" title="Minimize Tools Panel">Hide &#10005;</button>
   </div>
@@ -219,12 +219,41 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
     imgLoadedCount: 0,
     demLoadedCount: 0,
     workerActive: false,
+    tileLoadRadius: 0,
     dirty: true
   };
 
 
   function markDirty() {
     state.dirty = true;
+  }
+
+  // Request tiles only after the camera has settled. This prevents every
+  // intermediate fly-to / drag frame from creating a new batch of network work.
+  var tileRefreshTimer = null;
+  var tileExpansionTimer = null;
+
+  function scheduleTileRefresh() {
+    if (tileRefreshTimer) clearTimeout(tileRefreshTimer);
+    if (tileExpansionTimer) clearTimeout(tileExpansionTimer);
+    state.tileLoadRadius = 0;
+
+    tileRefreshTimer = setTimeout(function() {
+      tileRefreshTimer = null;
+      markDirty(); // Load the center tile first.
+
+      function expandTileRing() {
+        if (state.tileLoadRadius >= 2) {
+          tileExpansionTimer = null;
+          return;
+        }
+        state.tileLoadRadius += 1;
+        markDirty();
+        tileExpansionTimer = setTimeout(expandTileRing, 220);
+      }
+
+      tileExpansionTimer = setTimeout(expandTileRing, 220);
+    }, 180);
   }
 
 
@@ -276,14 +305,35 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
       "Lat " + state.lat.toFixed(4) + "&deg;, Lon " + state.lon.toFixed(4) +
       "&deg; &bull; Z " + state.zoom.toFixed(1);
     markDirty();
+    if (!state.autoOrbit) scheduleTileRefresh();
   }
 
 
   var flyAnim = null;
   function cancelAllRequests() {
+    // Drop obsolete jobs that have not started. Keep in-flight keys registered:
+    // their responses may still populate the cache and must not be duplicated.
+    var obsoleteImages = imgQueue;
+    var obsoleteDem = demQueue;
     imgQueue = [];
     demQueue = [];
-    pendingFetches.clear();
+
+    obsoleteImages.forEach(function(job) {
+      if (job.entry) {
+        job.entry.cancelled = true;
+        job.entry.loading = false;
+        if (textureCache.get(job.key) === job.entry) textureCache.delete(job.key);
+      }
+      pendingFetches.delete(job.key);
+    });
+
+    obsoleteDem.forEach(function(job) {
+      if (job.entry) {
+        job.entry.cancelled = true;
+        if (demCache.get(job.key) === job.entry) demCache.delete(job.key);
+      }
+      pendingFetches.delete(job.key);
+    });
   }
 
 
@@ -947,10 +997,12 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
 
       var baseTileX = Math.floor(centerMX);
       var baseTileY = Math.floor(centerMY);
-      var radius = state.pitch > 35 ? 2 : 2;
+      // Progressive center-out loading: 1 tile, then 3x3, then 5x5.
+      // The radius advances only after the camera has stopped moving.
 
 
       var tileList = [];
+      var radius = clamp(state.tileLoadRadius, 0, 2);
       for (var dy = -radius; dy <= radius; dy++) {
         var ty = baseTileY + dy;
         if (ty < 0 || ty >= numTiles) continue;
@@ -1380,7 +1432,10 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
   }
 
 
+  var activeSearchId = 0;
+
   function runSearch() {
+    var searchId = ++activeSearchId;
     var q = searchInput.value.trim();
     if (!q) return;
     searchResults.style.display = "none";
@@ -1411,6 +1466,8 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
         return searchArcGis(q).catch(function() { return []; });
       })
       .then(function(results) {
+        // Ignore responses from an older search if the user has searched again.
+        if (searchId !== activeSearchId) return;
         if (results && results.length > 0) {
           flyTo(results[0].lat, results[0].lon, results[0].zoom);
           if (results.length > 1) {
