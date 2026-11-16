@@ -652,10 +652,10 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
     for (var i = 0; i < mainVertCount; i++) {
       var gx = gridCoords[i * 2];
       var gy = gridCoords[i * 2 + 1];
-      var u = clamp(subOffX + gx * subScale, 0.0, 0.9999);
-      var v = clamp(subOffY + gy * subScale, 0.0, 0.9999);
-      var px = Math.floor(u * 255.0);
-      var py = Math.floor(v * 255.0);
+      var u = clamp(subOffX + gx * subScale, 0.0, 1.0);
+      var v = clamp(subOffY + gy * subScale, 0.0, 1.0);
+      var px = Math.round(u * 255.0);
+      var py = Math.round(v * 255.0);
       var idx = (py * 256 + px) * 4;
       var h = (pixels[idx] * 256.0 + pixels[idx + 1] + pixels[idx + 2] / 256.0) - 32768.0;
       elevArr[i] = clamp(h, -500.0, 9000.0);
@@ -682,10 +682,10 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
       "  for (var i = 0; i < mainVertCount; i++) {",
       "    var gx = gridCoords[i * 2];",
       "    var gy = gridCoords[i * 2 + 1];",
-      "    var u = Math.max(0.0, Math.min(0.9999, subOffX + gx * subScale));",
-      "    var v = Math.max(0.0, Math.min(0.9999, subOffY + gy * subScale));",
-      "    var px = (u * 255.0) | 0;",
-      "    var py = (v * 255.0) | 0;",
+      "    var u = Math.max(0.0, Math.min(1.0, subOffX + gx * subScale));",
+      "    var v = Math.max(0.0, Math.min(1.0, subOffY + gy * subScale));",
+      "    var px = Math.round(u * 255.0);", 
+      "    var py = Math.round(v * 255.0);", 
       "    var idx = (py * 256 + px) << 2;",
       "    var h = (pixels[idx] * 256.0 + pixels[idx + 1] + pixels[idx + 2] * 0.00390625) - 32768.0;",
       "    elevArr[i] = h < -500.0 ? -500.0 : (h > 9000.0 ? 9000.0 : h);",
@@ -1078,7 +1078,14 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
 
       var zoomFrac = state.zoom - zInt;
       var tileWorldSize = Math.pow(2.0, zoomFrac);
-      var camDist = 4.2;
+      var latRad = state.lat * Math.PI / 180.0;
+      var metersPerTile = (40075016.686 * Math.cos(latRad)) / numTiles;
+      var rawElevScale = (tileWorldSize / Math.max(metersPerTile, 1.0)) * state.exag;
+      // Bound relief in tile-world units so high-zoom mountains cannot engulf
+      // the fixed-look-at camera and cause unstable clipping during tilt.
+      var elevScale = Math.min(rawElevScale, 2.8 / 9000.0);
+      var maxTerrainHeight = 9000.0 * elevScale;
+      var camDist = 4.2 + Math.max(0.0, maxTerrainHeight - 1.5) * 1.2;
       var pitchRad = state.pitch * Math.PI / 180.0;
       var bearRad = state.bearing * Math.PI / 180.0;
 
@@ -1096,7 +1103,9 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
 
 
       var aspect = (canvas.width || 1) / (canvas.height || 1);
-      var proj = perspectiveMat(45.0 * Math.PI / 180.0, aspect, 0.05, 80.0);
+      // The adaptive camera can sit farther away at high zoom; keep a useful
+      // near plane for depth precision while allowing the full view to render.
+      var proj = perspectiveMat(45.0 * Math.PI / 180.0, aspect, 0.1, 100.0);
       var view = lookAtMat([eyeX, eyeY, eyeZ], [0.0, 0.0, 0.0], upVec);
 
 
@@ -1104,9 +1113,6 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
       gl.uniformMatrix4fv(uViewLoc, false, view);
 
 
-      var latRad = state.lat * Math.PI / 180.0;
-      var metersPerTile = (40075016.686 * Math.cos(latRad)) / numTiles;
-      var elevScale = (tileWorldSize / Math.max(metersPerTile, 1.0)) * state.exag;
       gl.uniform1f(uElevScaleLoc, elevScale);
       gl.uniform1f(uFogDistLoc, 16.0);
 
