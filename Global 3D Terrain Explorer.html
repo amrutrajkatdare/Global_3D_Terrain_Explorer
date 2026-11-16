@@ -3,421 +3,356 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Global 3D Topographic &amp; Terrain Explorer</title>
+<title>Global 3D Topographic & Terrain Explorer</title>
 <style>
-  :root {
-    --bg-panel: rgba(15, 23, 42, 0.88);
-    --bg-card: rgba(30, 41, 59, 0.78);
-    --border-subtle: rgba(148, 163, 184, 0.24);
-    --text-main: #f8fafc;
-    --text-muted: #94a3b8;
-    --accent: #38bdf8;
-    --accent-hover: #0284c7;
-    --accent-soft: rgba(56, 189, 248, 0.16);
-  }
-
-  * {
+  *, *::before, *::after {
     box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  html, body {
     margin: 0;
     padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  html, body {
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background: #060b16;
-    color: var(--text-main);
+    background: #060a12;
+    color: #e2e8f0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    touch-action: none;
     user-select: none;
     -webkit-user-select: none;
   }
-
   #glCanvas {
-    display: block;
+    position: fixed;
+    inset: 0;
     width: 100vw;
     height: 100vh;
+    display: block;
     touch-action: none;
     cursor: grab;
+    z-index: 1;
   }
-
   #glCanvas:active {
     cursor: grabbing;
   }
 
-  /* Maximize Tools Floating Button */
+  /* Minimized Tools Toggle Button */
   #showToolsBtn {
     position: fixed;
-    top: max(12px, env(safe-area-inset-top));
-    left: max(12px, env(safe-area-inset-left));
-    z-index: 30;
+    top: calc(14px + env(safe-area-inset-top));
+    left: calc(14px + env(safe-area-inset-left));
+    z-index: 25;
     display: none;
     align-items: center;
     gap: 8px;
-    padding: 10px 15px;
-    border-radius: 999px;
-    border: 1px solid var(--border-subtle);
-    background: var(--bg-panel);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    color: var(--text-main);
-    font-size: 13.5px;
+    padding: 10px 14px;
+    background: rgba(15, 23, 42, 0.92);
+    color: #f8fafc;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    border-radius: 10px;
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
-    transition: transform 0.15s ease, background 0.15s ease;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(10px);
   }
-
   #showToolsBtn:hover {
     background: rgba(30, 41, 59, 0.96);
+    border-color: #38bdf8;
   }
 
-  #showToolsBtn:active {
-    transform: scale(0.96);
-  }
-
-  /* Quick Right Dock (Always Accessible) */
-  #quickDock {
-    position: fixed;
-    top: max(12px, env(safe-area-inset-top));
-    right: max(12px, env(safe-area-inset-right));
-    z-index: 25;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .dock-btn {
-    width: 42px;
-    height: 42px;
-    border-radius: 12px;
-    border: 1px solid var(--border-subtle);
-    background: var(--bg-panel);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    color: var(--text-main);
-    font-size: 18px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
-    transition: background 0.15s ease, transform 0.12s ease;
-  }
-
-  .dock-btn:hover {
-    background: rgba(30, 41, 59, 0.95);
-    border-color: var(--accent);
-  }
-
-  .dock-btn:active {
-    transform: scale(0.94);
-  }
-
-  .dock-btn.small-text {
-    font-size: 12px;
-    letter-spacing: 0.4px;
-  }
-
-  /* Main Tool Panel */
+  /* Main Floating Tool Panel */
   #toolPanel {
     position: fixed;
-    top: max(12px, env(safe-area-inset-top));
-    left: max(12px, env(safe-area-inset-left));
-    z-index: 35;
-    width: 332px;
-    max-height: calc(100vh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-    display: flex;
-    flex-direction: column;
-    border-radius: 16px;
-    border: 1px solid var(--border-subtle);
-    background: var(--bg-panel);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.55);
-    overflow: hidden;
-    transition: opacity 0.2s ease, transform 0.22s ease;
+    top: calc(14px + env(safe-area-inset-top));
+    left: calc(14px + env(safe-area-inset-left));
+    width: 318px;
+    max-height: calc(100vh - 76px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    overflow-y: auto;
+    z-index: 20;
+    background: rgba(13, 20, 36, 0.90);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: 14px;
+    padding: 14px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(12px);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148,163,184,0.3) transparent;
   }
-
   #toolPanel.minimized {
-    display: none;
+    display: none !important;
   }
 
   .panel-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 14px;
-    border-bottom: 1px solid var(--border-subtle);
-    background: rgba(15, 23, 42, 0.65);
-    flex-shrink: 0;
+    gap: 8px;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.18);
   }
-
-  .panel-title-wrap {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .panel-title {
+  .panel-title h1 {
     font-size: 14px;
     font-weight: 700;
-    letter-spacing: 0.2px;
-    color: var(--text-main);
+    color: #f8fafc;
+    line-height: 1.2;
   }
-
-  .panel-subtitle {
+  .panel-title span {
     font-size: 11px;
-    color: var(--accent);
-    font-weight: 500;
+    color: #38bdf8;
+    display: block;
+    margin-top: 2px;
   }
-
   #hideToolsBtn {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 6px 11px;
+    padding: 6px 10px;
+    background: rgba(30, 41, 59, 0.95);
+    color: #e2e8f0;
+    border: 1px solid rgba(148, 163, 184, 0.35);
     border-radius: 8px;
-    border: 1px solid var(--border-subtle);
-    background: rgba(51, 65, 85, 0.65);
-    color: var(--text-main);
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.15s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
-
   #hideToolsBtn:hover {
-    background: rgba(71, 85, 105, 0.85);
-  }
-
-  .panel-body {
-    padding: 12px 14px 14px;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .panel-body::-webkit-scrollbar {
-    width: 5px;
-  }
-
-  .panel-body::-webkit-scrollbar-thumb {
-    background: rgba(148, 163, 184, 0.35);
-    border-radius: 4px;
+    background: #334155;
+    border-color: #38bdf8;
+    color: #ffffff;
   }
 
   .section-box {
-    background: var(--bg-card);
+    background: rgba(15, 23, 42, 0.65);
     border: 1px solid rgba(148, 163, 184, 0.14);
-    border-radius: 12px;
-    padding: 10px 11px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  .section-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin-bottom: 7px;
+    display: block;
   }
 
-  .section-label {
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    color: var(--text-muted);
+  select, input[type="text"] {
+    width: 100%;
+    background: #0f172a;
+    color: #f1f5f9;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 12.5px;
+    outline: none;
+    user-select: text;
+    -webkit-user-select: text;
+  }
+  select:focus, input[type="text"]:focus {
+    border-color: #38bdf8;
   }
 
   .search-row {
     display: flex;
     gap: 6px;
+    margin-bottom: 8px;
   }
-
-  input[type="text"], select {
-    width: 100%;
-    padding: 8px 10px;
+  .btn-primary {
+    background: #0284c7;
+    color: #fff;
+    border: none;
     border-radius: 8px;
-    border: 1px solid var(--border-subtle);
-    background: rgba(15, 23, 42, 0.9);
-    color: var(--text-main);
-    font-size: 13px;
-    outline: none;
-  }
-
-  input[type="text"]:focus, select:focus {
-    border-color: var(--accent);
-  }
-
-  .btn {
-    padding: 8px 11px;
-    border-radius: 8px;
-    border: 1px solid var(--border-subtle);
-    background: rgba(51, 65, 85, 0.7);
-    color: var(--text-main);
+    padding: 0 12px;
     font-size: 12.5px;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.15s ease, border-color 0.15s ease;
-    white-space: nowrap;
+    flex-shrink: 0;
   }
-
-  .btn:hover {
-    background: rgba(71, 85, 105, 0.9);
-    border-color: rgba(148, 163, 184, 0.45);
-  }
-
-  .btn.primary {
-    background: var(--accent-hover);
-    border-color: var(--accent);
-    color: #ffffff;
-  }
-
-  .btn.primary:hover {
+  .btn-primary:hover {
     background: #0369a1;
-  }
-
-  .btn.active {
-    background: var(--accent-soft);
-    border-color: var(--accent);
-    color: var(--accent);
   }
 
   .preset-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 6px;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
   }
-
-  .btn-row {
-    display: flex;
-    gap: 6px;
-  }
-
-  .btn-row .btn {
-    flex: 1;
+  .btn-chip {
+    background: rgba(30, 41, 59, 0.85);
+    color: #cbd5e1;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 7px;
+    padding: 6px 6px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
     text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .btn-chip:hover {
+    background: rgba(51, 65, 85, 0.95);
+    color: #fff;
+    border-color: #38bdf8;
+  }
+
+  .btn-row-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 5px;
+    margin-bottom: 8px;
+  }
+  .btn-mode {
+    background: rgba(30, 41, 59, 0.9);
+    color: #e2e8f0;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: 7px;
+    padding: 7px 4px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+  }
+  .btn-mode:hover {
+    border-color: #38bdf8;
+  }
+  .btn-mode.active {
+    background: #0284c7;
+    border-color: #38bdf8;
+    color: #fff;
   }
 
   .slider-group {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+    margin-top: 7px;
   }
-
   .slider-header {
     display: flex;
     justify-content: space-between;
-    font-size: 12px;
-    color: #e2e8f0;
+    font-size: 11.5px;
+    color: #cbd5e1;
+    margin-bottom: 3px;
   }
-
   .slider-val {
-    color: var(--accent);
+    color: #38bdf8;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
   }
-
   input[type="range"] {
     width: 100%;
-    accent-color: var(--accent);
-    height: 6px;
+    accent-color: #38bdf8;
     cursor: pointer;
+    height: 18px;
   }
 
-  .gesture-hint {
-    font-size: 11px;
+  .help-note {
+    font-size: 10.5px;
+    color: #94a3b8;
     line-height: 1.45;
-    color: var(--text-muted);
-    background: rgba(15, 23, 42, 0.55);
-    padding: 8px 9px;
-    border-radius: 8px;
-    border: 1px dashed rgba(148, 163, 184, 0.22);
   }
 
-  /* Bottom HUD Status Bar */
-  #hudBar {
+  /* Single Clean Right-Edge Quick Dock (+ / - / 3D) */
+  #quickDock {
     position: fixed;
-    bottom: max(10px, env(safe-area-inset-bottom));
-    left: max(12px, env(safe-area-inset-left));
-    right: max(12px, env(safe-area-inset-right));
-    z-index: 20;
+    top: calc(14px + env(safe-area-inset-top));
+    right: calc(14px + env(safe-area-inset-right));
+    z-index: 25;
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .dock-btn {
+    width: 40px;
+    height: 40px;
+    background: rgba(15, 23, 42, 0.92);
+    color: #f8fafc;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 8px;
+    justify-content: center;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+  }
+  .dock-btn:hover {
+    background: rgba(30, 41, 59, 0.98);
+    border-color: #38bdf8;
+  }
+  .dock-btn:active {
+    transform: scale(0.95);
+  }
+  .dock-btn.small-text {
+    font-size: 12px;
+  }
+
+  /* Bottom Status Pills */
+  #coordHud {
+    position: fixed;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    left: calc(14px + env(safe-area-inset-left));
+    z-index: 15;
+    background: rgba(15, 23, 42, 0.86);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-size: 11px;
+    color: #cbd5e1;
+    font-variant-numeric: tabular-nums;
+    backdrop-filter: blur(8px);
+    pointer-events: none;
+  }
+  #statusPill {
+    position: fixed;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    right: calc(14px + env(safe-area-inset-right));
+    z-index: 15;
+    background: rgba(15, 23, 42, 0.86);
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-size: 11px;
+    color: #7dd3fc;
+    backdrop-filter: blur(8px);
     pointer-events: none;
   }
 
-  .hud-pill {
-    pointer-events: auto;
-    padding: 6px 11px;
-    border-radius: 999px;
-    border: 1px solid var(--border-subtle);
-    background: rgba(15, 23, 42, 0.82);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    font-size: 11.5px;
-    color: #cbd5e1;
-    font-variant-numeric: tabular-nums;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
-  }
-
-  #statusText {
-    color: #38bdf8;
-    font-weight: 600;
-  }
-
-  /* Narrow Portrait Phones: Bottom Sheet Drawer */
-  @media (max-width: 600px) and (orientation: portrait) {
+  /* Responsive Mobile Portrait Bottom Sheet */
+  @media (max-width: 640px) {
     #toolPanel {
       top: auto;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      width: 100%;
-      max-height: 54vh;
-      border-radius: 18px 18px 0 0;
-      border-left: none;
-      border-right: none;
-      border-bottom: none;
-      padding-bottom: env(safe-area-inset-bottom);
+      bottom: calc(46px + env(safe-area-inset-bottom));
+      left: calc(10px + env(safe-area-inset-left));
+      right: calc(10px + env(safe-area-inset-right));
+      width: auto;
+      max-height: 52vh;
+      padding: 12px;
     }
-
-    .preset-grid {
-      grid-template-columns: repeat(3, 1fr);
+    .dock-btn {
+      width: 44px;
+      height: 44px;
     }
-
-    #hudBar {
-      bottom: auto;
-      top: max(12px, env(safe-area-inset-top));
-      left: max(12px, env(safe-area-inset-left));
-      right: 64px;
-      justify-content: flex-start;
-    }
-
-    #toolPanel:not(.minimized) ~ #hudBar {
-      display: none;
+    #coordHud, #statusPill {
+      font-size: 10px;
+      padding: 4px 9px;
     }
   }
 
-  /* Short Landscape Phones / Compact Viewports */
-  @media (max-height: 500px) and (orientation: landscape) {
+  /* Responsive Short Landscape Screens */
+  @media (max-height: 500px) {
     #toolPanel {
-      width: 295px;
-      max-height: calc(100vh - 16px);
-      top: 8px;
-      left: 8px;
+      width: 280px;
+      max-height: calc(100vh - 64px);
+      padding: 10px;
     }
-
-    .panel-header {
-      padding: 8px 12px;
-    }
-
-    .panel-body {
-      padding: 8px 10px 10px;
-      gap: 8px;
+    .section-box {
+      padding: 8px;
+      margin-bottom: 7px;
     }
   }
 </style>
@@ -426,995 +361,913 @@
 
 <canvas id="glCanvas"></canvas>
 
-<!-- Restore Button when Tool Window is Minimized -->
-<button id="showToolsBtn" type="button" aria-label="Maximize Tools">
-  <span>&#9776;</span>
-  <span>Tools &amp; Layers</span>
-</button>
+<button id="showToolsBtn" type="button" title="Maximize Tools Panel">&#9776; Tools &amp; Layers</button>
 
-<!-- Quick Action Dock (Always Accessible) -->
-<div id="quickDock">
-  <button id="dockZoomIn" class="dock-btn" type="button" title="Zoom In">+</button>
-  <button id="dockZoomOut" class="dock-btn" type="button" title="Zoom Out">&minus;</button>
-  <button id="dockTiltToggle" class="dock-btn small-text" type="button" title="Toggle 2D / 3D Tilt">3D</button>
-</div>
-
-<!-- Main Collapsible Tool Window -->
 <aside id="toolPanel" aria-label="Map and Terrain Tools">
   <div class="panel-header">
-    <div class="panel-title-wrap">
-      <div class="panel-title">Global 3D Terrain Explorer</div>
-      <div class="panel-subtitle">Real-Time WebGL DEM Elevation</div>
+    <div class="panel-title">
+      <h1>Global 3D Terrain Explorer</h1>
+      <span>Real-Time WebGL DEM Elevation</span>
     </div>
-    <button id="hideToolsBtn" type="button" title="Minimize Tool Window">
-      <span>Hide</span>
-      <span>&#10005;</span>
-    </button>
+    <button id="hideToolsBtn" type="button" title="Minimize Tools Panel">Hide &#10005;</button>
   </div>
 
-  <div class="panel-body">
-    <!-- Map Surface Layer -->
-    <div class="section-box">
-      <div class="section-label">Map Surface Layer</div>
-      <select id="layerSelect" aria-label="Map Surface Layer">
-        <option value="esri_imagery">Esri World Satellite Imagery</option>
-        <option value="esri_topo" selected>Esri World Topographic</option>
-        <option value="opentopo">OpenTopoMap (Contours + Relief)</option>
-        <option value="esri_street">Esri World Street Map</option>
-        <option value="esri_hillshade">Esri Shaded Hillshade Relief</option>
-      </select>
+  <div class="section-box">
+    <label class="section-label" for="layerSelect">Map Surface Layer</label>
+    <select id="layerSelect">
+      <option value="esri_topo">Esri World Topographic</option>
+      <option value="opentopo">OpenTopoMap (Contours + Relief)</option>
+      <option value="esri_sat">Esri World Satellite Imagery</option>
+      <option value="esri_street">Esri World Street Map</option>
+      <option value="esri_hillshade">Esri Shaded Hillshade Relief</option>
+    </select>
+  </div>
+
+  <div class="section-box">
+    <label class="section-label" for="searchInput">Search Location or Coordinates</label>
+    <div class="search-row">
+      <input id="searchInput" type="text" placeholder="City, peak, or 21.11, -11.39" autocomplete="off">
+      <button id="searchBtn" class="btn-primary" type="button">Go</button>
+    </div>
+    <div class="preset-grid">
+      <button class="btn-chip" type="button" data-lat="21.1147" data-lon="-11.3942" data-zoom="11.2">Eye of Sahara</button>
+      <button class="btn-chip" type="button" data-lat="27.9881" data-lon="86.9250" data-zoom="11.5">Mt. Everest</button>
+      <button class="btn-chip" type="button" data-lat="36.1069" data-lon="-112.1129" data-zoom="11.5">Grand Canyon</button>
+      <button class="btn-chip" type="button" data-lat="35.3606" data-lon="138.7274" data-zoom="11.8">Mt. Fuji</button>
+      <button class="btn-chip" type="button" data-lat="45.9766" data-lon="7.6585" data-zoom="12.2">Matterhorn</button>
+      <button class="btn-chip" type="button" data-lat="17.4840" data-lon="73.1890" data-zoom="11.5">Konkan Coast</button>
+    </div>
+  </div>
+
+  <div class="section-box">
+    <span class="section-label">Camera &amp; Perspective</span>
+    <div class="btn-row-3">
+      <button id="btn2D" class="btn-mode" type="button">2D Top</button>
+      <button id="btn3D" class="btn-mode active" type="button">3D Tilt</button>
+      <button id="btnOrbit" class="btn-mode" type="button">Auto-Orbit</button>
     </div>
 
-    <!-- Global Search & Landmarks -->
-    <div class="section-box">
-      <div class="section-label">Search Location or Coordinates</div>
-      <div class="search-row">
-        <input id="searchInput" type="text" placeholder="City, peak, or 21.11, -11.39" />
-        <button id="searchBtn" class="btn primary" type="button">Go</button>
+    <div class="slider-group">
+      <div class="slider-header">
+        <span>Camera Tilt (Pitch)</span>
+        <span id="pitchVal" class="slider-val">52&deg;</span>
       </div>
-      <div class="preset-grid">
-        <button class="btn preset-btn" data-lat="21.1147" data-lon="-11.3942" data-zoom="11.2" data-pitch="52" type="button">Eye of Sahara</button>
-        <button class="btn preset-btn" data-lat="27.9881" data-lon="86.9250" data-zoom="11.5" data-pitch="62" type="button">Mt. Everest</button>
-        <button class="btn preset-btn" data-lat="36.1069" data-lon="-112.1129" data-zoom="11.8" data-pitch="58" type="button">Grand Canyon</button>
-        <button class="btn preset-btn" data-lat="35.3606" data-lon="138.7274" data-zoom="11.6" data-pitch="56" type="button">Mt. Fuji</button>
-        <button class="btn preset-btn" data-lat="45.9766" data-lon="7.6585" data-zoom="12.2" data-pitch="60" type="button">Matterhorn</button>
-        <button class="btn preset-btn" data-lat="17.5236" data-lon="73.1886" data-zoom="12.0" data-pitch="48" type="button">Konkan Coast</button>
-      </div>
+      <input id="pitchSlider" type="range" min="0" max="72" step="1" value="52">
     </div>
 
-    <!-- Camera & Zoom Controls -->
-    <div class="section-box">
-      <div class="section-label">Camera &amp; Zoom Tools</div>
-      <div class="btn-row">
-        <button id="btnZoomIn" class="btn" type="button">+ Zoom In</button>
-        <button id="btnZoomOut" class="btn" type="button">&minus; Zoom Out</button>
+    <div class="slider-group">
+      <div class="slider-header">
+        <span>Compass Rotation (Bearing)</span>
+        <span id="bearingVal" class="slider-val">0&deg;</span>
       </div>
-      <div class="btn-row">
-        <button id="btn2D" class="btn" type="button">2D Top</button>
-        <button id="btn3D" class="btn primary" type="button">3D Tilt</button>
-        <button id="btnOrbit" class="btn" type="button">Auto-Orbit</button>
-      </div>
-
-      <div class="slider-group">
-        <div class="slider-header">
-          <span>Camera Tilt (Pitch)</span>
-          <span id="pitchVal" class="slider-val">52&deg;</span>
-        </div>
-        <input id="pitchSlider" type="range" min="0" max="72" step="1" value="52" />
-      </div>
-
-      <div class="slider-group">
-        <div class="slider-header">
-          <span>Compass Rotation (Bearing)</span>
-          <span id="bearingVal" class="slider-val">0&deg;</span>
-        </div>
-        <input id="bearingSlider" type="range" min="-180" max="180" step="1" value="0" />
-      </div>
-
-      <div class="slider-group">
-        <div class="slider-header">
-          <span>Elevation Exaggeration</span>
-          <span id="exagVal" class="slider-val">2.4x</span>
-        </div>
-        <input id="exagSlider" type="range" min="0.5" max="6.0" step="0.1" value="2.4" />
-      </div>
+      <input id="bearingSlider" type="range" min="-180" max="180" step="1" value="0">
     </div>
 
-    <div class="gesture-hint">
-      <strong>Touch &amp; Mouse Controls:</strong><br />
-      &bull; <strong>1-Finger / Left-Drag:</strong> Pan map<br />
-      &bull; <strong>2-Finger Pinch:</strong> Zoom in / out<br />
-      &bull; <strong>2-Finger Slide / Right-Drag:</strong> Tilt 3D &amp; Rotate
+    <div class="slider-group">
+      <div class="slider-header">
+        <span>Elevation Exaggeration</span>
+        <span id="exagVal" class="slider-val">2.4x</span>
+      </div>
+      <input id="exagSlider" type="range" min="0.5" max="6.0" step="0.1" value="2.4">
     </div>
+  </div>
+
+  <div class="help-note">
+    <strong>Touch &amp; Mouse Controls:</strong><br>
+    &bull; 1-Finger / Left-Drag: Pan map<br>
+    &bull; 2-Finger Pinch / Wheel: Zoom in &amp; out<br>
+    &bull; 2-Finger Slide / Right-Drag: Tilt 3D &amp; Rotate
   </div>
 </aside>
 
-<!-- Bottom Coordinates & Engine Diagnostics -->
-<div id="hudBar">
-  <div id="coordPill" class="hud-pill">Lat 21.1147&deg;, Lon -11.3942&deg; &bull; Z 11.2</div>
-  <div id="statusPill" class="hud-pill"><span id="statusText">WebGL Ready</span></div>
+<div id="quickDock" aria-label="Quick Zoom and 3D Controls">
+  <button id="zoomInBtn" class="dock-btn" type="button" title="Zoom In (+)">+</button>
+  <button id="zoomOutBtn" class="dock-btn" type="button" title="Zoom Out (-)">&minus;</button>
+  <button id="quickTiltBtn" class="dock-btn small-text" type="button" title="Toggle 2D / 3D Tilt">3D</button>
 </div>
 
+<div id="coordHud">Lat 21.1147&deg;, Lon -11.3942&deg; &bull; Z 11.2</div>
+<div id="statusPill">Initializing WebGL...</div>
+
 <script>
-(function () {
+(function() {
   "use strict";
 
-  const canvas = document.getElementById("glCanvas");
-  const gl = canvas.getContext("webgl", { antialias: true, alpha: false });
-  const statusText = document.getElementById("statusText");
-  const coordPill = document.getElementById("coordPill");
+  var canvas = document.getElementById("glCanvas");
+  var statusPill = document.getElementById("statusPill");
+  var coordHud = document.getElementById("coordHud");
 
-  if (!gl) {
-    statusText.textContent = "WebGL Not Supported";
-    return;
-  }
+  // UI Elements
+  var toolPanel = document.getElementById("toolPanel");
+  var hideToolsBtn = document.getElementById("hideToolsBtn");
+  var showToolsBtn = document.getElementById("showToolsBtn");
+  var layerSelect = document.getElementById("layerSelect");
+  var searchInput = document.getElementById("searchInput");
+  var searchBtn = document.getElementById("searchBtn");
+  var pitchSlider = document.getElementById("pitchSlider");
+  var bearingSlider = document.getElementById("bearingSlider");
+  var exagSlider = document.getElementById("exagSlider");
+  var pitchVal = document.getElementById("pitchVal");
+  var bearingVal = document.getElementById("bearingVal");
+  var exagVal = document.getElementById("exagVal");
+  var btn2D = document.getElementById("btn2D");
+  var btn3D = document.getElementById("btn3D");
+  var btnOrbit = document.getElementById("btnOrbit");
+  var zoomInBtn = document.getElementById("zoomInBtn");
+  var zoomOutBtn = document.getElementById("zoomOutBtn");
+  var quickTiltBtn = document.getElementById("quickTiltBtn");
 
-  // Tile Providers (Key-free HTTPS endpoints)
-  const TILE_LAYERS = {
-    esri_imagery: {
-      maxZoom: 17,
-      url: function (z, x, y) {
-        return "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/" + z + "/" + y + "/" + x;
-      }
-    },
-    esri_topo: {
-      maxZoom: 17,
-      url: function (z, x, y) {
-        return "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/" + z + "/" + y + "/" + x;
-      }
-    },
-    opentopo: {
-      maxZoom: 16,
-      url: function (z, x, y) {
-        const sub = ["a", "b", "c"][(x + y) % 3];
-        return "https://" + sub + ".tile.opentopomap.org/" + z + "/" + x + "/" + y + ".png";
-      }
-    },
-    esri_street: {
-      maxZoom: 17,
-      url: function (z, x, y) {
-        return "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/" + z + "/" + y + "/" + x;
-      }
-    },
-    esri_hillshade: {
-      maxZoom: 16,
-      url: function (z, x, y) {
-        return "https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/" + z + "/" + y + "/" + x;
-      }
+  // Minimize / Maximize Panel Handlers
+  function setPanelMinimized(minimized) {
+    if (minimized) {
+      toolPanel.classList.add("minimized");
+      showToolsBtn.style.display = "flex";
+    } else {
+      toolPanel.classList.remove("minimized");
+      showToolsBtn.style.display = "none";
     }
-  };
-
-  function getDemUrl(z, x, y) {
-    return "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/" + z + "/" + x + "/" + y + ".png";
   }
+  hideToolsBtn.addEventListener("click", function(e) {
+    e.stopPropagation();
+    setPanelMinimized(true);
+  });
+  showToolsBtn.addEventListener("click", function(e) {
+    e.stopPropagation();
+    setPanelMinimized(false);
+  });
 
-  // Application State (Centered on Eye of the Sahara)
-  const state = {
+  // Map State (Centered on Eye of Sahara)
+  var state = {
     lat: 21.1147,
     lon: -11.3942,
     zoom: 11.2,
-    pitch: 52,
-    bearing: 0,
-    exaggeration: 2.4,
+    pitch: 52.0,
+    bearing: 0.0,
+    exag: 2.4,
     layer: "esri_topo",
-    autoOrbit: false
+    autoOrbit: false,
+    imgLoadedCount: 0,
+    demLoadedCount: 0
   };
 
-  // Strict GLSL ES 1.00 Shaders (Zero escape errors)
-  const VS_SOURCE = [
-    "attribute vec2 aPos;",
+  function clamp(v, minV, maxV) {
+    return Math.max(minV, Math.min(maxV, v));
+  }
+
+  function lonToMercX(lon) {
+    return (lon + 180.0) / 360.0;
+  }
+
+  function latToMercY(lat) {
+    var clampedLat = clamp(lat, -85.05112878, 85.05112878);
+    var rad = clampedLat * Math.PI / 180.0;
+    return (1.0 - Math.log(Math.tan(rad) + 1.0 / Math.cos(rad)) / Math.PI) * 0.5;
+  }
+
+  function mercXToLon(x) {
+    return x * 360.0 - 180.0;
+  }
+
+  function mercYToLat(y) {
+    var n = Math.PI - 2.0 * Math.PI * clamp(y, 0.0, 1.0);
+    return 180.0 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+  }
+
+  function syncSliders() {
+    pitchSlider.value = String(Math.round(state.pitch));
+    pitchVal.innerHTML = Math.round(state.pitch) + "&deg;";
+    var bNorm = ((state.bearing + 180) % 360 + 360) % 360 - 180;
+    bearingSlider.value = String(Math.round(bNorm));
+    bearingVal.innerHTML = Math.round(bNorm) + "&deg;";
+    exagSlider.value = state.exag.toFixed(1);
+    exagVal.textContent = state.exag.toFixed(1) + "x";
+
+    btn2D.classList.toggle("active", state.pitch < 5);
+    btn3D.classList.toggle("active", state.pitch >= 5);
+    btnOrbit.classList.toggle("active", state.autoOrbit);
+    quickTiltBtn.textContent = state.pitch >= 5 ? "2D" : "3D";
+
+    coordHud.innerHTML =
+      "Lat " + state.lat.toFixed(4) + "&deg;, Lon " + state.lon.toFixed(4) +
+      "&deg; &bull; Z " + state.zoom.toFixed(1);
+  }
+
+  // Tile URL Generators
+  function getMapTileUrl(layer, z, x, y) {
+    if (layer === "opentopo") {
+      var sub = ["a", "b", "c"][(x + y) % 3];
+      return "https://" + sub + ".tile.opentopomap.org/" + z + "/" + x + "/" + y + ".png";
+    }
+    if (layer === "esri_sat") {
+      return "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/" + z + "/" + y + "/" + x;
+    }
+    if (layer === "esri_street") {
+      return "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/" + z + "/" + y + "/" + x;
+    }
+    if (layer === "esri_hillshade") {
+      return "https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/" + z + "/" + y + "/" + x;
+    }
+    return "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/" + z + "/" + y + "/" + x;
+  }
+
+  function getDemTileUrl(z, x, y) {
+    var dz = Math.min(z, 14);
+    var shift = z - dz;
+    var dx = x >> shift;
+    var dy = y >> shift;
+    return "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/" + dz + "/" + dx + "/" + dy + ".png";
+  }
+
+  // WebGL Setup
+  var gl = canvas.getContext("webgl", { antialias: true, alpha: false }) ||
+           canvas.getContext("experimental-webgl", { antialias: true, alpha: false });
+
+  if (!gl) {
+    statusPill.textContent = "WebGL unavailable on this browser";
+    return;
+  }
+
+  var vsSource = [
+    "attribute vec2 aGrid;",
     "attribute float aElev;",
-    "uniform mat4 uMVP;",
+    "uniform mat4 uProj;",
+    "uniform mat4 uView;",
     "uniform vec2 uTileOrigin;",
     "uniform float uTileSize;",
     "uniform float uElevScale;",
-    "uniform vec4 uUvRect;",
+    "uniform vec2 uUvOffset;",
+    "uniform float uUvScale;",
     "varying vec2 vUv;",
     "varying float vElev;",
-    "void main() {",
-    "  vec2 worldXY = uTileOrigin + vec2(aPos.x * uTileSize, (1.0 - aPos.y) * uTileSize);",
+    "varying float vDepth;",
+    "void main(void) {",
+    "  vec2 worldXY = uTileOrigin + vec2(aGrid.x * uTileSize, -aGrid.y * uTileSize);",
     "  float worldZ = aElev * uElevScale;",
-    "  gl_Position = uMVP * vec4(worldXY, worldZ, 1.0);",
-    "  vUv = uUvRect.xy + aPos * uUvRect.zw;",
+    "  vec4 viewPos = uView * vec4(worldXY, worldZ, 1.0);",
+    "  gl_Position = uProj * viewPos;",
+    "  vUv = uUvOffset + vec2(aGrid.x, aGrid.y) * uUvScale;",
     "  vElev = aElev;",
+    "  vDepth = -viewPos.z;",
     "}"
-  ].join("
-");
+  ].join("\n");
 
-  const FS_SOURCE = [
+  var fsSource = [
     "precision mediump float;",
     "uniform sampler2D uTex;",
     "uniform float uHasTex;",
-    "uniform float uPitchFactor;",
+    "uniform float uFogDist;",
     "varying vec2 vUv;",
     "varying float vElev;",
-    "void main() {",
+    "varying float vDepth;",
+    "void main(void) {",
     "  vec3 baseCol;",
     "  if (uHasTex > 0.5) {",
     "    baseCol = texture2D(uTex, vUv).rgb;",
     "  } else {",
-    "    float h = clamp((vElev + 50.0) / 2500.0, 0.0, 1.0);",
-    "    baseCol = mix(vec3(0.16, 0.22, 0.30), vec3(0.76, 0.68, 0.56), h);",
+    "    float h = clamp((vElev + 200.0) / 4500.0, 0.0, 1.0);",
+    "    baseCol = mix(vec3(0.11, 0.17, 0.26), vec3(0.42, 0.39, 0.34), h);",
     "  }",
-    "  float depthFog = clamp((gl_FragCoord.z / gl_FragCoord.w) * 0.08 * uPitchFactor, 0.0, 0.42);",
-    "  vec3 skyCol = vec3(0.06, 0.10, 0.18);",
-    "  gl_FragColor = vec4(mix(baseCol, skyCol, depthFog), 1.0);",
+    "  float fog = clamp((vDepth - uFogDist * 0.45) / (uFogDist * 0.65), 0.0, 0.72);",
+    "  vec3 skyCol = vec3(0.05, 0.08, 0.14);",
+    "  gl_FragColor = vec4(mix(baseCol, skyCol, fog), 1.0);",
     "}"
-  ].join("
-");
+  ].join("\n");
 
   function compileShader(type, src) {
-    const sh = gl.createShader(type);
-    gl.shaderSource(sh, src);
-    gl.compileShader(sh);
-    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
-      const log = gl.getShaderInfoLog(sh) || "Shader compile error";
-      statusText.textContent = log;
-      gl.deleteShader(sh);
+    var s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+      var err = gl.getShaderInfoLog(s) || "compile error";
+      statusPill.textContent = "Shader error: " + err.slice(0, 60);
+      gl.deleteShader(s);
       return null;
     }
-    return sh;
+    return s;
   }
 
-  const vs = compileShader(gl.VERTEX_SHADER, VS_SOURCE);
-  const fs = compileShader(gl.FRAGMENT_SHADER, FS_SOURCE);
+  var vs = compileShader(gl.VERTEX_SHADER, vsSource);
+  var fs = compileShader(gl.FRAGMENT_SHADER, fsSource);
   if (!vs || !fs) return;
 
-  const prog = gl.createProgram();
+  var prog = gl.createProgram();
   gl.attachShader(prog, vs);
   gl.attachShader(prog, fs);
   gl.linkProgram(prog);
   if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-    statusText.textContent = gl.getProgramInfoLog(prog) || "Shader link error";
+    var linkErr = gl.getProgramInfoLog(prog) || "link error";
+    statusPill.textContent = "Program link error: " + linkErr.slice(0, 60);
     return;
   }
   gl.useProgram(prog);
 
-  const loc = {
-    aPos: gl.getAttribLocation(prog, "aPos"),
-    aElev: gl.getAttribLocation(prog, "aElev"),
-    uMVP: gl.getUniformLocation(prog, "uMVP"),
-    uTileOrigin: gl.getUniformLocation(prog, "uTileOrigin"),
-    uTileSize: gl.getUniformLocation(prog, "uTileSize"),
-    uElevScale: gl.getUniformLocation(prog, "uElevScale"),
-    uUvRect: gl.getUniformLocation(prog, "uUvRect"),
-    uTex: gl.getUniformLocation(prog, "uTex"),
-    uHasTex: gl.getUniformLocation(prog, "uHasTex"),
-    uPitchFactor: gl.getUniformLocation(prog, "uPitchFactor")
-  };
+  var aGridLoc = gl.getAttribLocation(prog, "aGrid");
+  var aElevLoc = gl.getAttribLocation(prog, "aElev");
+  var uProjLoc = gl.getUniformLocation(prog, "uProj");
+  var uViewLoc = gl.getUniformLocation(prog, "uView");
+  var uTileOriginLoc = gl.getUniformLocation(prog, "uTileOrigin");
+  var uTileSizeLoc = gl.getUniformLocation(prog, "uTileSize");
+  var uElevScaleLoc = gl.getUniformLocation(prog, "uElevScale");
+  var uUvOffsetLoc = gl.getUniformLocation(prog, "uUvOffset");
+  var uUvScaleLoc = gl.getUniformLocation(prog, "uUvScale");
+  var uTexLoc = gl.getUniformLocation(prog, "uTex");
+  var uHasTexLoc = gl.getUniformLocation(prog, "uHasTex");
+  var uFogDistLoc = gl.getUniformLocation(prog, "uFogDist");
 
-  // Build Shared Grid Mesh with Perimeter Skirts (Seals tile seams in 3D)
-  const GRID_N = 32;
-  const VERTS_PER_ROW = GRID_N + 1;
-  const MAIN_VERT_COUNT = VERTS_PER_ROW * VERTS_PER_ROW;
-  const SKIRT_VERT_COUNT = VERTS_PER_ROW * 4;
-  const TOTAL_VERTS = MAIN_VERT_COUNT + SKIRT_VERT_COUNT;
+  // Shared 32x32 Grid + Perimeter Skirt Geometry
+  var GRID_N = 32;
+  var mainVertsPerRow = GRID_N + 1;
+  var mainVertCount = mainVertsPerRow * mainVertsPerRow;
+  var skirtVertCount = mainVertsPerRow * 4;
+  var totalVerts = mainVertCount + skirtVertCount;
 
-  const posArray = new Float32Array(TOTAL_VERTS * 2);
-  let ptr = 0;
+  var gridCoords = new Float32Array(totalVerts * 2);
+  var gridMainIndex = new Int32Array(totalVerts);
+  var isSkirtFlag = new Uint8Array(totalVerts);
 
-  // Main grid vertices
-  for (let r = 0; r <= GRID_N; r++) {
-    for (let c = 0; c <= GRID_N; c++) {
-      posArray[ptr++] = c / GRID_N;
-      posArray[ptr++] = r / GRID_N;
+  var ptr = 0;
+  for (var r = 0; r <= GRID_N; r++) {
+    for (var c = 0; c <= GRID_N; c++) {
+      gridCoords[ptr * 2] = c / GRID_N;
+      gridCoords[ptr * 2 + 1] = r / GRID_N;
+      gridMainIndex[ptr] = ptr;
+      isSkirtFlag[ptr] = 0;
+      ptr++;
     }
   }
+  // Top, Bottom, Left, Right skirt vertices
+  for (var c2 = 0; c2 <= GRID_N; c2++) {
+    gridCoords[ptr * 2] = c2 / GRID_N;
+    gridCoords[ptr * 2 + 1] = 0.0;
+    gridMainIndex[ptr] = c2;
+    isSkirtFlag[ptr] = 1;
+    ptr++;
+  }
+  for (var c3 = 0; c3 <= GRID_N; c3++) {
+    gridCoords[ptr * 2] = c3 / GRID_N;
+    gridCoords[ptr * 2 + 1] = 1.0;
+    gridMainIndex[ptr] = GRID_N * mainVertsPerRow + c3;
+    isSkirtFlag[ptr] = 1;
+    ptr++;
+  }
+  for (var r2 = 0; r2 <= GRID_N; r2++) {
+    gridCoords[ptr * 2] = 0.0;
+    gridCoords[ptr * 2 + 1] = r2 / GRID_N;
+    gridMainIndex[ptr] = r2 * mainVertsPerRow;
+    isSkirtFlag[ptr] = 1;
+    ptr++;
+  }
+  for (var r3 = 0; r3 <= GRID_N; r3++) {
+    gridCoords[ptr * 2] = 1.0;
+    gridCoords[ptr * 2 + 1] = r3 / GRID_N;
+    gridMainIndex[ptr] = r3 * mainVertsPerRow + GRID_N;
+    isSkirtFlag[ptr] = 1;
+    ptr++;
+  }
 
-  // Skirt vertices along Top, Bottom, Left, Right edges
-  for (let c = 0; c <= GRID_N; c++) {
-    posArray[ptr++] = c / GRID_N;
-    posArray[ptr++] = 0;
-  }
-  for (let c = 0; c <= GRID_N; c++) {
-    posArray[ptr++] = c / GRID_N;
-    posArray[ptr++] = 1;
-  }
-  for (let r = 0; r <= GRID_N; r++) {
-    posArray[ptr++] = 0;
-    posArray[ptr++] = r / GRID_N;
-  }
-  for (let r = 0; r <= GRID_N; r++) {
-    posArray[ptr++] = 1;
-    posArray[ptr++] = r / GRID_N;
-  }
-
-  const indices = [];
-  // Main surface triangles
-  for (let r = 0; r < GRID_N; r++) {
-    for (let c = 0; c < GRID_N; c++) {
-      const i0 = r * VERTS_PER_ROW + c;
-      const i1 = i0 + 1;
-      const i2 = i0 + VERTS_PER_ROW;
-      const i3 = i2 + 1;
+  var indices = [];
+  for (var r4 = 0; r4 < GRID_N; r4++) {
+    for (var c4 = 0; c4 < GRID_N; c4++) {
+      var i0 = r4 * mainVertsPerRow + c4;
+      var i1 = i0 + 1;
+      var i2 = i0 + mainVertsPerRow;
+      var i3 = i2 + 1;
       indices.push(i0, i2, i1, i1, i2, i3);
     }
   }
-
-  // Skirt triangles
-  const skirtTopStart = MAIN_VERT_COUNT;
-  const skirtBotStart = MAIN_VERT_COUNT + VERTS_PER_ROW;
-  const skirtLeftStart = MAIN_VERT_COUNT + VERTS_PER_ROW * 2;
-  const skirtRightStart = MAIN_VERT_COUNT + VERTS_PER_ROW * 3;
-
-  for (let c = 0; c < GRID_N; c++) {
-    const m0 = c;
-    const m1 = c + 1;
-    const s0 = skirtTopStart + c;
-    const s1 = skirtTopStart + c + 1;
-    indices.push(m0, m1, s0, m1, s1, s0);
-
-    const bm0 = GRID_N * VERTS_PER_ROW + c;
-    const bm1 = bm0 + 1;
-    const bs0 = skirtBotStart + c;
-    const bs1 = skirtBotStart + c + 1;
-    indices.push(bm0, bs0, bm1, bm1, bs0, bs1);
-  }
-
-  for (let r = 0; r < GRID_N; r++) {
-    const lm0 = r * VERTS_PER_ROW;
-    const lm1 = (r + 1) * VERTS_PER_ROW;
-    const ls0 = skirtLeftStart + r;
-    const ls1 = skirtLeftStart + r + 1;
-    indices.push(lm0, ls0, lm1, lm1, ls0, ls1);
-
-    const rm0 = r * VERTS_PER_ROW + GRID_N;
-    const rm1 = (r + 1) * VERTS_PER_ROW + GRID_N;
-    const rs0 = skirtRightStart + r;
-    const rs1 = skirtRightStart + r + 1;
-    indices.push(rm0, rm1, rs0, rm1, rs1, rs0);
-  }
-
-  const indexArray = new Uint16Array(indices);
-
-  const posBuf = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
-  gl.bufferData(gl.ARRAY_BUFFER, posArray, gl.STATIC_DRAW);
-
-  const idxBuf = gl.createBuffer();
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idxBuf);
-  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indexArray, gl.STATIC_DRAW);
-
-  const flatElevArray = new Float32Array(TOTAL_VERTS);
-  for (let i = MAIN_VERT_COUNT; i < TOTAL_VERTS; i++) {
-    flatElevArray[i] = -350;
-  }
-  const flatElevBuf = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, flatElevBuf);
-  gl.bufferData(gl.ARRAY_BUFFER, flatElevArray, gl.STATIC_DRAW);
-
-  // Web Mercator Math (World space: [0, 1] X East, [0, 1] Y North)
-  function lonToWorldX(lon) {
-    return (lon + 180) / 360;
-  }
-
-  function latToWorldY(lat) {
-    const clamped = Math.max(-85.05112878, Math.min(85.05112878, lat));
-    const rad = clamped * Math.PI / 180;
-    const mercN = Math.log(Math.tan(Math.PI / 4 + rad / 2));
-    return 0.5 + mercN / (2 * Math.PI);
-  }
-
-  function worldXToLon(wx) {
-    return wx * 360 - 180;
-  }
-
-  function worldYToLat(wy) {
-    const mercN = (wy - 0.5) * 2 * Math.PI;
-    return (2 * Math.atan(Math.exp(mercN)) - Math.PI / 2) * 180 / Math.PI;
-  }
-
-  // Matrix Utilities (Column-Major 4x4)
-  function mat4Multiply(a, b) {
-    const out = new Float32Array(16);
-    for (let c = 0; c < 4; c++) {
-      for (let r = 0; r < 4; r++) {
-        out[c * 4 + r] =
-          a[0 * 4 + r] * b[c * 4 + 0] +
-          a[1 * 4 + r] * b[c * 4 + 1] +
-          a[2 * 4 + r] * b[c * 4 + 2] +
-          a[3 * 4 + r] * b[c * 4 + 3];
-      }
+  var sBase = mainVertCount;
+  for (var side = 0; side < 4; side++) {
+    var off = sBase + side * mainVertsPerRow;
+    for (var k = 0; k < GRID_N; k++) {
+      var m0 = gridMainIndex[off + k];
+      var m1 = gridMainIndex[off + k + 1];
+      var k0 = off + k;
+      var k1 = off + k + 1;
+      indices.push(m0, k0, m1, m1, k0, k1);
     }
-    return out;
   }
 
-  function mat4Perspective(fovRad, aspect, near, far) {
-    const f = 1.0 / Math.tan(fovRad / 2);
-    const nf = 1 / (near - far);
-    const out = new Float32Array(16);
-    out[0] = f / aspect;
-    out[5] = f;
-    out[10] = (far + near) * nf;
-    out[11] = -1;
-    out[14] = 2 * far * near * nf;
-    return out;
+  var gridBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, gridBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, gridCoords, gl.STATIC_DRAW);
+
+  var idxBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idxBuf);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+  var indexCount = indices.length;
+
+  var flatElevData = new Float32Array(totalVerts);
+  for (var fi = 0; fi < totalVerts; fi++) {
+    flatElevData[fi] = isSkirtFlag[fi] ? -1200.0 : 0.0;
   }
+  var flatElevBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, flatElevBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, flatElevData, gl.STATIC_DRAW);
 
-  function mat4LookAt(eye, target, up) {
-    let zx = eye[0] - target[0];
-    let zy = eye[1] - target[1];
-    let zz = eye[2] - target[2];
-    let len = Math.hypot(zx, zy, zz) || 1;
-    zx /= len; zy /= len; zz /= len;
+  // Tile Cache Management
+  var textureCache = new Map();
+  var demCache = new Map();
+  var offCanvas = document.createElement("canvas");
+  offCanvas.width = 256;
+  offCanvas.height = 256;
+  var offCtx = offCanvas.getContext("2d", { willReadFrequently: true });
 
-    let xx = up[1] * zz - up[2] * zy;
-    let xy = up[2] * zx - up[0] * zz;
-    let xz = up[0] * zy - up[1] * zx;
-    len = Math.hypot(xx, xy, xz) || 1;
-    xx /= len; xy /= len; xz /= len;
+  function getTileTexture(layer, z, x, y) {
+    var key = layer + "/" + z + "/" + x + "/" + y;
+    var entry = textureCache.get(key);
+    if (entry) {
+      entry.lastUsed = performance.now();
+      return entry;
+    }
+    entry = { tex: null, ready: false, lastUsed: performance.now() };
+    textureCache.set(key, entry);
 
-    const yx = zy * xz - zz * xy;
-    const yy = zz * xx - zx * xz;
-    const yz = zx * xy - zy * xx;
-
-    const out = new Float32Array(16);
-    out[0] = xx; out[4] = xy; out[8]  = xz; out[12] = -(xx * eye[0] + xy * eye[1] + xz * eye[2]);
-    out[1] = yx; out[5] = yy; out[9]  = yz; out[13] = -(yx * eye[0] + yy * eye[1] + yz * eye[2]);
-    out[2] = zx; out[6] = zy; out[10] = zz; out[14] = -(zx * eye[0] + zy * eye[1] + zz * eye[2]);
-    out[3] = 0;  out[7] = 0;  out[11] = 0;  out[15] = 1;
-    return out;
-  }
-
-  // Tile Caches
-  const texCache = new Map();
-  const demCache = new Map();
-  const offscreenCanvas = document.createElement("canvas");
-  offscreenCanvas.width = 256;
-  offscreenCanvas.height = 256;
-  const offCtx = offscreenCanvas.getContext("2d", { willReadFrequently: true });
-
-  let loadedImgCount = 0;
-  let loadedDemCount = 0;
-
-  function requestImageryTile(layerKey, z, x, y) {
-    const key = layerKey + "/" + z + "/" + x + "/" + y;
-    if (texCache.has(key)) return texCache.get(key);
-
-    const entry = { tex: null, ready: false };
-    texCache.set(key, entry);
-
-    const img = new Image();
+    var img = new Image();
     img.crossOrigin = "anonymous";
-    img.onload = function () {
-      const tex = gl.createTexture();
-      gl.bindTexture(gl.TEXTURE_2D, tex);
+    img.onload = function() {
+      var t = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, t);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-      entry.tex = tex;
+      entry.tex = t;
       entry.ready = true;
-      loadedImgCount++;
-      updateStatus();
+      state.imgLoadedCount++;
     };
-    img.src = TILE_LAYERS[layerKey].url(z, x, y);
+    img.src = getMapTileUrl(layer, z, x, y);
     return entry;
   }
 
-  function requestDemTile(z, x, y) {
-    const key = z + "/" + x + "/" + y;
-    if (demCache.has(key)) return demCache.get(key);
-
-    const entry = { buf: null, ready: false };
+  function getTileDem(z, x, y) {
+    var key = z + "/" + x + "/" + y;
+    var entry = demCache.get(key);
+    if (entry) {
+      entry.lastUsed = performance.now();
+      return entry;
+    }
+    entry = { buf: flatElevBuf, ready: false, lastUsed: performance.now() };
     demCache.set(key, entry);
 
-    const img = new Image();
+    var dz = Math.min(z, 14);
+    var shift = z - dz;
+    var subScale = 1.0 / (1 << shift);
+    var subOffX = (x - ((x >> shift) << shift)) * subScale;
+    var subOffY = (y - ((y >> shift) << shift)) * subScale;
+
+    var img = new Image();
     img.crossOrigin = "anonymous";
-    img.onload = function () {
+    img.onload = function() {
       try {
         offCtx.clearRect(0, 0, 256, 256);
         offCtx.drawImage(img, 0, 0, 256, 256);
-        const pixels = offCtx.getImageData(0, 0, 256, 256).data;
-        const elevs = new Float32Array(TOTAL_VERTS);
+        var pixels = offCtx.getImageData(0, 0, 256, 256).data;
+        var elevArr = new Float32Array(totalVerts);
 
-        for (let r = 0; r <= GRID_N; r++) {
-          const py = Math.min(255, Math.round((r / GRID_N) * 255));
-          for (let c = 0; c <= GRID_N; c++) {
-            const px = Math.min(255, Math.round((c / GRID_N) * 255));
-            const idx = (py * 256 + px) * 4;
-            const red = pixels[idx];
-            const green = pixels[idx + 1];
-            const blue = pixels[idx + 2];
-            const meters = (red * 256 + green + blue / 256) - 32768;
-            elevs[r * VERTS_PER_ROW + c] = meters;
-          }
+        for (var i = 0; i < mainVertCount; i++) {
+          var gx = gridCoords[i * 2];
+          var gy = gridCoords[i * 2 + 1];
+          var u = clamp(subOffX + gx * subScale, 0.0, 0.9999);
+          var v = clamp(subOffY + gy * subScale, 0.0, 0.9999);
+          var px = Math.floor(u * 255.0);
+          var py = Math.floor(v * 255.0);
+          var idx = (py * 256 + px) * 4;
+          var h = (pixels[idx] * 256.0 + pixels[idx + 1] + pixels[idx + 2] / 256.0) - 32768.0;
+          elevArr[i] = clamp(h, -500.0, 9000.0);
+        }
+        for (var s = mainVertCount; s < totalVerts; s++) {
+          elevArr[s] = elevArr[gridMainIndex[s]] - 1500.0;
         }
 
-        const skirtDrop = 450;
-        for (let c = 0; c <= GRID_N; c++) {
-          elevs[skirtTopStart + c] = elevs[c] - skirtDrop;
-          elevs[skirtBotStart + c] = elevs[GRID_N * VERTS_PER_ROW + c] - skirtDrop;
-        }
-        for (let r = 0; r <= GRID_N; r++) {
-          elevs[skirtLeftStart + r] = elevs[r * VERTS_PER_ROW] - skirtDrop;
-          elevs[skirtRightStart + r] = elevs[r * VERTS_PER_ROW + GRID_N] - skirtDrop;
-        }
-
-        const buf = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-        gl.bufferData(gl.ARRAY_BUFFER, elevs, gl.STATIC_DRAW);
-        entry.buf = buf;
+        var vbo = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+        gl.bufferData(gl.ARRAY_BUFFER, elevArr, gl.STATIC_DRAW);
+        entry.buf = vbo;
         entry.ready = true;
-        loadedDemCount++;
-        updateStatus();
-      } catch (e) {
-        // Fallback flat buffer if tainted
+        state.demLoadedCount++;
+      } catch (err) {
+        // Keep flatElevBuf on error
       }
     };
-    img.src = getDemUrl(z, x, y);
+    img.src = getDemTileUrl(z, x, y);
     return entry;
   }
 
-  function updateStatus() {
-    statusText.textContent = "3D WebGL Active • Tiles: " + loadedImgCount + " | DEM: " + loadedDemCount;
+  // Matrix Math Utilities
+  function perspectiveMat(fovyRad, aspect, near, far) {
+    var f = 1.0 / Math.tan(fovyRad * 0.5);
+    var nf = 1.0 / (near - far);
+    return new Float32Array([
+      f / aspect, 0, 0, 0,
+      0, f, 0, 0,
+      0, 0, (far + near) * nf, -1,
+      0, 0, 2.0 * far * near * nf, 0
+    ]);
   }
 
-  // Resize Handling
+  function lookAtMat(eye, target, up) {
+    var zx = eye[0] - target[0], zy = eye[1] - target[1], zz = eye[2] - target[2];
+    var zLen = Math.hypot(zx, zy, zz) || 1.0;
+    zx /= zLen; zy /= zLen; zz /= zLen;
+
+    var xx = up[1] * zz - up[2] * zy;
+    var xy = up[2] * zx - up[0] * zz;
+    var xz = up[0] * zy - up[1] * zx;
+    var xLen = Math.hypot(xx, xy, xz) || 1.0;
+    xx /= xLen; xy /= xLen; xz /= xLen;
+
+    var yx = zy * xz - zz * xy;
+    var yy = zz * xx - zx * xz;
+    var yz = zx * xy - zy * xx;
+
+    return new Float32Array([
+      xx, yx, zx, 0,
+      xy, yy, zy, 0,
+      xz, yz, zz, 0,
+      -(xx * eye[0] + xy * eye[1] + xz * eye[2]),
+      -(yx * eye[0] + yy * eye[1] + yz * eye[2]),
+      -(zx * eye[0] + zy * eye[1] + zz * eye[2]),
+      1
+    ]);
+  }
+
   function resizeCanvas() {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const w = Math.floor(window.innerWidth * dpr);
-    const h = Math.floor(window.innerHeight * dpr);
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var w = Math.floor(window.innerWidth * dpr);
+    var h = Math.floor(window.innerHeight * dpr);
     if (canvas.width !== w || canvas.height !== h) {
       canvas.width = w;
       canvas.height = h;
-      gl.viewport(0, 0, w, h);
     }
+    gl.viewport(0, 0, canvas.width, canvas.height);
   }
   window.addEventListener("resize", resizeCanvas);
   resizeCanvas();
 
-  // Camera Distance & Projection Helper
-  function getCameraParams() {
-    const cx = lonToWorldX(state.lon);
-    const cy = latToWorldY(state.lat);
-    const fov = 42 * Math.PI / 180;
-    const tilesAcross = Math.pow(2, state.zoom);
-    const viewSpan = (canvas.width / (256 * Math.min(window.devicePixelRatio || 1, 2))) / tilesAcross;
-    const dist = (viewSpan * 0.5) / Math.tan(fov * 0.5);
-
-    const pitchRad = state.pitch * Math.PI / 180;
-    const bearingRad = state.bearing * Math.PI / 180;
-
-    const horizDist = dist * Math.sin(pitchRad);
-    const vertDist = dist * Math.cos(pitchRad);
-
-    // Camera looks northward when bearing = 0 (eye is south of target)
-    const eyeX = cx - horizDist * Math.sin(bearingRad);
-    const eyeY = cy - horizDist * Math.cos(bearingRad);
-    const eyeZ = Math.max(0.00001, vertDist);
-
-    const upX = Math.sin(bearingRad) * Math.cos(pitchRad);
-    const upY = Math.cos(bearingRad) * Math.cos(pitchRad);
-    const upZ = Math.sin(pitchRad);
-
-    const aspect = canvas.width / Math.max(1, canvas.height);
-    const near = dist * 0.02;
-    const far = dist * 16.0;
-
-    const proj = mat4Perspective(fov, aspect, near, far);
-    const view = mat4LookAt([eyeX, eyeY, eyeZ], [cx, cy, 0], [upX, upY, upZ]);
-    const mvp = mat4Multiply(proj, view);
-
-    return { cx, cy, dist, mvp };
-  }
-
   // Render Loop
-  function renderFrame() {
+  var lastFrameTime = performance.now();
+  function render(now) {
+    var dt = Math.min((now - lastFrameTime) * 0.001, 0.1);
+    lastFrameTime = now;
+
     if (state.autoOrbit) {
-      state.bearing += 0.18;
-      if (state.bearing > 180) state.bearing -= 360;
+      state.bearing = (state.bearing + 10.0 * dt);
       syncSliders();
     }
 
-    resizeCanvas();
-    gl.clearColor(0.04, 0.07, 0.13, 1.0);
+    gl.clearColor(0.04, 0.07, 0.12, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.enable(gl.DEPTH_TEST);
-    gl.depthFunc(gl.LEQUAL);
 
-    const cam = getCameraParams();
-    const layerCfg = TILE_LAYERS[state.layer];
-    const z = Math.max(2, Math.min(layerCfg.maxZoom, Math.round(state.zoom)));
-    const nTiles = Math.pow(2, z);
-    const tileSize = 1.0 / nTiles;
+    var zInt = Math.round(clamp(state.zoom, 2, 16));
+    var numTiles = 1 << zInt;
+    var centerMX = lonToMercX(state.lon) * numTiles;
+    var centerMY = latToMercY(state.lat) * numTiles;
 
-    const centerTileX = Math.floor(cam.cx * nTiles);
-    const centerTileY = Math.floor((1.0 - cam.cy) * nTiles);
-    const radius = state.pitch > 35 ? 4 : 3;
+    var zoomFrac = state.zoom - zInt;
+    var tileWorldSize = Math.pow(2.0, zoomFrac);
+    var camDist = 4.2;
+    var pitchRad = state.pitch * Math.PI / 180.0;
+    var bearRad = state.bearing * Math.PI / 180.0;
 
-    // Meters-to-world scale at current latitude
-    const latRad = state.lat * Math.PI / 180;
-    const metersPerWorldUnit = 40075016.686 * Math.cos(latRad);
-    const elevScale = (state.exaggeration / Math.max(1000, metersPerWorldUnit));
+    var horizDist = Math.sin(pitchRad) * camDist;
+    var vertDist = Math.cos(pitchRad) * camDist;
+    var eyeX = -Math.sin(bearRad) * horizDist;
+    var eyeY = -Math.cos(bearRad) * horizDist;
+    var eyeZ = Math.max(0.25, vertDist);
 
-    gl.uniformMatrix4fv(loc.uMVP, false, cam.mvp);
-    gl.uniform1f(loc.uTileSize, tileSize);
-    gl.uniform1f(loc.uElevScale, elevScale);
-    gl.uniform1f(loc.uPitchFactor, state.pitch / 72.0);
+    var upVec = state.pitch < 1.0
+      ? [Math.sin(bearRad), Math.cos(bearRad), 0.0]
+      : [0.0, 0.0, 1.0];
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
-    gl.enableVertexAttribArray(loc.aPos);
-    gl.vertexAttribPointer(loc.aPos, 2, gl.FLOAT, false, 0, 0);
+    var aspect = (canvas.width || 1) / (canvas.height || 1);
+    var proj = perspectiveMat(45.0 * Math.PI / 180.0, aspect, 0.05, 80.0);
+    var view = lookAtMat([eyeX, eyeY, eyeZ], [0.0, 0.0, 0.0], upVec);
+
+    gl.uniformMatrix4fv(uProjLoc, false, proj);
+    gl.uniformMatrix4fv(uViewLoc, false, view);
+
+    var latRad = state.lat * Math.PI / 180.0;
+    var metersPerTile = (40075016.686 * Math.cos(latRad)) / numTiles;
+    var elevScale = (tileWorldSize / Math.max(metersPerTile, 1.0)) * state.exag;
+    gl.uniform1f(uElevScaleLoc, elevScale);
+    gl.uniform1f(uFogDistLoc, 16.0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, gridBuf);
+    gl.enableVertexAttribArray(aGridLoc);
+    gl.vertexAttribPointer(aGridLoc, 2, gl.FLOAT, false, 0, 0);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idxBuf);
 
-    for (let dy = -radius; dy <= radius; dy++) {
-      const ty = centerTileY + dy;
-      if (ty < 0 || ty >= nTiles) continue;
+    var baseTileX = Math.floor(centerMX);
+    var baseTileY = Math.floor(centerMY);
+    var radius = state.pitch > 35 ? 4 : 3;
 
-      for (let dx = -radius; dx <= radius; dx++) {
-        const txRaw = centerTileX + dx;
-        const tx = ((txRaw % nTiles) + nTiles) % nTiles;
-        const worldOriginX = txRaw * tileSize;
-        const worldOriginY = 1.0 - (ty + 1) * tileSize;
+    for (var dy = -radius; dy <= radius; dy++) {
+      var ty = baseTileY + dy;
+      if (ty < 0 || ty >= numTiles) continue;
+      for (var dx = -radius; dx <= radius; dx++) {
+        var rawTx = baseTileX + dx;
+        var tx = ((rawTx % numTiles) + numTiles) % numTiles;
 
-        // Imagery tile with parent-zoom fallback
-        let imgEntry = requestImageryTile(state.layer, z, tx, ty);
-        let uvX = 0, uvY = 0, uvW = 1, uvH = 1;
+        var originX = (rawTx - centerMX) * tileWorldSize;
+        var originY = -(ty - centerMY) * tileWorldSize;
 
-        if (!imgEntry.ready && z > 2) {
-          for (let pz = z - 1; pz >= Math.max(2, z - 4); pz--) {
-            const shift = z - pz;
-            const ptx = tx >> shift;
-            const pty = ty >> shift;
-            const parent = requestImageryTile(state.layer, pz, ptx, pty);
-            if (parent.ready) {
-              imgEntry = parent;
-              const scale = 1 / (1 << shift);
-              uvX = (tx - (ptx << shift)) * scale;
-              uvY = (ty - (pty << shift)) * scale;
-              uvW = scale;
-              uvH = scale;
-              break;
-            }
+        var demEntry = getTileDem(zInt, tx, ty);
+        gl.bindBuffer(gl.ARRAY_BUFFER, demEntry.buf);
+        gl.enableVertexAttribArray(aElevLoc);
+        gl.vertexAttribPointer(aElevLoc, 1, gl.FLOAT, false, 0, 0);
+
+        var texEntry = getTileTexture(state.layer, zInt, tx, ty);
+        var uvOffX = 0.0, uvOffY = 0.0, uvScale = 1.0;
+        var activeTex = null;
+
+        if (texEntry.ready) {
+          activeTex = texEntry.tex;
+        } else if (zInt > 2) {
+          var pz = zInt - 1;
+          var ptx = tx >> 1;
+          var pty = ty >> 1;
+          var pEntry = getTileTexture(state.layer, pz, ptx, pty);
+          if (pEntry.ready) {
+            activeTex = pEntry.tex;
+            uvScale = 0.5;
+            uvOffX = (tx & 1) * 0.5;
+            uvOffY = (ty & 1) * 0.5;
           }
         }
 
-        // DEM tile (AWS Terrarium supports up to z=14 reliably)
-        const demZ = Math.min(14, z);
-        const demShift = z - demZ;
-        const demTx = tx >> demShift;
-        const demTy = ty >> demShift;
-        const demEntry = requestDemTile(demZ, demTx, demTy);
+        gl.uniform2f(uTileOriginLoc, originX, originY);
+        gl.uniform1f(uTileSizeLoc, tileWorldSize);
+        gl.uniform2f(uUvOffsetLoc, uvOffX, uvOffY);
+        gl.uniform1f(uUvScaleLoc, uvScale);
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, demEntry.ready ? demEntry.buf : flatElevBuf);
-        gl.enableVertexAttribArray(loc.aElev);
-        gl.vertexAttribPointer(loc.aElev, 1, gl.FLOAT, false, 0, 0);
-
-        gl.uniform2f(loc.uTileOrigin, worldOriginX, worldOriginY);
-        gl.uniform4f(loc.uUvRect, uvX, uvY, uvW, uvH);
-
-        if (imgEntry.ready && imgEntry.tex) {
+        if (activeTex) {
           gl.activeTexture(gl.TEXTURE0);
-          gl.bindTexture(gl.TEXTURE_2D, imgEntry.tex);
-          gl.uniform1i(loc.uTex, 0);
-          gl.uniform1f(loc.uHasTex, 1.0);
+          gl.bindTexture(gl.TEXTURE_2D, activeTex);
+          gl.uniform1i(uTexLoc, 0);
+          gl.uniform1f(uHasTexLoc, 1.0);
         } else {
-          gl.uniform1f(loc.uHasTex, 0.0);
+          gl.uniform1f(uHasTexLoc, 0.0);
         }
 
-        gl.drawElements(gl.TRIANGLES, indexArray.length, gl.UNSIGNED_SHORT, 0);
+        gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
       }
     }
 
-    coordPill.textContent =
-      "Lat " + state.lat.toFixed(4) + "°, Lon " + state.lon.toFixed(4) +
-      "° • Z " + state.zoom.toFixed(1) + " • Tilt " + Math.round(state.pitch) + "°";
-
-    requestAnimationFrame(renderFrame);
+    statusPill.textContent =
+      "WebGL Active \u2022 Tiles: " + state.imgLoadedCount + " | DEM: " + state.demLoadedCount;
+    requestAnimationFrame(render);
   }
 
-  // Pan Helper (Accounts for zoom & camera bearing)
-  function panByPixels(dx, dy) {
-    const tilesAcross = Math.pow(2, state.zoom);
-    const scale = 1.0 / (256 * tilesAcross);
-    const rad = state.bearing * Math.PI / 180;
-    const cosB = Math.cos(rad);
-    const sinB = Math.sin(rad);
+  // Panning & Camera Helpers
+  function panByPixels(dxPx, dyPx) {
+    var zInt = Math.round(clamp(state.zoom, 2, 16));
+    var numTiles = 1 << zInt;
+    var zoomFrac = state.zoom - zInt;
+    var tileWorldSize = Math.pow(2.0, zoomFrac);
+    var scale = 0.0055 / tileWorldSize;
 
-    // Dragging right-to-left (dx < 0) moves view east (+wx)
-    const worldDx = (-dx * cosB + dy * sinB) * scale;
-    const worldDy = (dx * sinB + dy * cosB) * scale;
+    var bearRad = state.bearing * Math.PI / 180.0;
+    var cosB = Math.cos(bearRad);
+    var sinB = Math.sin(bearRad);
 
-    const wx = (lonToWorldX(state.lon) + worldDx + 1) % 1;
-    const wy = Math.max(0.02, Math.min(0.98, latToWorldY(state.lat) + worldDy));
+    var dRight = -dxPx * scale;
+    var dForward = dyPx * scale;
 
-    state.lon = worldXToLon(wx);
-    state.lat = worldYToLat(wy);
+    var dMercX = (dRight * cosB + dForward * sinB) / numTiles;
+    var dMercY = (-dRight * sinB + dForward * cosB) / numTiles;
+
+    var mx = (lonToMercX(state.lon) + dMercX + 1.0) % 1.0;
+    var my = clamp(latToMercY(state.lat) - dMercY, 0.001, 0.999);
+
+    state.lon = mercXToLon(mx);
+    state.lat = mercYToLat(my);
+    syncSliders();
   }
 
-  function clampZoom(z) {
-    return Math.max(2.2, Math.min(16.8, z));
+  function applyZoom(delta) {
+    state.zoom = clamp(state.zoom + delta, 2.0, 16.0);
+    syncSliders();
   }
 
-  function clampPitch(p) {
-    return Math.max(0, Math.min(72, p));
-  }
+  // Mouse Controls
+  var isDragging = false;
+  var dragButton = 0;
+  var lastMouseX = 0, lastMouseY = 0;
 
-  function wrapBearing(b) {
-    while (b > 180) b -= 360;
-    while (b < -180) b += 360;
-    return b;
-  }
+  canvas.addEventListener("contextmenu", function(e) { e.preventDefault(); });
 
-  // Mouse Interaction
-  let mouseDown = false;
-  let mouseMode = "pan";
-  let lastMouseX = 0;
-  let lastMouseY = 0;
-
-  canvas.addEventListener("contextmenu", function (e) {
-    e.preventDefault();
-  });
-
-  canvas.addEventListener("mousedown", function (e) {
-    mouseDown = true;
+  canvas.addEventListener("mousedown", function(e) {
+    isDragging = true;
+    dragButton = e.button;
     lastMouseX = e.clientX;
     lastMouseY = e.clientY;
-    mouseMode = (e.button === 2 || e.shiftKey) ? "tilt" : "pan";
     state.autoOrbit = false;
+    syncSliders();
   });
 
-  window.addEventListener("mousemove", function (e) {
-    if (!mouseDown) return;
-    const dx = e.clientX - lastMouseX;
-    const dy = e.clientY - lastMouseY;
+  window.addEventListener("mousemove", function(e) {
+    if (!isDragging) return;
+    var dx = e.clientX - lastMouseX;
+    var dy = e.clientY - lastMouseY;
     lastMouseX = e.clientX;
     lastMouseY = e.clientY;
 
-    if (mouseMode === "pan") {
-      panByPixels(dx, dy);
-    } else {
-      state.bearing = wrapBearing(state.bearing + dx * 0.35);
-      state.pitch = clampPitch(state.pitch - dy * 0.32);
+    if (dragButton === 2 || e.shiftKey) {
+      state.bearing += dx * 0.35;
+      state.pitch = clamp(state.pitch - dy * 0.30, 0.0, 72.0);
       syncSliders();
+    } else {
+      panByPixels(dx, dy);
     }
   });
 
-  window.addEventListener("mouseup", function () {
-    mouseDown = false;
+  window.addEventListener("mouseup", function() {
+    isDragging = false;
   });
 
-  canvas.addEventListener("wheel", function (e) {
+  canvas.addEventListener("wheel", function(e) {
     e.preventDefault();
-    const delta = -Math.sign(e.deltaY) * 0.45;
-    state.zoom = clampZoom(state.zoom + delta);
+    applyZoom(e.deltaY < 0 ? 0.35 : -0.35);
   }, { passive: false });
 
-  // Multi-Touch Touchscreen Exploration (1-Finger Pan, 2-Finger Pinch/Rotate/Tilt)
-  let touchState = {
-    activeCount: 0,
-    lastX: 0,
-    lastY: 0,
-    lastDist: 0,
-    lastAngle: 0,
-    lastMidY: 0
-  };
+  // Multi-Touch Mobile Controls (1-Finger Pan, 2-Finger Pinch Zoom, 2-Finger Tilt/Rotate)
+  var touchMode = "none";
+  var prevTouchX = 0, prevTouchY = 0;
+  var prevPinchDist = 0, prevPinchAngle = 0;
 
-  function getTouchMetrics(touches) {
-    const t0 = touches[0];
-    const t1 = touches[1];
-    const dx = t1.clientX - t0.clientX;
-    const dy = t1.clientY - t0.clientY;
-    return {
-      dist: Math.hypot(dx, dy),
-      angle: Math.atan2(dy, dx) * 180 / Math.PI,
-      midX: (t0.clientX + t1.clientX) * 0.5,
-      midY: (t0.clientY + t1.clientY) * 0.5
-    };
-  }
-
-  canvas.addEventListener("touchstart", function (e) {
+  canvas.addEventListener("touchstart", function(e) {
     e.preventDefault();
     state.autoOrbit = false;
-    touchState.activeCount = e.touches.length;
+    syncSliders();
 
     if (e.touches.length === 1) {
-      touchState.lastX = e.touches[0].clientX;
-      touchState.lastY = e.touches[0].clientY;
+      touchMode = "pan";
+      prevTouchX = e.touches[0].clientX;
+      prevTouchY = e.touches[0].clientY;
     } else if (e.touches.length >= 2) {
-      const m = getTouchMetrics(e.touches);
-      touchState.lastDist = m.dist;
-      touchState.lastAngle = m.angle;
-      touchState.lastMidY = m.midY;
+      touchMode = "gesture";
+      var t0 = e.touches[0], t1 = e.touches[1];
+      prevTouchX = (t0.clientX + t1.clientX) * 0.5;
+      prevTouchY = (t0.clientY + t1.clientY) * 0.5;
+      prevPinchDist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY) || 1;
+      prevPinchAngle = Math.atan2(t1.clientY - t0.clientY, t1.clientX - t0.clientX);
     }
   }, { passive: false });
 
-  canvas.addEventListener("touchmove", function (e) {
+  canvas.addEventListener("touchmove", function(e) {
     e.preventDefault();
-    if (e.touches.length === 1 && touchState.activeCount === 1) {
-      const dx = e.touches[0].clientX - touchState.lastX;
-      const dy = e.touches[0].clientY - touchState.lastY;
-      touchState.lastX = e.touches[0].clientX;
-      touchState.lastY = e.touches[0].clientY;
-      panByPixels(dx, dy);
+    if (e.touches.length === 1 && touchMode === "pan") {
+      var tx = e.touches[0].clientX;
+      var ty = e.touches[0].clientY;
+      panByPixels(tx - prevTouchX, ty - prevTouchY);
+      prevTouchX = tx;
+      prevTouchY = ty;
     } else if (e.touches.length >= 2) {
-      const m = getTouchMetrics(e.touches);
-      if (touchState.activeCount >= 2 && touchState.lastDist > 0) {
-        // Pinch Zoom
-        const ratio = m.dist / touchState.lastDist;
-        if (Math.abs(ratio - 1) > 0.004) {
-          state.zoom = clampZoom(state.zoom + Math.log2(ratio));
-        }
+      var t0 = e.touches[0], t1 = e.touches[1];
+      var midX = (t0.clientX + t1.clientX) * 0.5;
+      var midY = (t0.clientY + t1.clientY) * 0.5;
+      var dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY) || 1;
+      var angle = Math.atan2(t1.clientY - t0.clientY, t1.clientX - t0.clientX);
 
-        // Two-Finger Twist Rotation
-        let dAngle = m.angle - touchState.lastAngle;
-        if (dAngle > 180) dAngle -= 360;
-        if (dAngle < -180) dAngle += 360;
-        state.bearing = wrapBearing(state.bearing - dAngle);
+      if (touchMode === "gesture") {
+        var zoomDelta = Math.log2(dist / prevPinchDist) * 1.4;
+        state.zoom = clamp(state.zoom + zoomDelta, 2.0, 16.0);
 
-        // Two-Finger Vertical Slide Tilt
-        const dMidY = m.midY - touchState.lastMidY;
-        state.pitch = clampPitch(state.pitch - dMidY * 0.28);
+        var angDiff = (angle - prevPinchAngle) * 180.0 / Math.PI;
+        if (angDiff > 180) angDiff -= 360;
+        if (angDiff < -180) angDiff += 360;
+        state.bearing -= angDiff;
+
+        var dyMid = midY - prevTouchY;
+        state.pitch = clamp(state.pitch - dyMid * 0.28, 0.0, 72.0);
         syncSliders();
       }
-      touchState.activeCount = e.touches.length;
-      touchState.lastDist = m.dist;
-      touchState.lastAngle = m.angle;
-      touchState.lastMidY = m.midY;
+      touchMode = "gesture";
+      prevTouchX = midX;
+      prevTouchY = midY;
+      prevPinchDist = dist;
+      prevPinchAngle = angle;
     }
   }, { passive: false });
 
-  canvas.addEventListener("touchend", function (e) {
-    e.preventDefault();
-    touchState.activeCount = e.touches.length;
+  canvas.addEventListener("touchend", function(e) {
     if (e.touches.length === 1) {
-      touchState.lastX = e.touches[0].clientX;
-      touchState.lastY = e.touches[0].clientY;
+      touchMode = "pan";
+      prevTouchX = e.touches[0].clientX;
+      prevTouchY = e.touches[0].clientY;
+    } else if (e.touches.length === 0) {
+      touchMode = "none";
     }
-  }, { passive: false });
-
-  // UI Controls & Minimize/Maximize Logic
-  const toolPanel = document.getElementById("toolPanel");
-  const hideToolsBtn = document.getElementById("hideToolsBtn");
-  const showToolsBtn = document.getElementById("showToolsBtn");
-  const layerSelect = document.getElementById("layerSelect");
-  const pitchSlider = document.getElementById("pitchSlider");
-  const bearingSlider = document.getElementById("bearingSlider");
-  const exagSlider = document.getElementById("exagSlider");
-  const pitchVal = document.getElementById("pitchVal");
-  const bearingVal = document.getElementById("bearingVal");
-  const exagVal = document.getElementById("exagVal");
-
-  function syncSliders() {
-    pitchSlider.value = Math.round(state.pitch);
-    pitchVal.textContent = Math.round(state.pitch) + "°";
-    bearingSlider.value = Math.round(state.bearing);
-    bearingVal.textContent = Math.round(state.bearing) + "°";
-    exagSlider.value = state.exaggeration.toFixed(1);
-    exagVal.textContent = state.exaggeration.toFixed(1) + "x";
-  }
-
-  hideToolsBtn.addEventListener("click", function () {
-    toolPanel.classList.add("minimized");
-    showToolsBtn.style.display = "inline-flex";
   });
 
-  showToolsBtn.addEventListener("click", function () {
-    toolPanel.classList.remove("minimized");
-    showToolsBtn.style.display = "none";
-  });
+  // UI Control Bindings
+  zoomInBtn.addEventListener("click", function() { applyZoom(0.6); });
+  zoomOutBtn.addEventListener("click", function() { applyZoom(-0.6); });
 
-  layerSelect.addEventListener("change", function () {
-    state.layer = layerSelect.value;
-  });
-
-  pitchSlider.addEventListener("input", function () {
-    state.pitch = parseFloat(pitchSlider.value);
+  quickTiltBtn.addEventListener("click", function() {
+    state.pitch = state.pitch >= 5 ? 0 : 54;
     syncSliders();
   });
 
-  bearingSlider.addEventListener("input", function () {
-    state.bearing = parseFloat(bearingSlider.value);
-    syncSliders();
-  });
-
-  exagSlider.addEventListener("input", function () {
-    state.exaggeration = parseFloat(exagSlider.value);
-    syncSliders();
-  });
-
-  // Zoom & Camera Buttons (Panel + Dock)
-  function zoomStep(delta) {
-    state.zoom = clampZoom(state.zoom + delta);
-  }
-
-  document.getElementById("btnZoomIn").addEventListener("click", function () { zoomStep(0.75); });
-  document.getElementById("btnZoomOut").addEventListener("click", function () { zoomStep(-0.75); });
-  document.getElementById("dockZoomIn").addEventListener("click", function () { zoomStep(0.75); });
-  document.getElementById("dockZoomOut").addEventListener("click", function () { zoomStep(-0.75); });
-
-  document.getElementById("btn2D").addEventListener("click", function () {
+  btn2D.addEventListener("click", function() {
     state.pitch = 0;
     state.autoOrbit = false;
     syncSliders();
   });
 
-  document.getElementById("btn3D").addEventListener("click", function () {
-    state.pitch = 56;
+  btn3D.addEventListener("click", function() {
+    state.pitch = 54;
     syncSliders();
   });
 
-  document.getElementById("dockTiltToggle").addEventListener("click", function () {
-    state.pitch = state.pitch > 20 ? 0 : 56;
-    syncSliders();
-  });
-
-  document.getElementById("btnOrbit").addEventListener("click", function () {
+  btnOrbit.addEventListener("click", function() {
     state.autoOrbit = !state.autoOrbit;
-    if (state.autoOrbit && state.pitch < 25) {
-      state.pitch = 50;
-      syncSliders();
-    }
+    if (state.autoOrbit && state.pitch < 20) state.pitch = 50;
+    syncSliders();
   });
 
-  // Landmark Presets
-  const presetBtns = document.querySelectorAll(".preset-btn");
-  presetBtns.forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      state.lat = parseFloat(btn.getAttribute("data-lat"));
-      state.lon = parseFloat(btn.getAttribute("data-lon"));
-      state.zoom = parseFloat(btn.getAttribute("data-zoom"));
-      state.pitch = parseFloat(btn.getAttribute("data-pitch"));
-      state.bearing = 0;
-      state.autoOrbit = false;
+  pitchSlider.addEventListener("input", function() {
+    state.pitch = parseFloat(pitchSlider.value);
+    syncSliders();
+  });
+
+  bearingSlider.addEventListener("input", function() {
+    state.bearing = parseFloat(bearingSlider.value);
+    state.autoOrbit = false;
+    syncSliders();
+  });
+
+  exagSlider.addEventListener("input", function() {
+    state.exag = parseFloat(exagSlider.value);
+    syncSliders();
+  });
+
+  layerSelect.addEventListener("change", function() {
+    state.layer = layerSelect.value;
+  });
+
+  var chips = document.querySelectorAll(".btn-chip");
+  for (var ci = 0; ci < chips.length; ci++) {
+    chips[ci].addEventListener("click", function() {
+      state.lat = parseFloat(this.getAttribute("data-lat"));
+      state.lon = parseFloat(this.getAttribute("data-lon"));
+      state.zoom = parseFloat(this.getAttribute("data-zoom"));
+      if (state.pitch < 20) state.pitch = 52;
       syncSliders();
     });
-  });
-
-  // Global Geocoding Search (Coordinates or OpenStreetMap Nominatim)
-  const searchInput = document.getElementById("searchInput");
-  const searchBtn = document.getElementById("searchBtn");
+  }
 
   function runSearch() {
-    const q = searchInput.value.trim();
+    var q = searchInput.value.trim();
     if (!q) return;
 
-    const coordMatch = q.match(/^(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)$/);
-    if (coordMatch) {
-      const lat = parseFloat(coordMatch[1]);
-      const lon = parseFloat(coordMatch[2]);
-      if (lat >= -85 && lat <= 85 && lon >= -180 && lon <= 180) {
-        state.lat = lat;
-        state.lon = lon;
-        state.zoom = 12.0;
+    // Parse "lat, lon" without complex regex literals
+    var parts = q.split(",");
+    if (parts.length === 2) {
+      var pLat = parseFloat(parts[0].trim());
+      var pLon = parseFloat(parts[1].trim());
+      if (!isNaN(pLat) && !isNaN(pLon) && Math.abs(pLat) <= 90 && Math.abs(pLon) <= 180) {
+        state.lat = pLat;
+        state.lon = pLon;
+        state.zoom = Math.max(state.zoom, 11.5);
+        syncSliders();
         return;
       }
     }
 
-    statusText.textContent = "Searching...";
+    statusPill.textContent = "Searching...";
     fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(q))
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
-        if (data && data.length > 0) {
-          state.lat = parseFloat(data[0].lat);
-          state.lon = parseFloat(data[0].lon);
-          state.zoom = 11.8;
-          updateStatus();
+      .then(function(r) { return r.json(); })
+      .then(function(arr) {
+        if (arr && arr.length > 0) {
+          state.lat = parseFloat(arr[0].lat);
+          state.lon = parseFloat(arr[0].lon);
+          state.zoom = 11.5;
+          syncSliders();
         } else {
-          statusText.textContent = "Location not found";
+          statusPill.textContent = "Location not found";
         }
       })
-      .catch(function () {
-        statusText.textContent = "Search offline";
+      .catch(function() {
+        statusPill.textContent = "Search network unavailable";
       });
   }
 
   searchBtn.addEventListener("click", runSearch);
-  searchInput.addEventListener("keydown", function (e) {
+  searchInput.addEventListener("keydown", function(e) {
     if (e.key === "Enter") runSearch();
   });
 
-  // Keyboard Shortcuts
-  window.addEventListener("keydown", function (e) {
+  window.addEventListener("keydown", function(e) {
     if (document.activeElement === searchInput) return;
-    if (e.key === "+" || e.key === "=") zoomStep(0.6);
-    if (e.key === "-" || e.key === "_") zoomStep(-0.6);
+    if (e.key === "+" || e.key === "=") applyZoom(0.5);
+    if (e.key === "-" || e.key === "_") applyZoom(-0.5);
   });
 
   syncSliders();
-  requestAnimationFrame(renderFrame);
+  requestAnimationFrame(render);
 })();
 </script>
 </body>
