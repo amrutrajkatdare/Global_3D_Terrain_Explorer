@@ -224,8 +224,18 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
   };
 
 
+  // Schedule a frame only when something changed or an animation is active.
+  // This avoids keeping a permanent requestAnimationFrame loop alive on idle maps.
+  var renderFramePending = false;
+  function requestRender() {
+    if (renderFramePending) return;
+    renderFramePending = true;
+    requestAnimationFrame(render);
+  }
+
   function markDirty() {
     state.dirty = true;
+    requestRender();
   }
 
   // Request tiles only after the camera has settled. This prevents every
@@ -256,6 +266,18 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
 
     tileRefreshTimer = setTimeout(function() {
       tileRefreshTimer = null;
+
+      // A fly-to is a visual transition, not a sequence of destinations.
+      // Keep the current terrain intact and wait until the camera reaches its
+      // final target before computing or requesting replacement coverage.
+      if (flyAnim) {
+        tileRefreshTimer = setTimeout(function retryAfterFlight() {
+          tileRefreshTimer = null;
+          scheduleTileRefresh();
+        }, 120);
+        return;
+      }
+
       tileRequestsEnabled = true;
       markDirty(); // Start loading the committed view, nearest tiles first.
 
@@ -958,6 +980,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
 
   var lastFrameTime = performance.now();
   function render(now) {
+    renderFramePending = false;
     var dt = Math.min((now - lastFrameTime) * 0.001, 0.1);
     lastFrameTime = now;
 
@@ -1127,7 +1150,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
     }
 
 
-    requestAnimationFrame(render);
+    if (flyAnim || state.autoOrbit) requestRender();
   }
 
 
@@ -1568,7 +1591,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
 
 
   syncSliders();
-  requestAnimationFrame(render);
+  requestRender();
 })();
 </script>
 
