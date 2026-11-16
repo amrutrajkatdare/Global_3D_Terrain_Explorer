@@ -87,6 +87,30 @@ async function waitFor(predicate, timeout = 20000, interval = 250) {
       zoomBefore !== zoomAfterIn && zoomAfterIn !== zoomAfterOut,
       [zoomBefore, zoomAfterIn, zoomAfterOut].join(" -> "));
 
+    // Stress the high-zoom camera while repeatedly changing pitch. This guards
+    // against invalid GL state during the camera/terrain clipping regression.
+    for (let i = 0; i < 9; i++) await page.locator("#zoomInBtn").click();
+    for (const pitch of ["20", "72", "38", "72", "12", "64", "52"]) {
+      await page.locator("#pitchSlider").fill(pitch);
+      await page.waitForTimeout(90);
+    }
+    await page.waitForTimeout(400);
+    const cameraStress = await page.evaluate(() => {
+      const canvas = document.getElementById("glCanvas");
+      const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+      if (!gl) return { available: false, errors: [] };
+      const errors = [];
+      let error = gl.getError();
+      while (error !== gl.NO_ERROR && errors.length < 8) {
+        errors.push(error);
+        error = gl.getError();
+      }
+      return { available: true, errors };
+    });
+    check("High-zoom repeated tilt keeps WebGL error-free",
+      cameraStress.available && cameraStress.errors.length === 0,
+      JSON.stringify(cameraStress));
+
     // Camera mode controls update pitch state.
     await page.locator("#btn2D").click();
     const pitch2d = await page.locator("#pitchVal").textContent();
