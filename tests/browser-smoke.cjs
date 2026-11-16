@@ -140,6 +140,27 @@ async function waitFor(predicate, timeout = 20000, interval = 250) {
     check("Mouse pan commits after release", duringDrag === beforeDrag && afterDrag !== beforeDrag,
       beforeDrag + " | during: " + duringDrag + " | after: " + afterDrag);
 
+    // Curated saved-place dropdown should contain requested destinations and navigate on selection.
+    const savedPlaceCheck = await page.evaluate(() => {
+      const select = document.getElementById("savedLocationSelect");
+      const labels = Array.from(select.options).map(option => option.textContent);
+      return {
+        present: !!select,
+        hasEye: labels.includes("Eye of Sahara"),
+        hasAndaman: labels.includes("Andaman Islands"),
+        hasOxford: labels.includes("University of Oxford"),
+        hasLiberty: labels.includes("Statue of Liberty"),
+        removedOldPresets: !labels.includes("Grand Canyon") && !labels.includes("Mt. Fuji")
+      };
+    });
+    check("Saved places dropdown contains curated locations", savedPlaceCheck.present &&
+      savedPlaceCheck.hasEye && savedPlaceCheck.hasAndaman && savedPlaceCheck.hasOxford &&
+      savedPlaceCheck.hasLiberty && savedPlaceCheck.removedOldPresets, JSON.stringify(savedPlaceCheck));
+    await page.locator("#savedLocationSelect").selectOption("51.75717365694981,-1.2538370726565802,13");
+    await page.waitForTimeout(700);
+    check("Saved place selection starts fly-to", await page.locator("#coordHud").textContent().then(t => /Lat 51\./.test(t)),
+      await page.locator("#coordHud").textContent());
+
     // Global search test. Search should resolve a non-preset city.
     await page.locator("#searchInput").fill("Paris");
     await page.locator("#searchBtn").click();
