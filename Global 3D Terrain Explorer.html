@@ -1,22 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>Global 3D Topographic Terrain Explorer</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Global 3D Topographic &amp; Terrain Explorer</title>
 <style>
   :root {
     --bg-panel: rgba(15, 23, 42, 0.88);
-    --bg-card: rgba(30, 41, 59, 0.72);
-    --border-color: rgba(148, 163, 184, 0.24);
+    --bg-card: rgba(30, 41, 59, 0.78);
+    --border-subtle: rgba(148, 163, 184, 0.24);
     --text-main: #f8fafc;
     --text-muted: #94a3b8;
     --accent: #38bdf8;
     --accent-hover: #0284c7;
-    --safe-top: env(safe-area-inset-top, 0px);
-    --safe-bottom: env(safe-area-inset-bottom, 0px);
-    --safe-left: env(safe-area-inset-left, 0px);
-    --safe-right: env(safe-area-inset-right, 0px);
+    --accent-soft: rgba(56, 189, 248, 0.16);
   }
 
   * {
@@ -30,20 +27,17 @@
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background: #070b14;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #060b16;
     color: var(--text-main);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     user-select: none;
     -webkit-user-select: none;
-    touch-action: none;
   }
 
   #glCanvas {
-    position: fixed;
-    inset: 0;
-    width: 100%;
-    height: 100%;
     display: block;
+    width: 100vw;
+    height: 100vh;
     touch-action: none;
     cursor: grab;
   }
@@ -52,23 +46,23 @@
     cursor: grabbing;
   }
 
-  /* Maximize Floating Button (visible when panel is hidden) */
+  /* Maximize Tools Floating Button */
   #showToolsBtn {
     position: fixed;
-    top: calc(12px + var(--safe-top));
-    left: calc(12px + var(--safe-left));
+    top: max(12px, env(safe-area-inset-top));
+    left: max(12px, env(safe-area-inset-left));
     z-index: 30;
     display: none;
     align-items: center;
     gap: 8px;
-    padding: 10px 14px;
+    padding: 10px 15px;
+    border-radius: 999px;
+    border: 1px solid var(--border-subtle);
     background: var(--bg-panel);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
     color: var(--text-main);
-    font-size: 14px;
+    font-size: 13.5px;
     font-weight: 600;
     cursor: pointer;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
@@ -76,35 +70,78 @@
   }
 
   #showToolsBtn:hover {
-    background: rgba(30, 41, 59, 0.95);
+    background: rgba(30, 41, 59, 0.96);
   }
 
   #showToolsBtn:active {
     transform: scale(0.96);
   }
 
-  /* Main Control Panel */
-  #controlPanel {
+  /* Quick Right Dock (Always Accessible) */
+  #quickDock {
     position: fixed;
-    top: calc(12px + var(--safe-top));
-    left: calc(12px + var(--safe-left));
-    width: 330px;
-    max-width: calc(100vw - 24px - var(--safe-left) - var(--safe-right));
-    max-height: calc(100dvh - 80px - var(--safe-top) - var(--safe-bottom));
+    top: max(12px, env(safe-area-inset-top));
+    right: max(12px, env(safe-area-inset-right));
     z-index: 25;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .dock-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    border: 1px solid var(--border-subtle);
     background: var(--bg-panel);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    border: 1px solid var(--border-color);
-    border-radius: 14px;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+    color: var(--text-main);
+    font-size: 18px;
+    font-weight: 700;
     display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    transition: opacity 0.2s ease, transform 0.2s ease;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+    transition: background 0.15s ease, transform 0.12s ease;
   }
 
-  #controlPanel.minimized {
+  .dock-btn:hover {
+    background: rgba(30, 41, 59, 0.95);
+    border-color: var(--accent);
+  }
+
+  .dock-btn:active {
+    transform: scale(0.94);
+  }
+
+  .dock-btn.small-text {
+    font-size: 12px;
+    letter-spacing: 0.4px;
+  }
+
+  /* Main Tool Panel */
+  #toolPanel {
+    position: fixed;
+    top: max(12px, env(safe-area-inset-top));
+    left: max(12px, env(safe-area-inset-left));
+    z-index: 35;
+    width: 332px;
+    max-height: calc(100vh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    border-radius: 16px;
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-panel);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.55);
+    overflow: hidden;
+    transition: opacity 0.2s ease, transform 0.22s ease;
+  }
+
+  #toolPanel.minimized {
     display: none;
   }
 
@@ -112,15 +149,16 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 11px 14px;
-    background: rgba(15, 23, 42, 0.6);
-    border-bottom: 1px solid var(--border-color);
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: rgba(15, 23, 42, 0.65);
     flex-shrink: 0;
   }
 
   .panel-title-wrap {
     display: flex;
     flex-direction: column;
+    gap: 2px;
   }
 
   .panel-title {
@@ -132,43 +170,52 @@
 
   .panel-subtitle {
     font-size: 11px;
-    color: var(--text-muted);
+    color: var(--accent);
+    font-weight: 500;
   }
 
   #hideToolsBtn {
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    padding: 6px 10px;
-    background: rgba(51, 65, 85, 0.75);
-    border: 1px solid var(--border-color);
+    padding: 6px 11px;
     border-radius: 8px;
+    border: 1px solid var(--border-subtle);
+    background: rgba(51, 65, 85, 0.65);
     color: var(--text-main);
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
-    min-height: 32px;
+    transition: background 0.15s ease;
   }
 
   #hideToolsBtn:hover {
-    background: rgba(71, 85, 105, 0.9);
+    background: rgba(71, 85, 105, 0.85);
   }
 
   .panel-body {
-    padding: 12px 14px;
+    padding: 12px 14px 14px;
     overflow-y: auto;
     overscroll-behavior: contain;
-    touch-action: pan-y;
     display: flex;
     flex-direction: column;
-    gap: 11px;
+    gap: 12px;
+  }
+
+  .panel-body::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  .panel-body::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.35);
+    border-radius: 4px;
   }
 
   .section-box {
     background: var(--bg-card);
     border: 1px solid rgba(148, 163, 184, 0.14);
-    border-radius: 10px;
-    padding: 9px 10px;
+    border-radius: 12px;
+    padding: 10px 11px;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -179,7 +226,7 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.6px;
-    color: var(--accent);
+    color: var(--text-muted);
   }
 
   .search-row {
@@ -189,62 +236,51 @@
 
   input[type="text"], select {
     width: 100%;
-    background: rgba(15, 23, 42, 0.9);
-    border: 1px solid var(--border-color);
+    padding: 8px 10px;
     border-radius: 8px;
+    border: 1px solid var(--border-subtle);
+    background: rgba(15, 23, 42, 0.9);
     color: var(--text-main);
     font-size: 13px;
-    padding: 8px 10px;
     outline: none;
-    min-height: 36px;
-    user-select: text;
-    -webkit-user-select: text;
   }
 
   input[type="text"]:focus, select:focus {
     border-color: var(--accent);
   }
 
-  button.btn {
-    background: rgba(51, 65, 85, 0.85);
-    border: 1px solid var(--border-color);
+  .btn {
+    padding: 8px 11px;
     border-radius: 8px;
+    border: 1px solid var(--border-subtle);
+    background: rgba(51, 65, 85, 0.7);
     color: var(--text-main);
-    font-size: 12px;
+    font-size: 12.5px;
     font-weight: 600;
-    padding: 7px 10px;
     cursor: pointer;
-    min-height: 34px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    transition: background 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease;
+    white-space: nowrap;
   }
 
-  button.btn:hover {
-    background: rgba(71, 85, 105, 0.95);
+  .btn:hover {
+    background: rgba(71, 85, 105, 0.9);
+    border-color: rgba(148, 163, 184, 0.45);
   }
 
-  button.btn:active {
-    transform: scale(0.97);
-  }
-
-  button.btn-primary {
-    background: var(--accent);
-    color: #082f49;
-    border-color: transparent;
-    font-weight: 700;
-  }
-
-  button.btn-primary:hover {
-    background: #7dd3fc;
-  }
-
-  button.btn.active {
-    background: rgba(56, 189, 248, 0.25);
+  .btn.primary {
+    background: var(--accent-hover);
     border-color: var(--accent);
-    color: #7dd3fc;
+    color: #ffffff;
+  }
+
+  .btn.primary:hover {
+    background: #0369a1;
+  }
+
+  .btn.active {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
   }
 
   .preset-grid {
@@ -253,20 +289,14 @@
     gap: 6px;
   }
 
-  .preset-grid button:first-child {
-    grid-column: span 2;
-  }
-
-  .btn-row-2 {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+  .btn-row {
+    display: flex;
     gap: 6px;
   }
 
-  .btn-row-3 {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 6px;
+  .btn-row .btn {
+    flex: 1;
+    text-align: center;
   }
 
   .slider-group {
@@ -279,127 +309,115 @@
     display: flex;
     justify-content: space-between;
     font-size: 12px;
-    color: #cbd5e1;
+    color: #e2e8f0;
   }
 
   .slider-val {
-    font-weight: 700;
     color: var(--accent);
+    font-weight: 600;
     font-variant-numeric: tabular-nums;
   }
 
   input[type="range"] {
     width: 100%;
     accent-color: var(--accent);
-    height: 22px;
-    margin: 0;
+    height: 6px;
     cursor: pointer;
   }
 
-  /* Quick Floating Action Bar for Mobile / Quick Access */
-  #quickDock {
-    position: fixed;
-    right: calc(12px + var(--safe-right));
-    top: calc(12px + var(--safe-top));
-    z-index: 20;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .dock-btn {
-    width: 40px;
-    height: 40px;
-    border-radius: 11px;
-    background: var(--bg-panel);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--border-color);
-    color: var(--text-main);
-    font-size: 18px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
-  }
-
-  .dock-btn:active {
-    transform: scale(0.94);
+  .gesture-hint {
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--text-muted);
+    background: rgba(15, 23, 42, 0.55);
+    padding: 8px 9px;
+    border-radius: 8px;
+    border: 1px dashed rgba(148, 163, 184, 0.22);
   }
 
   /* Bottom HUD Status Bar */
   #hudBar {
     position: fixed;
-    left: calc(12px + var(--safe-left));
-    right: calc(12px + var(--safe-right));
-    bottom: calc(10px + var(--safe-bottom));
+    bottom: max(10px, env(safe-area-inset-bottom));
+    left: max(12px, env(safe-area-inset-left));
+    right: max(12px, env(safe-area-inset-right));
     z-index: 20;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 6px 12px;
-    padding: 7px 12px;
-    background: rgba(15, 23, 42, 0.82);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid var(--border-color);
-    border-radius: 10px;
-    font-size: 11.5px;
-    color: #cbd5e1;
+    gap: 8px;
     pointer-events: none;
   }
 
-  .hud-group {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
+  .hud-pill {
+    pointer-events: auto;
+    padding: 6px 11px;
+    border-radius: 999px;
+    border: 1px solid var(--border-subtle);
+    background: rgba(15, 23, 42, 0.82);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    font-size: 11.5px;
+    color: #cbd5e1;
+    font-variant-numeric: tabular-nums;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
   }
 
-  .hud-item b {
-    color: var(--accent);
+  #statusText {
+    color: #38bdf8;
     font-weight: 600;
   }
 
-  .help-hint {
-    font-size: 11px;
-    color: var(--text-muted);
-    line-height: 1.35;
-  }
-
-  /* Narrow Portrait Mobile Screens */
-  @media (max-width: 600px) {
-    #controlPanel {
+  /* Narrow Portrait Phones: Bottom Sheet Drawer */
+  @media (max-width: 600px) and (orientation: portrait) {
+    #toolPanel {
       top: auto;
-      bottom: calc(54px + var(--safe-bottom));
-      left: calc(10px + var(--safe-left));
-      right: calc(10px + var(--safe-right));
-      width: auto;
-      max-width: none;
-      max-height: 56dvh;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      max-height: 54vh;
+      border-radius: 18px 18px 0 0;
+      border-left: none;
+      border-right: none;
+      border-bottom: none;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .preset-grid {
+      grid-template-columns: repeat(3, 1fr);
     }
 
     #hudBar {
-      font-size: 10.5px;
-      padding: 6px 10px;
+      bottom: auto;
+      top: max(12px, env(safe-area-inset-top));
+      left: max(12px, env(safe-area-inset-left));
+      right: 64px;
+      justify-content: flex-start;
     }
 
-    .hud-hide-mobile {
+    #toolPanel:not(.minimized) ~ #hudBar {
       display: none;
     }
   }
 
-  /* Short Landscape Phones */
+  /* Short Landscape Phones / Compact Viewports */
   @media (max-height: 500px) and (orientation: landscape) {
-    #controlPanel {
-      width: 290px;
-      max-height: calc(100dvh - 58px - var(--safe-top) - var(--safe-bottom));
+    #toolPanel {
+      width: 295px;
+      max-height: calc(100vh - 16px);
+      top: 8px;
+      left: 8px;
     }
-    .hud-hide-mobile {
-      display: none;
+
+    .panel-header {
+      padding: 8px 12px;
+    }
+
+    .panel-body {
+      padding: 8px 10px 10px;
+      gap: 8px;
     }
   }
 </style>
@@ -408,203 +426,183 @@
 
 <canvas id="glCanvas"></canvas>
 
-<!-- Floating Maximize Button (shown when panel is minimized) -->
-<button id="showToolsBtn" type="button" aria-label="Show Tools">
-  <span>☰</span>
+<!-- Restore Button when Tool Window is Minimized -->
+<button id="showToolsBtn" type="button" aria-label="Maximize Tools">
+  <span>&#9776;</span>
   <span>Tools &amp; Layers</span>
 </button>
 
-<!-- Right Quick Zoom & View Dock -->
+<!-- Quick Action Dock (Always Accessible) -->
 <div id="quickDock">
-  <button class="dock-btn" id="dockZoomIn" type="button" title="Zoom In">+</button>
-  <button class="dock-btn" id="dockZoomOut" type="button" title="Zoom Out">−</button>
-  <button class="dock-btn" id="dockTiltToggle" type="button" title="Toggle 2D / 3D Tilt" style="font-size:12px;">3D</button>
+  <button id="dockZoomIn" class="dock-btn" type="button" title="Zoom In">+</button>
+  <button id="dockZoomOut" class="dock-btn" type="button" title="Zoom Out">&minus;</button>
+  <button id="dockTiltToggle" class="dock-btn small-text" type="button" title="Toggle 2D / 3D Tilt">3D</button>
 </div>
 
-<!-- Main Collapsible Control Panel -->
-<aside id="controlPanel">
+<!-- Main Collapsible Tool Window -->
+<aside id="toolPanel" aria-label="Map and Terrain Tools">
   <div class="panel-header">
     <div class="panel-title-wrap">
-      <div class="panel-title">3D Terrain Explorer</div>
-      <div class="panel-subtitle">Global DEM + Multi-Layer Map</div>
+      <div class="panel-title">Global 3D Terrain Explorer</div>
+      <div class="panel-subtitle">Real-Time WebGL DEM Elevation</div>
     </div>
-    <button id="hideToolsBtn" type="button" aria-label="Hide Tools">
+    <button id="hideToolsBtn" type="button" title="Minimize Tool Window">
       <span>Hide</span>
-      <span>✕</span>
+      <span>&#10005;</span>
     </button>
   </div>
 
   <div class="panel-body">
-    <!-- Location Search & Landmarks -->
+    <!-- Map Surface Layer -->
     <div class="section-box">
-      <div class="section-label">Location &amp; Search</div>
-      <div class="search-row">
-        <input type="text" id="searchInput" placeholder="City, peak, or Lat, Lon..." />
-        <button class="btn btn-primary" id="searchBtn" type="button">Go</button>
-      </div>
-      <div class="preset-grid">
-        <button class="btn" data-lat="21.1147" data-lon="-11.3942" data-zoom="10.6" data-pitch="54" data-bearing="25">Eye of the Sahara (Richat)</button>
-        <button class="btn" data-lat="27.9881" data-lon="86.9250" data-zoom="11.2" data-pitch="62" data-bearing="-20">Mt. Everest</button>
-        <button class="btn" data-lat="36.1069" data-lon="-112.1129" data-zoom="11.5" data-pitch="60" data-bearing="35">Grand Canyon</button>
-        <button class="btn" data-lat="35.3606" data-lon="138.7274" data-zoom="11.4" data-pitch="58" data-bearing="15">Mt. Fuji</button>
-        <button class="btn" data-lat="45.9766" data-lon="7.6585" data-zoom="12.0" data-pitch="62" data-bearing="-35">Matterhorn</button>
-      </div>
-    </div>
-
-    <!-- Map Layer Selector -->
-    <div class="section-box">
-      <div class="section-label">Map Layer</div>
-      <select id="layerSelect">
-        <option value="esri_topo">Esri World Topographic</option>
+      <div class="section-label">Map Surface Layer</div>
+      <select id="layerSelect" aria-label="Map Surface Layer">
+        <option value="esri_imagery">Esri World Satellite Imagery</option>
+        <option value="esri_topo" selected>Esri World Topographic</option>
         <option value="opentopo">OpenTopoMap (Contours + Relief)</option>
-        <option value="esri_sat">Esri World Satellite Imagery</option>
         <option value="esri_street">Esri World Street Map</option>
         <option value="esri_hillshade">Esri Shaded Hillshade Relief</option>
       </select>
     </div>
 
-    <!-- Map & Camera Tools -->
+    <!-- Global Search & Landmarks -->
     <div class="section-box">
-      <div class="section-label">Map &amp; Camera Tools</div>
-      <div class="btn-row-2">
-        <button class="btn" id="btnZoomIn" type="button">+ Zoom In</button>
-        <button class="btn" id="btnZoomOut" type="button">− Zoom Out</button>
+      <div class="section-label">Search Location or Coordinates</div>
+      <div class="search-row">
+        <input id="searchInput" type="text" placeholder="City, peak, or 21.11, -11.39" />
+        <button id="searchBtn" class="btn primary" type="button">Go</button>
       </div>
-      <div class="btn-row-3">
-        <button class="btn" id="btnFlat" type="button">2D Top</button>
-        <button class="btn" id="btn3D" type="button">3D Tilt</button>
-        <button class="btn" id="btnOrbit" type="button">Orbit</button>
+      <div class="preset-grid">
+        <button class="btn preset-btn" data-lat="21.1147" data-lon="-11.3942" data-zoom="11.2" data-pitch="52" type="button">Eye of Sahara</button>
+        <button class="btn preset-btn" data-lat="27.9881" data-lon="86.9250" data-zoom="11.5" data-pitch="62" type="button">Mt. Everest</button>
+        <button class="btn preset-btn" data-lat="36.1069" data-lon="-112.1129" data-zoom="11.8" data-pitch="58" type="button">Grand Canyon</button>
+        <button class="btn preset-btn" data-lat="35.3606" data-lon="138.7274" data-zoom="11.6" data-pitch="56" type="button">Mt. Fuji</button>
+        <button class="btn preset-btn" data-lat="45.9766" data-lon="7.6585" data-zoom="12.2" data-pitch="60" type="button">Matterhorn</button>
+        <button class="btn preset-btn" data-lat="17.5236" data-lon="73.1886" data-zoom="12.0" data-pitch="48" type="button">Konkan Coast</button>
+      </div>
+    </div>
+
+    <!-- Camera & Zoom Controls -->
+    <div class="section-box">
+      <div class="section-label">Camera &amp; Zoom Tools</div>
+      <div class="btn-row">
+        <button id="btnZoomIn" class="btn" type="button">+ Zoom In</button>
+        <button id="btnZoomOut" class="btn" type="button">&minus; Zoom Out</button>
+      </div>
+      <div class="btn-row">
+        <button id="btn2D" class="btn" type="button">2D Top</button>
+        <button id="btn3D" class="btn primary" type="button">3D Tilt</button>
+        <button id="btnOrbit" class="btn" type="button">Auto-Orbit</button>
       </div>
 
       <div class="slider-group">
         <div class="slider-header">
-          <span>3D Camera Tilt (Pitch)</span>
-          <span class="slider-val" id="pitchVal">54°</span>
+          <span>Camera Tilt (Pitch)</span>
+          <span id="pitchVal" class="slider-val">52&deg;</span>
         </div>
-        <input type="range" id="pitchSlider" min="0" max="72" step="1" value="54" />
+        <input id="pitchSlider" type="range" min="0" max="72" step="1" value="52" />
       </div>
 
       <div class="slider-group">
         <div class="slider-header">
-          <span>Compass Rotation</span>
-          <span class="slider-val" id="bearingVal">25°</span>
+          <span>Compass Rotation (Bearing)</span>
+          <span id="bearingVal" class="slider-val">0&deg;</span>
         </div>
-        <input type="range" id="bearingSlider" min="-180" max="180" step="1" value="25" />
+        <input id="bearingSlider" type="range" min="-180" max="180" step="1" value="0" />
       </div>
 
       <div class="slider-group">
         <div class="slider-header">
           <span>Elevation Exaggeration</span>
-          <span class="slider-val" id="exagVal">2.2x</span>
+          <span id="exagVal" class="slider-val">2.4x</span>
         </div>
-        <input type="range" id="exagSlider" min="0.5" max="6.0" step="0.1" value="2.2" />
+        <input id="exagSlider" type="range" min="0.5" max="6.0" step="0.1" value="2.4" />
       </div>
+    </div>
 
-      <div class="help-hint">
-        <b>Touch:</b> 1-finger drag to pan • 2-finger pinch to zoom/rotate • 2-finger vertical slide to tilt 3D.<br/>
-        <b>Mouse:</b> Left-drag pan • Right/Shift-drag tilt &amp; rotate • Wheel zoom.
-      </div>
+    <div class="gesture-hint">
+      <strong>Touch &amp; Mouse Controls:</strong><br />
+      &bull; <strong>1-Finger / Left-Drag:</strong> Pan map<br />
+      &bull; <strong>2-Finger Pinch:</strong> Zoom in / out<br />
+      &bull; <strong>2-Finger Slide / Right-Drag:</strong> Tilt 3D &amp; Rotate
     </div>
   </div>
 </aside>
 
-<!-- Bottom Status HUD -->
+<!-- Bottom Coordinates & Engine Diagnostics -->
 <div id="hudBar">
-  <div class="hud-group">
-    <span class="hud-item">Center: <b id="hudCoords">21.1147° N, 11.3942° W</b></span>
-    <span class="hud-item">Zoom: <b id="hudZoom">10.6</b></span>
-    <span class="hud-item hud-hide-mobile">Tilt: <b id="hudPitch">54°</b></span>
-  </div>
-  <div class="hud-group">
-    <span class="hud-item" id="hudStatus">WebGL 3D Ready</span>
-  </div>
+  <div id="coordPill" class="hud-pill">Lat 21.1147&deg;, Lon -11.3942&deg; &bull; Z 11.2</div>
+  <div id="statusPill" class="hud-pill"><span id="statusText">WebGL Ready</span></div>
 </div>
 
 <script>
-(function() {
+(function () {
   "use strict";
 
   const canvas = document.getElementById("glCanvas");
   const gl = canvas.getContext("webgl", { antialias: true, alpha: false });
-  const hudStatus = document.getElementById("hudStatus");
+  const statusText = document.getElementById("statusText");
+  const coordPill = document.getElementById("coordPill");
 
   if (!gl) {
-    hudStatus.textContent = "WebGL not supported on this browser.";
+    statusText.textContent = "WebGL Not Supported";
     return;
   }
 
-  // UI Elements
-  const controlPanel = document.getElementById("controlPanel");
-  const hideToolsBtn = document.getElementById("hideToolsBtn");
-  const showToolsBtn = document.getElementById("showToolsBtn");
-  const layerSelect = document.getElementById("layerSelect");
-  const pitchSlider = document.getElementById("pitchSlider");
-  const bearingSlider = document.getElementById("bearingSlider");
-  const exagSlider = document.getElementById("exagSlider");
-  const pitchVal = document.getElementById("pitchVal");
-  const bearingVal = document.getElementById("bearingVal");
-  const exagVal = document.getElementById("exagVal");
-  const hudCoords = document.getElementById("hudCoords");
-  const hudZoom = document.getElementById("hudZoom");
-  const hudPitch = document.getElementById("hudPitch");
-  const searchInput = document.getElementById("searchInput");
-  const searchBtn = document.getElementById("searchBtn");
-  const btnOrbit = document.getElementById("btnOrbit");
+  // Tile Providers (Key-free HTTPS endpoints)
+  const TILE_LAYERS = {
+    esri_imagery: {
+      maxZoom: 17,
+      url: function (z, x, y) {
+        return "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/" + z + "/" + y + "/" + x;
+      }
+    },
+    esri_topo: {
+      maxZoom: 17,
+      url: function (z, x, y) {
+        return "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/" + z + "/" + y + "/" + x;
+      }
+    },
+    opentopo: {
+      maxZoom: 16,
+      url: function (z, x, y) {
+        const sub = ["a", "b", "c"][(x + y) % 3];
+        return "https://" + sub + ".tile.opentopomap.org/" + z + "/" + x + "/" + y + ".png";
+      }
+    },
+    esri_street: {
+      maxZoom: 17,
+      url: function (z, x, y) {
+        return "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/" + z + "/" + y + "/" + x;
+      }
+    },
+    esri_hillshade: {
+      maxZoom: 16,
+      url: function (z, x, y) {
+        return "https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/" + z + "/" + y + "/" + x;
+      }
+    }
+  };
 
-  // Auto-minimize on narrow vertical screens if needed? Keep visible by default with clear Hide button,
-  // or let user toggle effortlessly at any time.
-  hideToolsBtn.addEventListener("click", () => {
-    controlPanel.classList.add("minimized");
-    showToolsBtn.style.display = "inline-flex";
-  });
+  function getDemUrl(z, x, y) {
+    return "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/" + z + "/" + x + "/" + y + ".png";
+  }
 
-  showToolsBtn.addEventListener("click", () => {
-    controlPanel.classList.remove("minimized");
-    showToolsBtn.style.display = "none";
-  });
-
-  // Map State (Centered on Eye of the Sahara)
+  // Application State (Centered on Eye of the Sahara)
   const state = {
     lat: 21.1147,
     lon: -11.3942,
-    zoom: 10.6,
-    pitch: 54.0,     // degrees (0 = top-down 2D, 72 = steep 3D)
-    bearing: 25.0,   // degrees
-    exag: 2.2,
+    zoom: 11.2,
+    pitch: 52,
+    bearing: 0,
+    exaggeration: 2.4,
     layer: "esri_topo",
     autoOrbit: false
   };
 
-  // Tile Layers
-  const LAYERS = {
-    esri_topo: {
-      maxZoom: 17,
-      url: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/${z}/${y}/${x}`
-    },
-    opentopo: {
-      maxZoom: 16,
-      url: (z, x, y) => {
-        const sub = ["a", "b", "c"][(x + y) % 3];
-        return `https://${sub}.tile.opentopomap.org/${z}/${x}/${y}.png`;
-      }
-    },
-    esri_sat: {
-      maxZoom: 17,
-      url: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`
-    },
-    esri_street: {
-      maxZoom: 17,
-      url: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${z}/${y}/${x}`
-    },
-    esri_hillshade: {
-      maxZoom: 16,
-      url: (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/${z}/${y}/${x}`
-    }
-  };
-
-  // Shaders (Strict GLSL ES 1.00)
+  // Strict GLSL ES 1.00 Shaders (Zero escape errors)
   const VS_SOURCE = [
-    "attribute vec2 aGrid;",
+    "attribute vec2 aPos;",
     "attribute float aElev;",
     "uniform mat4 uMVP;",
     "uniform vec2 uTileOrigin;",
@@ -613,14 +611,12 @@
     "uniform vec4 uUvRect;",
     "varying vec2 vUv;",
     "varying float vElev;",
-    "varying float vSlopeShade;",
     "void main() {",
-    "  vec2 worldXY = uTileOrigin + vec2(aGrid.x * uTileSize, -aGrid.y * uTileSize);",
+    "  vec2 worldXY = uTileOrigin + vec2(aPos.x * uTileSize, (1.0 - aPos.y) * uTileSize);",
     "  float worldZ = aElev * uElevScale;",
     "  gl_Position = uMVP * vec4(worldXY, worldZ, 1.0);",
-    "  vUv = uUvRect.xy + aGrid * uUvRect.zw;",
+    "  vUv = uUvRect.xy + aPos * uUvRect.zw;",
     "  vElev = aElev;",
-    "  vSlopeShade = clamp(0.88 + (aElev / 6000.0) * 0.24, 0.82, 1.15);",
     "}"
   ].join("
 ");
@@ -629,272 +625,186 @@
     "precision mediump float;",
     "uniform sampler2D uTex;",
     "uniform float uHasTex;",
-    "uniform float uFogFactor;",
+    "uniform float uPitchFactor;",
     "varying vec2 vUv;",
     "varying float vElev;",
-    "varying float vSlopeShade;",
     "void main() {",
-    "  vec3 baseColor;",
+    "  vec3 baseCol;",
     "  if (uHasTex > 0.5) {",
-    "    baseColor = texture2D(uTex, vUv).rgb * vSlopeShade;",
+    "    baseCol = texture2D(uTex, vUv).rgb;",
     "  } else {",
-    "    float h = clamp(vElev / 4000.0, 0.0, 1.0);",
-    "    baseColor = mix(vec3(0.16, 0.22, 0.28), vec3(0.55, 0.50, 0.44), h);",
+    "    float h = clamp((vElev + 50.0) / 2500.0, 0.0, 1.0);",
+    "    baseCol = mix(vec3(0.16, 0.22, 0.30), vec3(0.76, 0.68, 0.56), h);",
     "  }",
-    "  vec3 skyColor = vec3(0.05, 0.09, 0.16);",
-    "  vec3 finalColor = mix(baseColor, skyColor, clamp(uFogFactor, 0.0, 0.65));",
-    "  gl_FragColor = vec4(finalColor, 1.0);",
+    "  float depthFog = clamp((gl_FragCoord.z / gl_FragCoord.w) * 0.08 * uPitchFactor, 0.0, 0.42);",
+    "  vec3 skyCol = vec3(0.06, 0.10, 0.18);",
+    "  gl_FragColor = vec4(mix(baseCol, skyCol, depthFog), 1.0);",
     "}"
   ].join("
 ");
 
-  function compileShader(type, source) {
-    const s = gl.createShader(type);
-    gl.shaderSource(s, source);
-    gl.compileShader(s);
-    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
-      console.error("Shader compile error:", gl.getShaderInfoLog(s));
-      hudStatus.textContent = "Shader error: " + gl.getShaderInfoLog(s);
-      gl.deleteShader(s);
+  function compileShader(type, src) {
+    const sh = gl.createShader(type);
+    gl.shaderSource(sh, src);
+    gl.compileShader(sh);
+    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+      const log = gl.getShaderInfoLog(sh) || "Shader compile error";
+      statusText.textContent = log;
+      gl.deleteShader(sh);
       return null;
     }
-    return s;
+    return sh;
   }
 
   const vs = compileShader(gl.VERTEX_SHADER, VS_SOURCE);
   const fs = compileShader(gl.FRAGMENT_SHADER, FS_SOURCE);
-  const program = gl.createProgram();
-  gl.attachShader(program, vs);
-  gl.attachShader(program, fs);
-  gl.linkProgram(program);
+  if (!vs || !fs) return;
 
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    hudStatus.textContent = "Program link error: " + gl.getProgramInfoLog(program);
+  const prog = gl.createProgram();
+  gl.attachShader(prog, vs);
+  gl.attachShader(prog, fs);
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+    statusText.textContent = gl.getProgramInfoLog(prog) || "Shader link error";
     return;
   }
+  gl.useProgram(prog);
 
-  gl.useProgram(program);
-
-  const locs = {
-    aGrid: gl.getAttribLocation(program, "aGrid"),
-    aElev: gl.getAttribLocation(program, "aElev"),
-    uMVP: gl.getUniformLocation(program, "uMVP"),
-    uTileOrigin: gl.getUniformLocation(program, "uTileOrigin"),
-    uTileSize: gl.getUniformLocation(program, "uTileSize"),
-    uElevScale: gl.getUniformLocation(program, "uElevScale"),
-    uUvRect: gl.getUniformLocation(program, "uUvRect"),
-    uTex: gl.getUniformLocation(program, "uTex"),
-    uHasTex: gl.getUniformLocation(program, "uHasTex"),
-    uFogFactor: gl.getUniformLocation(program, "uFogFactor")
+  const loc = {
+    aPos: gl.getAttribLocation(prog, "aPos"),
+    aElev: gl.getAttribLocation(prog, "aElev"),
+    uMVP: gl.getUniformLocation(prog, "uMVP"),
+    uTileOrigin: gl.getUniformLocation(prog, "uTileOrigin"),
+    uTileSize: gl.getUniformLocation(prog, "uTileSize"),
+    uElevScale: gl.getUniformLocation(prog, "uElevScale"),
+    uUvRect: gl.getUniformLocation(prog, "uUvRect"),
+    uTex: gl.getUniformLocation(prog, "uTex"),
+    uHasTex: gl.getUniformLocation(prog, "uHasTex"),
+    uPitchFactor: gl.getUniformLocation(prog, "uPitchFactor")
   };
 
-  // Build shared grid mesh with downward perimeter skirts to prevent any gaps
-  const GRID_N = 40; // 40x40 cells = 41x41 top vertices + skirt ring
-  const topVertCount = (GRID_N + 1) * (GRID_N + 1);
-  const skirtVertCount = (GRID_N + 1) * 4;
-  const totalVerts = topVertCount + skirtVertCount;
+  // Build Shared Grid Mesh with Perimeter Skirts (Seals tile seams in 3D)
+  const GRID_N = 32;
+  const VERTS_PER_ROW = GRID_N + 1;
+  const MAIN_VERT_COUNT = VERTS_PER_ROW * VERTS_PER_ROW;
+  const SKIRT_VERT_COUNT = VERTS_PER_ROW * 4;
+  const TOTAL_VERTS = MAIN_VERT_COUNT + SKIRT_VERT_COUNT;
 
-  const gridUVs = new Float32Array(totalVerts * 2);
+  const posArray = new Float32Array(TOTAL_VERTS * 2);
   let ptr = 0;
 
-  // Top surface vertices (row y from 0..GRID_N, col x from 0..GRID_N)
-  for (let iy = 0; iy <= GRID_N; iy++) {
-    for (let ix = 0; ix <= GRID_N; ix++) {
-      gridUVs[ptr++] = ix / GRID_N;
-      gridUVs[ptr++] = iy / GRID_N;
+  // Main grid vertices
+  for (let r = 0; r <= GRID_N; r++) {
+    for (let c = 0; c <= GRID_N; c++) {
+      posArray[ptr++] = c / GRID_N;
+      posArray[ptr++] = r / GRID_N;
     }
   }
 
-  // Skirt vertices along the 4 edges (top, bottom, left, right)
-  const skirtEdges = [];
-  for (let ix = 0; ix <= GRID_N; ix++) skirtEdges.push([ix, 0]);
-  for (let ix = 0; ix <= GRID_N; ix++) skirtEdges.push([ix, GRID_N]);
-  for (let iy = 0; iy <= GRID_N; iy++) skirtEdges.push([0, iy]);
-  for (let iy = 0; iy <= GRID_N; iy++) skirtEdges.push([GRID_N, iy]);
-
-  for (let i = 0; i < skirtEdges.length; i++) {
-    gridUVs[ptr++] = skirtEdges[i][0] / GRID_N;
-    gridUVs[ptr++] = skirtEdges[i][1] / GRID_N;
+  // Skirt vertices along Top, Bottom, Left, Right edges
+  for (let c = 0; c <= GRID_N; c++) {
+    posArray[ptr++] = c / GRID_N;
+    posArray[ptr++] = 0;
+  }
+  for (let c = 0; c <= GRID_N; c++) {
+    posArray[ptr++] = c / GRID_N;
+    posArray[ptr++] = 1;
+  }
+  for (let r = 0; r <= GRID_N; r++) {
+    posArray[ptr++] = 0;
+    posArray[ptr++] = r / GRID_N;
+  }
+  for (let r = 0; r <= GRID_N; r++) {
+    posArray[ptr++] = 1;
+    posArray[ptr++] = r / GRID_N;
   }
 
   const indices = [];
-  // Top triangles (CCW when viewed from +Z above)
-  for (let iy = 0; iy < GRID_N; iy++) {
-    for (let ix = 0; ix < GRID_N; ix++) {
-      const a = iy * (GRID_N + 1) + ix;
-      const b = a + 1;
-      const c = a + (GRID_N + 1);
-      const d = c + 1;
-      indices.push(a, c, b);
-      indices.push(b, c, d);
+  // Main surface triangles
+  for (let r = 0; r < GRID_N; r++) {
+    for (let c = 0; c < GRID_N; c++) {
+      const i0 = r * VERTS_PER_ROW + c;
+      const i1 = i0 + 1;
+      const i2 = i0 + VERTS_PER_ROW;
+      const i3 = i2 + 1;
+      indices.push(i0, i2, i1, i1, i2, i3);
     }
   }
 
-  // Skirt triangles sealing tile edges
-  const baseSkirt = topVertCount;
-  // Top edge (iy = 0)
-  for (let ix = 0; ix < GRID_N; ix++) {
-    const t0 = ix, t1 = ix + 1;
-    const s0 = baseSkirt + ix, s1 = baseSkirt + ix + 1;
-    indices.push(t0, t1, s0, t1, s1, s0);
-  }
-  // Bottom edge (iy = GRID_N)
-  const offBot = baseSkirt + (GRID_N + 1);
-  for (let ix = 0; ix < GRID_N; ix++) {
-    const t0 = GRID_N * (GRID_N + 1) + ix, t1 = t0 + 1;
-    const s0 = offBot + ix, s1 = offBot + ix + 1;
-    indices.push(t0, s0, t1, t1, s0, s1);
-  }
-  // Left edge (ix = 0)
-  const offLeft = baseSkirt + 2 * (GRID_N + 1);
-  for (let iy = 0; iy < GRID_N; iy++) {
-    const t0 = iy * (GRID_N + 1), t1 = (iy + 1) * (GRID_N + 1);
-    const s0 = offLeft + iy, s1 = offLeft + iy + 1;
-    indices.push(t0, s0, t1, t1, s0, s1);
-  }
-  // Right edge (ix = GRID_N)
-  const offRight = baseSkirt + 3 * (GRID_N + 1);
-  for (let iy = 0; iy < GRID_N; iy++) {
-    const t0 = iy * (GRID_N + 1) + GRID_N, t1 = (iy + 1) * (GRID_N + 1) + GRID_N;
-    const s0 = offRight + iy, s1 = offRight + iy + 1;
-    indices.push(t0, t1, s0, t1, s1, s0);
+  // Skirt triangles
+  const skirtTopStart = MAIN_VERT_COUNT;
+  const skirtBotStart = MAIN_VERT_COUNT + VERTS_PER_ROW;
+  const skirtLeftStart = MAIN_VERT_COUNT + VERTS_PER_ROW * 2;
+  const skirtRightStart = MAIN_VERT_COUNT + VERTS_PER_ROW * 3;
+
+  for (let c = 0; c < GRID_N; c++) {
+    const m0 = c;
+    const m1 = c + 1;
+    const s0 = skirtTopStart + c;
+    const s1 = skirtTopStart + c + 1;
+    indices.push(m0, m1, s0, m1, s1, s0);
+
+    const bm0 = GRID_N * VERTS_PER_ROW + c;
+    const bm1 = bm0 + 1;
+    const bs0 = skirtBotStart + c;
+    const bs1 = skirtBotStart + c + 1;
+    indices.push(bm0, bs0, bm1, bm1, bs0, bs1);
   }
 
-  const gridBuf = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, gridBuf);
-  gl.bufferData(gl.ARRAY_BUFFER, gridUVs, gl.STATIC_DRAW);
+  for (let r = 0; r < GRID_N; r++) {
+    const lm0 = r * VERTS_PER_ROW;
+    const lm1 = (r + 1) * VERTS_PER_ROW;
+    const ls0 = skirtLeftStart + r;
+    const ls1 = skirtLeftStart + r + 1;
+    indices.push(lm0, ls0, lm1, lm1, ls0, ls1);
 
-  const indexBuf = gl.createBuffer();
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuf);
-  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
-  const indexCount = indices.length;
+    const rm0 = r * VERTS_PER_ROW + GRID_N;
+    const rm1 = (r + 1) * VERTS_PER_ROW + GRID_N;
+    const rs0 = skirtRightStart + r;
+    const rs1 = skirtRightStart + r + 1;
+    indices.push(rm0, rm1, rs0, rm1, rs1, rs0);
+  }
 
-  // Flat default elevation buffer
-  const flatElevArray = new Float32Array(totalVerts);
-  for (let i = topVertCount; i < totalVerts; i++) flatElevArray[i] = -350.0;
+  const indexArray = new Uint16Array(indices);
+
+  const posBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, posArray, gl.STATIC_DRAW);
+
+  const idxBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idxBuf);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indexArray, gl.STATIC_DRAW);
+
+  const flatElevArray = new Float32Array(TOTAL_VERTS);
+  for (let i = MAIN_VERT_COUNT; i < TOTAL_VERTS; i++) {
+    flatElevArray[i] = -350;
+  }
   const flatElevBuf = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, flatElevBuf);
   gl.bufferData(gl.ARRAY_BUFFER, flatElevArray, gl.STATIC_DRAW);
 
-  // Offscreen canvas for DEM decoding
-  const demCanvas = document.createElement("canvas");
-  demCanvas.width = 256;
-  demCanvas.height = 256;
-  const demCtx = demCanvas.getContext("2d", { willReadFrequently: true });
-
-  // Caches for imagery textures and elevation buffers
-  const texCache = new Map();
-  const demCache = new Map();
-  let loadedTexCount = 0;
-  let loadedDemCount = 0;
-
-  function getImageTile(layerKey, z, x, y) {
-    const key = `${layerKey}/${z}/${x}/${y}`;
-    if (texCache.has(key)) return texCache.get(key);
-
-    const entry = { tex: null, ready: false, loading: true };
-    texCache.set(key, entry);
-
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      const tex = gl.createTexture();
-      gl.bindTexture(gl.TEXTURE_2D, tex);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-      entry.tex = tex;
-      entry.ready = true;
-      entry.loading = false;
-      loadedTexCount++;
-    };
-    img.onerror = () => {
-      entry.loading = false;
-    };
-    img.src = LAYERS[layerKey].url(z, x, y);
-    return entry;
-  }
-
-  function getDemTile(z, x, y) {
-    const demZ = Math.min(z, 14);
-    const scaleDiff = z - demZ;
-    const dx = x >> scaleDiff;
-    const dy = y >> scaleDiff;
-    const key = `${demZ}/${dx}/${dy}`;
-    if (demCache.has(key)) return demCache.get(key);
-
-    const entry = { buf: null, ready: false, loading: true };
-    demCache.set(key, entry);
-
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      demCtx.clearRect(0, 0, 256, 256);
-      demCtx.drawImage(img, 0, 0, 256, 256);
-      const data = demCtx.getImageData(0, 0, 256, 256).data;
-      const elevs = new Float32Array(totalVerts);
-
-      let p = 0;
-      for (let iy = 0; iy <= GRID_N; iy++) {
-        const py = Math.min(255, Math.round((iy / GRID_N) * 255));
-        for (let ix = 0; ix <= GRID_N; ix++) {
-          const px = Math.min(255, Math.round((ix / GRID_N) * 255));
-          const idx = (py * 256 + px) * 4;
-          const r = data[idx];
-          const g = data[idx + 1];
-          const b = data[idx + 2];
-          let h = (r * 256.0 + g + b / 256.0) - 32768.0;
-          if (h < -500) h = 0;
-          elevs[p++] = h;
-        }
-      }
-
-      // Skirt vertices drop down 400m below their corresponding edge vertex
-      for (let i = 0; i < skirtEdges.length; i++) {
-        const [ex, ey] = skirtEdges[i];
-        const topH = elevs[ey * (GRID_N + 1) + ex];
-        elevs[p++] = topH - 400.0;
-      }
-
-      const buf = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-      gl.bufferData(gl.ARRAY_BUFFER, elevs, gl.STATIC_DRAW);
-      entry.buf = buf;
-      entry.ready = true;
-      entry.loading = false;
-      loadedDemCount++;
-    };
-    img.onerror = () => {
-      entry.loading = false;
-    };
-    img.src = `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${demZ}/${dx}/${dy}.png`;
-    return entry;
-  }
-
-  // Mercator Projection Helpers (World unit = [0, 1] across Earth)
+  // Web Mercator Math (World space: [0, 1] X East, [0, 1] Y North)
   function lonToWorldX(lon) {
-    return (lon + 180.0) / 360.0;
+    return (lon + 180) / 360;
   }
 
   function latToWorldY(lat) {
     const clamped = Math.max(-85.05112878, Math.min(85.05112878, lat));
-    const rad = (clamped * Math.PI) / 180.0;
-    const mercN = Math.log(Math.tan(Math.PI / 4.0 + rad / 2.0));
-    return 0.5 - mercN / (2.0 * Math.PI);
+    const rad = clamped * Math.PI / 180;
+    const mercN = Math.log(Math.tan(Math.PI / 4 + rad / 2));
+    return 0.5 + mercN / (2 * Math.PI);
   }
 
   function worldXToLon(wx) {
-    return wx * 360.0 - 180.0;
+    return wx * 360 - 180;
   }
 
   function worldYToLat(wy) {
-    const n = Math.PI - 2.0 * Math.PI * wy;
-    return (180.0 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+    const mercN = (wy - 0.5) * 2 * Math.PI;
+    return (2 * Math.atan(Math.exp(mercN)) - Math.PI / 2) * 180 / Math.PI;
   }
 
-  // Matrix Math (Column-major 4x4)
+  // Matrix Utilities (Column-Major 4x4)
   function mat4Multiply(a, b) {
     const out = new Float32Array(16);
     for (let c = 0; c < 4; c++) {
@@ -910,14 +820,14 @@
   }
 
   function mat4Perspective(fovRad, aspect, near, far) {
-    const f = 1.0 / Math.tan(fovRad / 2.0);
-    const nf = 1.0 / (near - far);
+    const f = 1.0 / Math.tan(fovRad / 2);
+    const nf = 1 / (near - far);
     const out = new Float32Array(16);
     out[0] = f / aspect;
     out[5] = f;
     out[10] = (far + near) * nf;
-    out[11] = -1.0;
-    out[14] = 2.0 * far * near * nf;
+    out[11] = -1;
+    out[14] = 2 * far * near * nf;
     return out;
   }
 
@@ -946,465 +856,565 @@
     return out;
   }
 
-  // Resize canvas cleanly across all DPRs & orientations
+  // Tile Caches
+  const texCache = new Map();
+  const demCache = new Map();
+  const offscreenCanvas = document.createElement("canvas");
+  offscreenCanvas.width = 256;
+  offscreenCanvas.height = 256;
+  const offCtx = offscreenCanvas.getContext("2d", { willReadFrequently: true });
+
+  let loadedImgCount = 0;
+  let loadedDemCount = 0;
+
+  function requestImageryTile(layerKey, z, x, y) {
+    const key = layerKey + "/" + z + "/" + x + "/" + y;
+    if (texCache.has(key)) return texCache.get(key);
+
+    const entry = { tex: null, ready: false };
+    texCache.set(key, entry);
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = function () {
+      const tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      entry.tex = tex;
+      entry.ready = true;
+      loadedImgCount++;
+      updateStatus();
+    };
+    img.src = TILE_LAYERS[layerKey].url(z, x, y);
+    return entry;
+  }
+
+  function requestDemTile(z, x, y) {
+    const key = z + "/" + x + "/" + y;
+    if (demCache.has(key)) return demCache.get(key);
+
+    const entry = { buf: null, ready: false };
+    demCache.set(key, entry);
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = function () {
+      try {
+        offCtx.clearRect(0, 0, 256, 256);
+        offCtx.drawImage(img, 0, 0, 256, 256);
+        const pixels = offCtx.getImageData(0, 0, 256, 256).data;
+        const elevs = new Float32Array(TOTAL_VERTS);
+
+        for (let r = 0; r <= GRID_N; r++) {
+          const py = Math.min(255, Math.round((r / GRID_N) * 255));
+          for (let c = 0; c <= GRID_N; c++) {
+            const px = Math.min(255, Math.round((c / GRID_N) * 255));
+            const idx = (py * 256 + px) * 4;
+            const red = pixels[idx];
+            const green = pixels[idx + 1];
+            const blue = pixels[idx + 2];
+            const meters = (red * 256 + green + blue / 256) - 32768;
+            elevs[r * VERTS_PER_ROW + c] = meters;
+          }
+        }
+
+        const skirtDrop = 450;
+        for (let c = 0; c <= GRID_N; c++) {
+          elevs[skirtTopStart + c] = elevs[c] - skirtDrop;
+          elevs[skirtBotStart + c] = elevs[GRID_N * VERTS_PER_ROW + c] - skirtDrop;
+        }
+        for (let r = 0; r <= GRID_N; r++) {
+          elevs[skirtLeftStart + r] = elevs[r * VERTS_PER_ROW] - skirtDrop;
+          elevs[skirtRightStart + r] = elevs[r * VERTS_PER_ROW + GRID_N] - skirtDrop;
+        }
+
+        const buf = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+        gl.bufferData(gl.ARRAY_BUFFER, elevs, gl.STATIC_DRAW);
+        entry.buf = buf;
+        entry.ready = true;
+        loadedDemCount++;
+        updateStatus();
+      } catch (e) {
+        // Fallback flat buffer if tainted
+      }
+    };
+    img.src = getDemUrl(z, x, y);
+    return entry;
+  }
+
+  function updateStatus() {
+    statusText.textContent = "3D WebGL Active • Tiles: " + loadedImgCount + " | DEM: " + loadedDemCount;
+  }
+
+  // Resize Handling
   function resizeCanvas() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const w = Math.max(1, Math.floor(window.innerWidth * dpr));
-    const h = Math.max(1, Math.floor(window.innerHeight * dpr));
+    const w = Math.floor(window.innerWidth * dpr);
+    const h = Math.floor(window.innerHeight * dpr);
     if (canvas.width !== w || canvas.height !== h) {
       canvas.width = w;
       canvas.height = h;
       gl.viewport(0, 0, w, h);
     }
   }
-
   window.addEventListener("resize", resizeCanvas);
-  window.addEventListener("orientationchange", () => setTimeout(resizeCanvas, 120));
   resizeCanvas();
 
-  // Panning helper in screen pixels -> world coordinates
-  function panByPixels(dx, dy) {
-    const scale = Math.pow(2, state.zoom) * 256.0;
-    const bearingRad = (state.bearing * Math.PI) / 180.0;
-    const pitchRad = (state.pitch * Math.PI) / 180.0;
-    const pitchComp = Math.max(0.32, Math.cos(pitchRad));
+  // Camera Distance & Projection Helper
+  function getCameraParams() {
+    const cx = lonToWorldX(state.lon);
+    const cy = latToWorldY(state.lat);
+    const fov = 42 * Math.PI / 180;
+    const tilesAcross = Math.pow(2, state.zoom);
+    const viewSpan = (canvas.width / (256 * Math.min(window.devicePixelRatio || 1, 2))) / tilesAcross;
+    const dist = (viewSpan * 0.5) / Math.tan(fov * 0.5);
 
-    const cosB = Math.cos(bearingRad);
-    const sinB = Math.sin(bearingRad);
+    const pitchRad = state.pitch * Math.PI / 180;
+    const bearingRad = state.bearing * Math.PI / 180;
 
-    // Dragging right (+dx) moves camera west (-wx)
-    // Dragging down (+dy) moves camera north (-wy)
-    const forwardScreenY = dy / pitchComp;
-    const worldDx = (-dx * cosB + forwardScreenY * sinB) / scale;
-    const worldDy = (-dx * sinB - forwardScreenY * cosB) / scale;
+    const horizDist = dist * Math.sin(pitchRad);
+    const vertDist = dist * Math.cos(pitchRad);
 
-    let wx = lonToWorldX(state.lon) + worldDx;
-    let wy = latToWorldY(state.lat) + worldDy;
+    // Camera looks northward when bearing = 0 (eye is south of target)
+    const eyeX = cx - horizDist * Math.sin(bearingRad);
+    const eyeY = cy - horizDist * Math.cos(bearingRad);
+    const eyeZ = Math.max(0.00001, vertDist);
 
-    wx = ((wx % 1.0) + 1.0) % 1.0;
-    wy = Math.max(0.02, Math.min(0.98, wy));
+    const upX = Math.sin(bearingRad) * Math.cos(pitchRad);
+    const upY = Math.cos(bearingRad) * Math.cos(pitchRad);
+    const upZ = Math.sin(pitchRad);
 
-    state.lon = worldXToLon(wx);
-    state.lat = worldYToLat(wy);
+    const aspect = canvas.width / Math.max(1, canvas.height);
+    const near = dist * 0.02;
+    const far = dist * 16.0;
+
+    const proj = mat4Perspective(fov, aspect, near, far);
+    const view = mat4LookAt([eyeX, eyeY, eyeZ], [cx, cy, 0], [upX, upY, upZ]);
+    const mvp = mat4Multiply(proj, view);
+
+    return { cx, cy, dist, mvp };
   }
 
-  function clampState() {
-    state.zoom = Math.max(2.0, Math.min(16.5, state.zoom));
-    state.pitch = Math.max(0.0, Math.min(72.0, state.pitch));
-    while (state.bearing > 180) state.bearing -= 360;
-    while (state.bearing < -180) state.bearing += 360;
-  }
-
-  function syncUI() {
-    pitchSlider.value = Math.round(state.pitch);
-    bearingSlider.value = Math.round(state.bearing);
-    exagSlider.value = state.exag.toFixed(1);
-    pitchVal.textContent = `${Math.round(state.pitch)}°`;
-    bearingVal.textContent = `${Math.round(state.bearing)}°`;
-    exagVal.textContent = `${state.exag.toFixed(1)}x`;
-
-    const ns = state.lat >= 0 ? "N" : "S";
-    const ew = state.lon >= 0 ? "E" : "W";
-    hudCoords.textContent = `${Math.abs(state.lat).toFixed(4)}° ${ns}, ${Math.abs(state.lon).toFixed(4)}° ${ew}`;
-    hudZoom.textContent = state.zoom.toFixed(1);
-    hudPitch.textContent = `${Math.round(state.pitch)}°`;
-  }
-
-  // ==========================================
-  // UNIFIED MOUSE & MULTI-TOUCH GESTURE ENGINE
-  // ==========================================
-  let isMouseDown = false;
-  let mouseButton = 0;
-  let lastMouseX = 0;
-  let lastMouseY = 0;
-
-  canvas.addEventListener("contextmenu", (e) => e.preventDefault());
-
-  canvas.addEventListener("mousedown", (e) => {
-    isMouseDown = true;
-    mouseButton = e.button;
-    lastMouseX = e.clientX;
-    lastMouseY = e.clientY;
-    state.autoOrbit = false;
-    btnOrbit.classList.remove("active");
-  });
-
-  window.addEventListener("mousemove", (e) => {
-    if (!isMouseDown) return;
-    const dx = e.clientX - lastMouseX;
-    const dy = e.clientY - lastMouseY;
-    lastMouseX = e.clientX;
-    lastMouseY = e.clientY;
-
-    if (mouseButton === 2 || e.shiftKey) {
-      state.bearing += dx * 0.35;
-      state.pitch -= dy * 0.32;
-    } else {
-      panByPixels(dx, dy);
-    }
-    clampState();
-  });
-
-  window.addEventListener("mouseup", () => {
-    isMouseDown = false;
-  });
-
-  canvas.addEventListener("wheel", (e) => {
-    e.preventDefault();
-    const zoomDelta = -e.deltaY * 0.0015;
-    state.zoom += zoomDelta;
-    clampState();
-  }, { passive: false });
-
-  // Touch Gestures:
-  // 1 Finger: Smooth Pan (Up, Down, Left, Right)
-  // 2 Fingers: Pinch to Zoom + Twist to Rotate + Vertical Slide to Tilt 3D
-  const activeTouches = new Map();
-  let prevPinchDist = 0;
-  let prevPinchAngle = 0;
-  let prevMidX = 0;
-  let prevMidY = 0;
-
-  function getTouchPairMetrics() {
-    const pts = Array.from(activeTouches.values());
-    const dx = pts[1].x - pts[0].x;
-    const dy = pts[1].y - pts[0].y;
-    return {
-      dist: Math.hypot(dx, dy),
-      angle: Math.atan2(dy, dx),
-      midX: (pts[0].x + pts[1].x) * 0.5,
-      midY: (pts[0].y + pts[1].y) * 0.5
-    };
-  }
-
-  canvas.addEventListener("touchstart", (e) => {
-    e.preventDefault();
-    state.autoOrbit = false;
-    btnOrbit.classList.remove("active");
-
-    for (let i = 0; i < e.changedTouches.length; i++) {
-      const t = e.changedTouches[i];
-      activeTouches.set(t.identifier, { x: t.clientX, y: t.clientY });
-    }
-
-    if (activeTouches.size === 2) {
-      const m = getTouchPairMetrics();
-      prevPinchDist = m.dist;
-      prevPinchAngle = m.angle;
-      prevMidX = m.midX;
-      prevMidY = m.midY;
-    }
-  }, { passive: false });
-
-  canvas.addEventListener("touchmove", (e) => {
-    e.preventDefault();
-    if (activeTouches.size === 1) {
-      const t = e.changedTouches[0];
-      const prev = activeTouches.get(t.identifier);
-      if (prev) {
-        const dx = t.clientX - prev.x;
-        const dy = t.clientY - prev.y;
-        prev.x = t.clientX;
-        prev.y = t.clientY;
-        panByPixels(dx, dy);
-        clampState();
-      }
-    } else if (activeTouches.size >= 2) {
-      for (let i = 0; i < e.changedTouches.length; i++) {
-        const t = e.changedTouches[i];
-        if (activeTouches.has(t.identifier)) {
-          activeTouches.set(t.identifier, { x: t.clientX, y: t.clientY });
-        }
-      }
-      const m = getTouchPairMetrics();
-      if (prevPinchDist > 10 && m.dist > 10) {
-        const ratio = m.dist / prevPinchDist;
-        state.zoom += Math.log2(ratio);
-      }
-
-      // Twist rotation
-      let dAngle = m.angle - prevPinchAngle;
-      while (dAngle > Math.PI) dAngle -= 2 * Math.PI;
-      while (dAngle < -Math.PI) dAngle += 2 * Math.PI;
-      state.bearing += (dAngle * 180.0) / Math.PI;
-
-      // Two-finger vertical slide tilts 3D pitch
-      const dMidY = m.midY - prevMidY;
-      state.pitch -= dMidY * 0.28;
-
-      prevPinchDist = m.dist;
-      prevPinchAngle = m.angle;
-      prevMidX = m.midX;
-      prevMidY = m.midY;
-      clampState();
-    }
-  }, { passive: false });
-
-  function handleTouchEnd(e) {
-    for (let i = 0; i < e.changedTouches.length; i++) {
-      activeTouches.delete(e.changedTouches[i].identifier);
-    }
-    if (activeTouches.size === 2) {
-      const m = getTouchPairMetrics();
-      prevPinchDist = m.dist;
-      prevPinchAngle = m.angle;
-      prevMidX = m.midX;
-      prevMidY = m.midY;
-    }
-  }
-
-  canvas.addEventListener("touchend", handleTouchEnd, { passive: false });
-  canvas.addEventListener("touchcancel", handleTouchEnd, { passive: false });
-
-  // UI Control Bindings
-  layerSelect.addEventListener("change", () => {
-    state.layer = layerSelect.value;
-  });
-
-  pitchSlider.addEventListener("input", () => {
-    state.pitch = parseFloat(pitchSlider.value);
-    clampState();
-  });
-
-  bearingSlider.addEventListener("input", () => {
-    state.bearing = parseFloat(bearingSlider.value);
-    clampState();
-  });
-
-  exagSlider.addEventListener("input", () => {
-    state.exag = parseFloat(exagSlider.value);
-  });
-
-  function stepZoom(delta) {
-    state.zoom += delta;
-    clampState();
-  }
-
-  document.getElementById("btnZoomIn").addEventListener("click", () => stepZoom(0.6));
-  document.getElementById("btnZoomOut").addEventListener("click", () => stepZoom(-0.6));
-  document.getElementById("dockZoomIn").addEventListener("click", () => stepZoom(0.6));
-  document.getElementById("dockZoomOut").addEventListener("click", () => stepZoom(-0.6));
-
-  document.getElementById("dockTiltToggle").addEventListener("click", () => {
-    state.pitch = state.pitch > 20 ? 0 : 56;
-    clampState();
-  });
-
-  document.getElementById("btnFlat").addEventListener("click", () => {
-    state.pitch = 0;
-    clampState();
-  });
-
-  document.getElementById("btn3D").addEventListener("click", () => {
-    state.pitch = 56;
-    clampState();
-  });
-
-  btnOrbit.addEventListener("click", () => {
-    state.autoOrbit = !state.autoOrbit;
-    btnOrbit.classList.toggle("active", state.autoOrbit);
-  });
-
-  document.querySelectorAll(".preset-grid button").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      state.lat = parseFloat(btn.dataset.lat);
-      state.lon = parseFloat(btn.dataset.lon);
-      state.zoom = parseFloat(btn.dataset.zoom);
-      state.pitch = parseFloat(btn.dataset.pitch);
-      state.bearing = parseFloat(btn.dataset.bearing);
-      clampState();
-    });
-  });
-
-  // Search by Coordinates or Open-Meteo / Nominatim Geocoding
-  async function performSearch() {
-    const q = searchInput.value.trim();
-    if (!q) return;
-
-    const coordMatch = q.match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
-    if (coordMatch) {
-      state.lat = Math.max(-85, Math.min(85, parseFloat(coordMatch[1])));
-      state.lon = Math.max(-180, Math.min(180, parseFloat(coordMatch[2])));
-      state.zoom = Math.max(state.zoom, 11.0);
-      clampState();
-      return;
-    }
-
-    hudStatus.textContent = "Searching...";
-    try {
-      const resp = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=en&format=json`);
-      const data = await resp.json();
-      if (data && data.results && data.results.length > 0) {
-        const hit = data.results[0];
-        state.lat = hit.latitude;
-        state.lon = hit.longitude;
-        state.zoom = 11.2;
-        state.pitch = 55;
-        clampState();
-        hudStatus.textContent = `Found: ${hit.name}`;
-      } else {
-        hudStatus.textContent = "Location not found";
-      }
-    } catch (err) {
-      hudStatus.textContent = "Search offline";
-    }
-  }
-
-  searchBtn.addEventListener("click", performSearch);
-  searchInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") performSearch();
-  });
-
-  // Main Render Loop
-  let lastFrameTime = performance.now();
-
-  function render(now) {
-    const dt = Math.min(0.05, (now - lastFrameTime) / 1000.0);
-    lastFrameTime = now;
-
+  // Render Loop
+  function renderFrame() {
     if (state.autoOrbit) {
-      state.bearing += 10.0 * dt;
-      clampState();
+      state.bearing += 0.18;
+      if (state.bearing > 180) state.bearing -= 360;
+      syncSliders();
     }
 
-    syncUI();
-
+    resizeCanvas();
     gl.clearColor(0.04, 0.07, 0.13, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
 
-    const aspect = canvas.width / Math.max(1, canvas.height);
-    const fovRad = (45.0 * Math.PI) / 180.0;
-
-    // World Space: X = East [0..1], Y = North [0..-1], Z = Elevation Up
-    const centerX = lonToWorldX(state.lon);
-    const centerY = -latToWorldY(state.lat);
-
-    const tilesAcross = Math.pow(2, state.zoom);
-    const screenTiles = Math.max(canvas.width, canvas.height) / (256.0 * Math.min(window.devicePixelRatio || 1, 2));
-    const viewSpanWorld = screenTiles / tilesAcross;
-    const camDist = (viewSpanWorld * 0.5) / Math.tan(fovRad * 0.5);
-
-    const pitchRad = (state.pitch * Math.PI) / 180.0;
-    const bearingRad = (state.bearing * Math.PI) / 180.0;
-
-    // Camera offset from target in right-handed (+X East, +Y North, +Z Up)
-    const horizDist = camDist * Math.sin(pitchRad);
-    const vertDist = camDist * Math.cos(pitchRad);
-
-    const eyeX = centerX - horizDist * Math.sin(bearingRad);
-    const eyeY = centerY - horizDist * Math.cos(bearingRad);
-    const eyeZ = Math.max(0.00002, vertDist);
-
-    const upX = Math.sin(bearingRad);
-    const upY = Math.cos(bearingRad);
-    const upZ = 0.0;
-
-    const proj = mat4Perspective(fovRad, aspect, camDist * 0.01, camDist * 18.0);
-    const view = mat4LookAt(
-      [eyeX, eyeY, eyeZ],
-      [centerX, centerY, 0.0],
-      pitchRad < 0.01 ? [upX, upY, 0.0] : [0.0, 0.0, 1.0]
-    );
-    const mvp = mat4Multiply(proj, view);
-
-    gl.uniformMatrix4fv(locs.uMVP, false, mvp);
-
-    // Meters to Mercator world units at current latitude
-    const latRad = (state.lat * Math.PI) / 180.0;
-    const metersPerWorldUnit = 40075016.686 * Math.cos(latRad);
-    const elevScale = (state.exag / Math.max(1000000, metersPerWorldUnit));
-    gl.uniform1f(locs.uElevScale, elevScale);
-
-    // Bind shared grid UV buffer & element index buffer
-    gl.bindBuffer(gl.ARRAY_BUFFER, gridBuf);
-    gl.enableVertexAttribArray(locs.aGrid);
-    gl.vertexAttribPointer(locs.aGrid, 2, gl.FLOAT, false, 0, 0);
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuf);
-
-    const maxLayerZoom = LAYERS[state.layer].maxZoom;
-    const z = Math.max(2, Math.min(maxLayerZoom, Math.round(state.zoom)));
-    const nTiles = 1 << z;
+    const cam = getCameraParams();
+    const layerCfg = TILE_LAYERS[state.layer];
+    const z = Math.max(2, Math.min(layerCfg.maxZoom, Math.round(state.zoom)));
+    const nTiles = Math.pow(2, z);
     const tileSize = 1.0 / nTiles;
 
-    const cTileX = Math.floor(lonToWorldX(state.lon) * nTiles);
-    const cTileY = Math.floor(latToWorldY(state.lat) * nTiles);
+    const centerTileX = Math.floor(cam.cx * nTiles);
+    const centerTileY = Math.floor((1.0 - cam.cy) * nTiles);
+    const radius = state.pitch > 35 ? 4 : 3;
 
-    // Expand tile radius when pitched so distant horizon fills cleanly
-    const baseRadius = Math.ceil(Math.max(canvas.width, canvas.height) / 360) + 1;
-    const radius = state.pitch > 35 ? baseRadius + 2 : baseRadius;
+    // Meters-to-world scale at current latitude
+    const latRad = state.lat * Math.PI / 180;
+    const metersPerWorldUnit = 40075016.686 * Math.cos(latRad);
+    const elevScale = (state.exaggeration / Math.max(1000, metersPerWorldUnit));
+
+    gl.uniformMatrix4fv(loc.uMVP, false, cam.mvp);
+    gl.uniform1f(loc.uTileSize, tileSize);
+    gl.uniform1f(loc.uElevScale, elevScale);
+    gl.uniform1f(loc.uPitchFactor, state.pitch / 72.0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
+    gl.enableVertexAttribArray(loc.aPos);
+    gl.vertexAttribPointer(loc.aPos, 2, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idxBuf);
 
     for (let dy = -radius; dy <= radius; dy++) {
-      const ty = cTileY + dy;
+      const ty = centerTileY + dy;
       if (ty < 0 || ty >= nTiles) continue;
 
       for (let dx = -radius; dx <= radius; dx++) {
-        const rawTx = cTileX + dx;
-        const tx = ((rawTx % nTiles) + nTiles) % nTiles;
+        const txRaw = centerTileX + dx;
+        const tx = ((txRaw % nTiles) + nTiles) % nTiles;
+        const worldOriginX = txRaw * tileSize;
+        const worldOriginY = 1.0 - (ty + 1) * tileSize;
 
-        const worldOriginX = rawTx * tileSize;
-        const worldOriginY = -ty * tileSize;
+        // Imagery tile with parent-zoom fallback
+        let imgEntry = requestImageryTile(state.layer, z, tx, ty);
+        let uvX = 0, uvY = 0, uvW = 1, uvH = 1;
 
-        gl.uniform2f(locs.uTileOrigin, worldOriginX, worldOriginY);
-        gl.uniform1f(locs.uTileSize, tileSize);
-
-        // Find exact texture or fall back to parent zoom tile
-        let texEntry = getImageTile(state.layer, z, tx, ty);
-        let uvX = 0.0, uvY = 0.0, uvW = 1.0, uvH = 1.0;
-
-        if (!texEntry.ready) {
-          for (let up = 1; up <= 4; up++) {
-            const pz = z - up;
-            if (pz < 1) break;
-            const ptx = tx >> up;
-            const pty = ty >> up;
-            const candidate = getImageTile(state.layer, pz, ptx, pty);
-            if (candidate.ready) {
-              texEntry = candidate;
-              const span = 1 << up;
-              uvW = 1.0 / span;
-              uvH = 1.0 / span;
-              uvX = (tx & (span - 1)) * uvW;
-              uvY = (ty & (span - 1)) * uvH;
+        if (!imgEntry.ready && z > 2) {
+          for (let pz = z - 1; pz >= Math.max(2, z - 4); pz--) {
+            const shift = z - pz;
+            const ptx = tx >> shift;
+            const pty = ty >> shift;
+            const parent = requestImageryTile(state.layer, pz, ptx, pty);
+            if (parent.ready) {
+              imgEntry = parent;
+              const scale = 1 / (1 << shift);
+              uvX = (tx - (ptx << shift)) * scale;
+              uvY = (ty - (pty << shift)) * scale;
+              uvW = scale;
+              uvH = scale;
               break;
             }
           }
         }
 
-        gl.uniform4f(locs.uUvRect, uvX, uvY, uvW, uvH);
+        // DEM tile (AWS Terrarium supports up to z=14 reliably)
+        const demZ = Math.min(14, z);
+        const demShift = z - demZ;
+        const demTx = tx >> demShift;
+        const demTy = ty >> demShift;
+        const demEntry = requestDemTile(demZ, demTx, demTy);
 
-        if (texEntry.ready && texEntry.tex) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, demEntry.ready ? demEntry.buf : flatElevBuf);
+        gl.enableVertexAttribArray(loc.aElev);
+        gl.vertexAttribPointer(loc.aElev, 1, gl.FLOAT, false, 0, 0);
+
+        gl.uniform2f(loc.uTileOrigin, worldOriginX, worldOriginY);
+        gl.uniform4f(loc.uUvRect, uvX, uvY, uvW, uvH);
+
+        if (imgEntry.ready && imgEntry.tex) {
           gl.activeTexture(gl.TEXTURE0);
-          gl.bindTexture(gl.TEXTURE_2D, texEntry.tex);
-          gl.uniform1i(locs.uTex, 0);
-          gl.uniform1f(locs.uHasTex, 1.0);
+          gl.bindTexture(gl.TEXTURE_2D, imgEntry.tex);
+          gl.uniform1i(loc.uTex, 0);
+          gl.uniform1f(loc.uHasTex, 1.0);
         } else {
-          gl.uniform1f(locs.uHasTex, 0.0);
+          gl.uniform1f(loc.uHasTex, 0.0);
         }
 
-        // Bind DEM elevation buffer (or flat buffer while DEM streams)
-        const demEntry = getDemTile(z, tx, ty);
-        gl.bindBuffer(gl.ARRAY_BUFFER, demEntry.ready && demEntry.buf ? demEntry.buf : flatElevBuf);
-        gl.enableVertexAttribArray(locs.aElev);
-        gl.vertexAttribPointer(locs.aElev, 1, gl.FLOAT, false, 0, 0);
-
-        const distTiles = Math.hypot(dx, dy);
-        const fog = state.pitch > 25 ? Math.max(0, (distTiles - 1.8) * 0.11 * (state.pitch / 72.0)) : 0.0;
-        gl.uniform1f(locs.uFogFactor, fog);
-
-        gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
+        gl.drawElements(gl.TRIANGLES, indexArray.length, gl.UNSIGNED_SHORT, 0);
       }
     }
 
-    if (loadedTexCount > 0) {
-      hudStatus.textContent = `Tiles: ${loadedTexCount} | DEM: ${loadedDemCount}`;
-    }
+    coordPill.textContent =
+      "Lat " + state.lat.toFixed(4) + "°, Lon " + state.lon.toFixed(4) +
+      "° • Z " + state.zoom.toFixed(1) + " • Tilt " + Math.round(state.pitch) + "°";
 
-    requestAnimationFrame(render);
+    requestAnimationFrame(renderFrame);
   }
 
-  requestAnimationFrame(render);
+  // Pan Helper (Accounts for zoom & camera bearing)
+  function panByPixels(dx, dy) {
+    const tilesAcross = Math.pow(2, state.zoom);
+    const scale = 1.0 / (256 * tilesAcross);
+    const rad = state.bearing * Math.PI / 180;
+    const cosB = Math.cos(rad);
+    const sinB = Math.sin(rad);
+
+    // Dragging right-to-left (dx < 0) moves view east (+wx)
+    const worldDx = (-dx * cosB + dy * sinB) * scale;
+    const worldDy = (dx * sinB + dy * cosB) * scale;
+
+    const wx = (lonToWorldX(state.lon) + worldDx + 1) % 1;
+    const wy = Math.max(0.02, Math.min(0.98, latToWorldY(state.lat) + worldDy));
+
+    state.lon = worldXToLon(wx);
+    state.lat = worldYToLat(wy);
+  }
+
+  function clampZoom(z) {
+    return Math.max(2.2, Math.min(16.8, z));
+  }
+
+  function clampPitch(p) {
+    return Math.max(0, Math.min(72, p));
+  }
+
+  function wrapBearing(b) {
+    while (b > 180) b -= 360;
+    while (b < -180) b += 360;
+    return b;
+  }
+
+  // Mouse Interaction
+  let mouseDown = false;
+  let mouseMode = "pan";
+  let lastMouseX = 0;
+  let lastMouseY = 0;
+
+  canvas.addEventListener("contextmenu", function (e) {
+    e.preventDefault();
+  });
+
+  canvas.addEventListener("mousedown", function (e) {
+    mouseDown = true;
+    lastMouseX = e.clientX;
+    lastMouseY = e.clientY;
+    mouseMode = (e.button === 2 || e.shiftKey) ? "tilt" : "pan";
+    state.autoOrbit = false;
+  });
+
+  window.addEventListener("mousemove", function (e) {
+    if (!mouseDown) return;
+    const dx = e.clientX - lastMouseX;
+    const dy = e.clientY - lastMouseY;
+    lastMouseX = e.clientX;
+    lastMouseY = e.clientY;
+
+    if (mouseMode === "pan") {
+      panByPixels(dx, dy);
+    } else {
+      state.bearing = wrapBearing(state.bearing + dx * 0.35);
+      state.pitch = clampPitch(state.pitch - dy * 0.32);
+      syncSliders();
+    }
+  });
+
+  window.addEventListener("mouseup", function () {
+    mouseDown = false;
+  });
+
+  canvas.addEventListener("wheel", function (e) {
+    e.preventDefault();
+    const delta = -Math.sign(e.deltaY) * 0.45;
+    state.zoom = clampZoom(state.zoom + delta);
+  }, { passive: false });
+
+  // Multi-Touch Touchscreen Exploration (1-Finger Pan, 2-Finger Pinch/Rotate/Tilt)
+  let touchState = {
+    activeCount: 0,
+    lastX: 0,
+    lastY: 0,
+    lastDist: 0,
+    lastAngle: 0,
+    lastMidY: 0
+  };
+
+  function getTouchMetrics(touches) {
+    const t0 = touches[0];
+    const t1 = touches[1];
+    const dx = t1.clientX - t0.clientX;
+    const dy = t1.clientY - t0.clientY;
+    return {
+      dist: Math.hypot(dx, dy),
+      angle: Math.atan2(dy, dx) * 180 / Math.PI,
+      midX: (t0.clientX + t1.clientX) * 0.5,
+      midY: (t0.clientY + t1.clientY) * 0.5
+    };
+  }
+
+  canvas.addEventListener("touchstart", function (e) {
+    e.preventDefault();
+    state.autoOrbit = false;
+    touchState.activeCount = e.touches.length;
+
+    if (e.touches.length === 1) {
+      touchState.lastX = e.touches[0].clientX;
+      touchState.lastY = e.touches[0].clientY;
+    } else if (e.touches.length >= 2) {
+      const m = getTouchMetrics(e.touches);
+      touchState.lastDist = m.dist;
+      touchState.lastAngle = m.angle;
+      touchState.lastMidY = m.midY;
+    }
+  }, { passive: false });
+
+  canvas.addEventListener("touchmove", function (e) {
+    e.preventDefault();
+    if (e.touches.length === 1 && touchState.activeCount === 1) {
+      const dx = e.touches[0].clientX - touchState.lastX;
+      const dy = e.touches[0].clientY - touchState.lastY;
+      touchState.lastX = e.touches[0].clientX;
+      touchState.lastY = e.touches[0].clientY;
+      panByPixels(dx, dy);
+    } else if (e.touches.length >= 2) {
+      const m = getTouchMetrics(e.touches);
+      if (touchState.activeCount >= 2 && touchState.lastDist > 0) {
+        // Pinch Zoom
+        const ratio = m.dist / touchState.lastDist;
+        if (Math.abs(ratio - 1) > 0.004) {
+          state.zoom = clampZoom(state.zoom + Math.log2(ratio));
+        }
+
+        // Two-Finger Twist Rotation
+        let dAngle = m.angle - touchState.lastAngle;
+        if (dAngle > 180) dAngle -= 360;
+        if (dAngle < -180) dAngle += 360;
+        state.bearing = wrapBearing(state.bearing - dAngle);
+
+        // Two-Finger Vertical Slide Tilt
+        const dMidY = m.midY - touchState.lastMidY;
+        state.pitch = clampPitch(state.pitch - dMidY * 0.28);
+        syncSliders();
+      }
+      touchState.activeCount = e.touches.length;
+      touchState.lastDist = m.dist;
+      touchState.lastAngle = m.angle;
+      touchState.lastMidY = m.midY;
+    }
+  }, { passive: false });
+
+  canvas.addEventListener("touchend", function (e) {
+    e.preventDefault();
+    touchState.activeCount = e.touches.length;
+    if (e.touches.length === 1) {
+      touchState.lastX = e.touches[0].clientX;
+      touchState.lastY = e.touches[0].clientY;
+    }
+  }, { passive: false });
+
+  // UI Controls & Minimize/Maximize Logic
+  const toolPanel = document.getElementById("toolPanel");
+  const hideToolsBtn = document.getElementById("hideToolsBtn");
+  const showToolsBtn = document.getElementById("showToolsBtn");
+  const layerSelect = document.getElementById("layerSelect");
+  const pitchSlider = document.getElementById("pitchSlider");
+  const bearingSlider = document.getElementById("bearingSlider");
+  const exagSlider = document.getElementById("exagSlider");
+  const pitchVal = document.getElementById("pitchVal");
+  const bearingVal = document.getElementById("bearingVal");
+  const exagVal = document.getElementById("exagVal");
+
+  function syncSliders() {
+    pitchSlider.value = Math.round(state.pitch);
+    pitchVal.textContent = Math.round(state.pitch) + "°";
+    bearingSlider.value = Math.round(state.bearing);
+    bearingVal.textContent = Math.round(state.bearing) + "°";
+    exagSlider.value = state.exaggeration.toFixed(1);
+    exagVal.textContent = state.exaggeration.toFixed(1) + "x";
+  }
+
+  hideToolsBtn.addEventListener("click", function () {
+    toolPanel.classList.add("minimized");
+    showToolsBtn.style.display = "inline-flex";
+  });
+
+  showToolsBtn.addEventListener("click", function () {
+    toolPanel.classList.remove("minimized");
+    showToolsBtn.style.display = "none";
+  });
+
+  layerSelect.addEventListener("change", function () {
+    state.layer = layerSelect.value;
+  });
+
+  pitchSlider.addEventListener("input", function () {
+    state.pitch = parseFloat(pitchSlider.value);
+    syncSliders();
+  });
+
+  bearingSlider.addEventListener("input", function () {
+    state.bearing = parseFloat(bearingSlider.value);
+    syncSliders();
+  });
+
+  exagSlider.addEventListener("input", function () {
+    state.exaggeration = parseFloat(exagSlider.value);
+    syncSliders();
+  });
+
+  // Zoom & Camera Buttons (Panel + Dock)
+  function zoomStep(delta) {
+    state.zoom = clampZoom(state.zoom + delta);
+  }
+
+  document.getElementById("btnZoomIn").addEventListener("click", function () { zoomStep(0.75); });
+  document.getElementById("btnZoomOut").addEventListener("click", function () { zoomStep(-0.75); });
+  document.getElementById("dockZoomIn").addEventListener("click", function () { zoomStep(0.75); });
+  document.getElementById("dockZoomOut").addEventListener("click", function () { zoomStep(-0.75); });
+
+  document.getElementById("btn2D").addEventListener("click", function () {
+    state.pitch = 0;
+    state.autoOrbit = false;
+    syncSliders();
+  });
+
+  document.getElementById("btn3D").addEventListener("click", function () {
+    state.pitch = 56;
+    syncSliders();
+  });
+
+  document.getElementById("dockTiltToggle").addEventListener("click", function () {
+    state.pitch = state.pitch > 20 ? 0 : 56;
+    syncSliders();
+  });
+
+  document.getElementById("btnOrbit").addEventListener("click", function () {
+    state.autoOrbit = !state.autoOrbit;
+    if (state.autoOrbit && state.pitch < 25) {
+      state.pitch = 50;
+      syncSliders();
+    }
+  });
+
+  // Landmark Presets
+  const presetBtns = document.querySelectorAll(".preset-btn");
+  presetBtns.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      state.lat = parseFloat(btn.getAttribute("data-lat"));
+      state.lon = parseFloat(btn.getAttribute("data-lon"));
+      state.zoom = parseFloat(btn.getAttribute("data-zoom"));
+      state.pitch = parseFloat(btn.getAttribute("data-pitch"));
+      state.bearing = 0;
+      state.autoOrbit = false;
+      syncSliders();
+    });
+  });
+
+  // Global Geocoding Search (Coordinates or OpenStreetMap Nominatim)
+  const searchInput = document.getElementById("searchInput");
+  const searchBtn = document.getElementById("searchBtn");
+
+  function runSearch() {
+    const q = searchInput.value.trim();
+    if (!q) return;
+
+    const coordMatch = q.match(/^(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)$/);
+    if (coordMatch) {
+      const lat = parseFloat(coordMatch[1]);
+      const lon = parseFloat(coordMatch[2]);
+      if (lat >= -85 && lat <= 85 && lon >= -180 && lon <= 180) {
+        state.lat = lat;
+        state.lon = lon;
+        state.zoom = 12.0;
+        return;
+      }
+    }
+
+    statusText.textContent = "Searching...";
+    fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(q))
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data && data.length > 0) {
+          state.lat = parseFloat(data[0].lat);
+          state.lon = parseFloat(data[0].lon);
+          state.zoom = 11.8;
+          updateStatus();
+        } else {
+          statusText.textContent = "Location not found";
+        }
+      })
+      .catch(function () {
+        statusText.textContent = "Search offline";
+      });
+  }
+
+  searchBtn.addEventListener("click", runSearch);
+  searchInput.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") runSearch();
+  });
+
+  // Keyboard Shortcuts
+  window.addEventListener("keydown", function (e) {
+    if (document.activeElement === searchInput) return;
+    if (e.key === "+" || e.key === "=") zoomStep(0.6);
+    if (e.key === "-" || e.key === "_") zoomStep(-0.6);
+  });
+
+  syncSliders();
+  requestAnimationFrame(renderFrame);
 })();
 </script>
 </body>
