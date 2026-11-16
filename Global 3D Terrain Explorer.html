@@ -151,7 +151,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
     <span>Elevation Exaggeration</span>
     <span id="exagVal" class="slider-val">2.4x</span>
   </div>
-  <input id="exagSlider" type="range" min="0.5" max="6.0" step="0.1" value="2.4">
+  <input id="exagSlider" type="range" min="0" max="6.0" step="0.1" value="2.4">
 </div>
   </div>
 
@@ -1140,12 +1140,10 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
       var tileWorldSize = Math.pow(2.0, zoomFrac);
       var latRad = state.lat * Math.PI / 180.0;
       var metersPerTile = (40075016.686 * Math.cos(latRad)) / numTiles;
-      var rawElevScale = (tileWorldSize / Math.max(metersPerTile, 1.0)) * state.exag;
-      // Bound relief in tile-world units so high-zoom mountains cannot engulf
-      // the fixed-look-at camera and cause unstable clipping during tilt.
-      var elevScale = Math.min(rawElevScale, 2.8 / 9000.0);
-      var maxTerrainHeight = 9000.0 * elevScale;
-      var camDist = 4.2 + Math.max(0.0, maxTerrainHeight - 1.5) * 1.2;
+      // Preserve the original independent elevation exaggeration model.
+      // Zoom changes map scale; this control only scales terrain elevation.
+      var elevScale = (tileWorldSize / Math.max(metersPerTile, 1.0)) * state.exag;
+      var camDist = 4.2;
       var pitchRad = state.pitch * Math.PI / 180.0;
       var bearRad = state.bearing * Math.PI / 180.0;
 
