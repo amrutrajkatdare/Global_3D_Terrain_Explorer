@@ -90,14 +90,24 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
     </div>
     <div id="searchResults"></div>
     <div id="searchStatus" role="status" aria-live="polite"></div>
-    <div class="preset-grid">
-      <button class="btn-chip" type="button" data-lat="21.1147" data-lon="-11.3942" data-zoom="11.2">Eye of Sahara</button>
-      <button class="btn-chip" type="button" data-lat="27.9881" data-lon="86.9250" data-zoom="11.5">Mt. Everest</button>
-      <button class="btn-chip" type="button" data-lat="36.1069" data-lon="-112.1129" data-zoom="11.5">Grand Canyon</button>
-      <button class="btn-chip" type="button" data-lat="35.3606" data-lon="138.7274" data-zoom="11.8">Mt. Fuji</button>
-      <button class="btn-chip" type="button" data-lat="45.9766" data-lon="7.6585" data-zoom="12.2">Matterhorn</button>
-      <button class="btn-chip" type="button" data-lat="17.4840" data-lon="73.1890" data-zoom="11.5">Konkan Coast</button>
-    </div>
+    <label class="section-label" for="savedLocationSelect">Saved Places</label>
+    <select id="savedLocationSelect">
+      <option value="">Choose a location to explore…</option>
+      <option value="12.500000,92.750000,8.8">Andaman Islands</option>
+      <option value="4.175500,73.509300,8.8">Maldives · Malé</option>
+      <option value="13.000000,14.000000,8.5">Lake Chad</option>
+      <option value="21.114700,-11.394200,11.2">Eye of Sahara</option>
+      <option value="37.133767012398984,79.23768951685483,12">Yatan Qitahe</option>
+      <optgroup label="Himalayan River Sources">
+        <option value="30.920000,79.080000,10.5">Gangotri Glacier · Ganges</option>
+        <option value="31.010000,78.460000,10.5">Yamunotri Glacier · Yamuna</option>
+        <option value="32.490000,80.100000,9.8">Tibetan Plateau · Indus headwaters</option>
+        <option value="30.350000,82.000000,9.8">Angsi Glacier · Yarlung Tsangpo / Brahmaputra</option>
+      </optgroup>
+      <option value="17.484000,73.189000,11.5">Konkan Coast</option>
+      <option value="51.75717365694981,-1.2538370726565802,13">University of Oxford</option>
+      <option value="40.689200,-74.044500,14">Statue of Liberty</option>
+    </select>
   </div>
 
 
@@ -1505,17 +1515,13 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
   });
 
 
-  var chips = document.querySelectorAll(".btn-chip");
-  for (var ci = 0; ci < chips.length; ci++) {
-    chips[ci].addEventListener("click", function() {
-      searchResults.style.display = "none";
-      flyTo(
-        parseFloat(this.getAttribute("data-lat")),
-        parseFloat(this.getAttribute("data-lon")),
-        parseFloat(this.getAttribute("data-zoom"))
-      );
-    });
-  }
+  var savedLocationSelect = document.getElementById("savedLocationSelect");
+  savedLocationSelect.addEventListener("change", function() {
+    if (!this.value) return;
+    var coords = this.value.split(",");
+    searchResults.style.display = "none";
+    flyTo(parseFloat(coords[0]), parseFloat(coords[1]), parseFloat(coords[2]));
+  });
 
 
   function zoomForPlaceType(type, cls) {
