@@ -51,7 +51,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
 .slider-group { margin-top: 7px; } .slider-header { display: flex; justify-content: space-between; font-size: 11.5px; color: #cbd5e1; margin-bottom: 3px; } .slider-val { color: #38bdf8; font-weight: 600; font-variant-numeric: tabular-nums; } input[type="range"] { width: 100%; accent-color: #38bdf8; cursor: pointer; height: 18px; }
 .help-note { font-size: 10.5px; color: #94a3b8; line-height: 1.45; }
 #quickDock { position: fixed; top: calc(14px + env(safe-area-inset-top)); right: calc(14px + env(safe-area-inset-right)); z-index: 25; display: flex; flex-direction: column; gap: 6px; } .dock-btn { width: 40px; height: 40px; background: rgba(15, 23, 42, 0.92); color: #f8fafc; border: 1px solid rgba(148, 163, 184, 0.35); border-radius: 10px; font-size: 18px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px); } .dock-btn:hover { background: rgba(30, 41, 59, 0.98); border-color: #38bdf8; } .dock-btn:active { transform: scale(0.95); } .dock-btn.small-text { font-size: 12px; }
-#coordHud { position: fixed; bottom: calc(12px + env(safe-area-inset-bottom)); left: calc(14px + env(safe-area-inset-left)); z-index: 15; background: rgba(15, 23, 42, 0.86); border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 999px; padding: 5px 12px; font-size: 11px; color: #cbd5e1; font-variant-numeric: tabular-nums; backdrop-filter: blur(8px); pointer-events: none; } #statusPill { position: fixed; bottom: calc(12px + env(safe-area-inset-bottom)); right: calc(14px + env(safe-area-inset-right)); z-index: 15; background: rgba(15, 23, 42, 0.86); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 999px; padding: 5px 12px; font-size: 11px; color: #7dd3fc; backdrop-filter: blur(8px); pointer-events: none; }
+#coordHud { position: fixed; bottom: calc(12px + env(safe-area-inset-bottom)); left: calc(14px + env(safe-area-inset-left)); z-index: 15; background: rgba(15, 23, 42, 0.92); border: 1px solid rgba(148, 163, 184, 0.35); border-radius: 999px; padding: 7px 13px; font-size: 11px; color: #cbd5e1; font-variant-numeric: tabular-nums; backdrop-filter: blur(8px); cursor: pointer; font-family: inherit; text-align: left; touch-action: manipulation; user-select: none; -webkit-user-select: none; } #coordHud:hover, #coordHud:focus-visible { border-color: #38bdf8; color: #fff; outline: none; } #coordHud:active { transform: scale(0.98); } #statusPill { position: fixed; bottom: calc(12px + env(safe-area-inset-bottom)); right: calc(14px + env(safe-area-inset-right)); z-index: 15; background: rgba(15, 23, 42, 0.86); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 999px; padding: 5px 12px; font-size: 11px; color: #7dd3fc; backdrop-filter: blur(8px); pointer-events: none; }
 @media (max-width: 640px) { #toolPanel { top: auto; bottom: calc(46px + env(safe-area-inset-bottom)); left: calc(10px + env(safe-area-inset-left)); right: calc(10px + env(safe-area-inset-right)); width: auto; max-height: 52vh; padding: 12px; } .dock-btn { width: 44px; height: 44px; } #coordHud, #statusPill { font-size: 10px; padding: 4px 9px; } }
 @media (max-height: 500px) { #toolPanel { width: 280px; max-height: calc(100vh - 64px); padding: 10px; } .section-box { padding: 8px; margin-bottom: 7px; } } </style>
 </head>
@@ -154,7 +154,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
 </div>
 
 
-<div id="coordHud">Lat 21.1147&deg;, Lon -11.3942&deg; &bull; Z 11.2</div>
+<button id="coordHud" type="button" title="Click or tap to copy coordinates" aria-label="Copy map center coordinates">Lat 21.1147&deg;, Lon -11.3942&deg; &bull; Z 11.2</button>
 <div id="statusPill">Initializing WebGL...</div>
 
 
@@ -342,6 +342,51 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
   }
 
 
+  var coordCopyFeedbackTimer = null;
+  function updateCoordHud() {
+    coordHud.innerHTML =
+      "Lat " + state.lat.toFixed(6) + "&deg;, Lon " + state.lon.toFixed(6) +
+      "&deg; &bull; Z " + state.zoom.toFixed(1);
+    coordHud.setAttribute("aria-label",
+      "Copy coordinates " + state.lat.toFixed(6) + ", " + state.lon.toFixed(6));
+  }
+
+  function copyMapCoordinates() {
+    // Decimal latitude, longitude is accepted by Google Maps, Google Earth,
+    // OpenStreetMap and most coordinate-aware map applications.
+    var coords = state.lat.toFixed(6) + ", " + state.lon.toFixed(6);
+    function showCopied() {
+      coordHud.textContent = "Copied: " + coords;
+      if (coordCopyFeedbackTimer) clearTimeout(coordCopyFeedbackTimer);
+      coordCopyFeedbackTimer = setTimeout(updateCoordHud, 1800);
+    }
+    function fallbackCopy() {
+      var field = document.createElement("textarea");
+      field.value = coords;
+      field.setAttribute("readonly", "");
+      field.style.position = "fixed";
+      field.style.opacity = "0";
+      document.body.appendChild(field);
+      field.select();
+      var ok = false;
+      try { ok = document.execCommand("copy"); } catch (e) {}
+      document.body.removeChild(field);
+      if (ok) showCopied();
+      else {
+        coordHud.textContent = "Copy unavailable · " + coords;
+        if (coordCopyFeedbackTimer) clearTimeout(coordCopyFeedbackTimer);
+        coordCopyFeedbackTimer = setTimeout(updateCoordHud, 2200);
+      }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(coords).then(showCopied).catch(fallbackCopy);
+    } else {
+      fallbackCopy();
+    }
+  }
+
+  coordHud.addEventListener("click", copyMapCoordinates);
+
   function syncSliders(scheduleTerrainRefresh) {
     pitchSlider.value = String(Math.round(state.pitch));
     pitchVal.innerHTML = Math.round(state.pitch) + "&deg;";
@@ -358,9 +403,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
     quickTiltBtn.textContent = state.pitch >= 5 ? "2D" : "3D";
 
 
-    coordHud.innerHTML =
-      "Lat " + state.lat.toFixed(4) + "&deg;, Lon " + state.lon.toFixed(4) +
-      "&deg; &bull; Z " + state.zoom.toFixed(1);
+    updateCoordHud();
     markDirty();
     if (scheduleTerrainRefresh !== false && !state.autoOrbit) scheduleTileRefresh();
   }
