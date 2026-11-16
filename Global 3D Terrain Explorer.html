@@ -911,10 +911,11 @@
   })();
 
   // =========================================================================
-  // 2. PRIORITY TILE DOWNLOAD QUEUE & LRU CACHE
+  // 2. PRIORITY TILE DOWNLOAD QUEUE & DEDUPLICATED PENDING FETCH GUARDS
   // =========================================================================
   var textureCache = new Map();
   var demCache = new Map();
+  var pendingFetches = new Set(); // <--- Prevents duplicate concurrent fetches
   var MAX_CACHE_TILES = 180;
   var MAX_CONCURRENT_IMG = 8;
   var MAX_CONCURRENT_DEM = 6;
@@ -958,6 +959,7 @@
         img.crossOrigin = "anonymous";
         img.onload = function() {
           activeImgLoads--;
+          pendingFetches.delete(j.key);
           var t = gl.createTexture();
           gl.bindTexture(gl.TEXTURE_2D, t);
           gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -975,6 +977,7 @@
         };
         img.onerror = function() {
           activeImgLoads--;
+          pendingFetches.delete(j.key);
           j.entry.loading = false;
           pumpImgQueue();
         };
@@ -990,9 +993,16 @@
       entry.lastUsed = performance.now();
       return entry;
     }
+    // Deduplication guard: if already in flight, return placeholder immediately without duplicate request
+    if (pendingFetches.has(key)) {
+      return { tex: null, ready: false, loading: true };
+    }
+
     entry = { tex: null, ready: false, loading: true, lastUsed: performance.now() };
     textureCache.set(key, entry);
-    imgQueue.push({ entry: entry, layer: layer, z: z, x: x, y: y, dist: distSq || 0 });
+    pendingFetches.add(key);
+
+    imgQueue.push({ entry: entry, key: key, layer: layer, z: z, x: x, y: y, dist: distSq || 0 });
     pumpImgQueue();
     return entry;
   }
@@ -1015,6 +1025,7 @@
         img.crossOrigin = "anonymous";
         img.onload = function() {
           activeDemLoads--;
+          pendingFetches.delete(j.key);
           try {
             offCtx.clearRect(0, 0, 256, 256);
             offCtx.drawImage(img, 0, 0, 256, 256);
@@ -1058,6 +1069,7 @@
         };
         img.onerror = function() {
           activeDemLoads--;
+          pendingFetches.delete(j.key);
           pumpDemQueue();
         };
         img.src = getDemTileUrl(j.z, j.x, j.y);
@@ -1066,15 +1078,21 @@
   }
 
   function getTileDem(z, x, y, distSq) {
-    var key = z + "/" + x + "/" + y;
+    var key = "dem/" + z + "/" + x + "/" + y;
     var entry = demCache.get(key);
     if (entry) {
       entry.lastUsed = performance.now();
       return entry;
     }
+    if (pendingFetches.has(key)) {
+      return { buf: flatElevBuf, ready: false };
+    }
+
     entry = { buf: flatElevBuf, ready: false, lastUsed: performance.now() };
     demCache.set(key, entry);
-    demQueue.push({ entry: entry, z: z, x: x, y: y, dist: distSq || 0 });
+    pendingFetches.add(key);
+
+    demQueue.push({ entry: entry, key: key, z: z, x: x, y: y, dist: distSq || 0 });
     pumpDemQueue();
     return entry;
   }
