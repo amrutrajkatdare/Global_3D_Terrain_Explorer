@@ -204,6 +204,23 @@ async function waitFor(predicate, timeout = 20000, interval = 250) {
     check("Global search resolves a non-preset place", !!searchStatus && /Found:/i.test(searchStatus),
       (searchStatus || "search did not return within 22 seconds") + (geocoderNetwork.length ? " | " + geocoderNetwork.join(" ; ") : ""));
 
+    // Bhuvan services remain separate from the core map renderer.
+    const bhuvanLinks = await page.locator("#bhuvanServices a").evaluateAll(els => els.map(a => ({
+      text: a.textContent, href: a.href, target: a.target, rel: a.rel
+    })));
+    const existingLayerValues = await page.locator("#layerSelect option").evaluateAll(els => els.map(el => el.value));
+    check("Independent Bhuvan service panel is available", await page.locator("#bhuvanServices").count() === 1 && bhuvanLinks.length === 3);
+    check("Bhuvan links use official viewer and OGC service endpoints",
+      bhuvanLinks[0].href === "https://bhuvan.nrsc.gov.in/" &&
+      bhuvanLinks[1].href.startsWith("https://bhuvan-vec2.nrsc.gov.in/bhuvan/wms?") &&
+      bhuvanLinks[2].href.startsWith("https://bhuvan-vec2.nrsc.gov.in/bhuvan/gwc/service/wmts?"),
+      JSON.stringify(bhuvanLinks));
+    check("Bhuvan services do not alter existing map-surface choices",
+      existingLayerValues.join(",") === "esri_topo,opentopo,esri_sat,esri_street,esri_hillshade",
+      existingLayerValues.join(","));
+    check("Bhuvan service links open separately and safely",
+      bhuvanLinks.every(link => link.target === "_blank" && link.rel.includes("noopener") && link.rel.includes("noreferrer")));
+
     // Mobile layout / touch pan: viewport layout is checked separately from gesture simulation.
     const mobile = await browser.newContext({
       viewport: { width: 390, height: 844 },
@@ -271,30 +288,3 @@ async function waitFor(predicate, timeout = 20000, interval = 250) {
   console.error(error);
   process.exit(1);
 });
-
-
-// Bhuvan services are deliberately external and independent of the core map renderer.
-(async () => {
-  const { chromium } = require("playwright");
-  const browser = await chromium.launch({ headless: true, args: ["--enable-webgl", "--ignore-gpu-blocklist", "--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
-  try {
-    const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-    await page.goto(APP_URL, { waitUntil: "domcontentloaded", timeout: 30000 });
-    const panel = await page.locator("#bhuvanServices").count();
-    const links = await page.locator("#bhuvanServices a").evaluateAll(els => els.map(a => ({ text: a.textContent, href: a.href, target: a.target, rel: a.rel })));
-    const layerValues = await page.locator("#layerSelect option").evaluateAll(els => els.map(el => el.value));
-    check("Independent Bhuvan service panel is available", panel === 1 && links.length === 3);
-    check("Bhuvan links use official viewer and OGC service endpoints",
-      links[0].href === "https://bhuvan.nrsc.gov.in/" &&
-      links[1].href.startsWith("https://bhuvan-vec2.nrsc.gov.in/bhuvan/wms?") &&
-      links[2].href.startsWith("https://bhuvan-vec2.nrsc.gov.in/bhuvan/gwc/service/wmts?"),
-      JSON.stringify(links));
-    check("Bhuvan services do not alter existing map-surface choices",
-      layerValues.join(",") === "esri_topo,opentopo,esri_sat,esri_street,esri_hillshade",
-      layerValues.join(","));
-    check("Bhuvan service links open separately and safely",
-      links.every(link => link.target === "_blank" && link.rel.includes("noopener") && link.rel.includes("noreferrer")));
-  } finally {
-    await browser.close();
-  }
-})();
