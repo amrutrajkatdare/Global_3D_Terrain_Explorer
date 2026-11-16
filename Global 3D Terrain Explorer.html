@@ -128,6 +128,7 @@
     border-radius: 10px;
     padding: 10px;
     margin-bottom: 10px;
+    position: relative;
   }
   .section-label {
     font-size: 10px;
@@ -158,7 +159,7 @@
   .search-row {
     display: flex;
     gap: 6px;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
   .btn-primary {
     background: #0284c7;
@@ -173,6 +174,44 @@
   }
   .btn-primary:hover {
     background: #0369a1;
+  }
+
+  /* Search Suggestions Dropdown */
+  #searchResults {
+    display: none;
+    flex-direction: column;
+    background: #0b1120;
+    border: 1px solid rgba(56, 189, 248, 0.45);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    max-height: 150px;
+    overflow-y: auto;
+  }
+  .search-item {
+    padding: 7px 10px;
+    font-size: 11.5px;
+    color: #e2e8f0;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+    cursor: pointer;
+    text-align: left;
+    background: transparent;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    width: 100%;
+  }
+  .search-item:last-child {
+    border-bottom: none;
+  }
+  .search-item:hover {
+    background: rgba(2, 132, 199, 0.35);
+    color: #ffffff;
+  }
+  .search-item small {
+    display: block;
+    color: #94a3b8;
+    font-size: 10px;
+    margin-top: 1px;
   }
 
   .preset-grid {
@@ -367,7 +406,7 @@
   <div class="panel-header">
     <div class="panel-title">
       <h1>Global 3D Terrain Explorer</h1>
-      <span>Real-Time WebGL DEM Elevation</span>
+      <span>Multi-Threaded WebGL DEM Engine</span>
     </div>
     <button id="hideToolsBtn" type="button" title="Minimize Tools Panel">Hide &#10005;</button>
   </div>
@@ -384,11 +423,12 @@
   </div>
 
   <div class="section-box">
-    <label class="section-label" for="searchInput">Search Location or Coordinates</label>
+    <label class="section-label" for="searchInput">Global Location or Coordinates</label>
     <div class="search-row">
-      <input id="searchInput" type="text" placeholder="City, peak, or 21.11, -11.39" autocomplete="off">
+      <input id="searchInput" type="text" placeholder="Any city, mountain, country, or lat, lon" autocomplete="off">
       <button id="searchBtn" class="btn-primary" type="button">Go</button>
     </div>
+    <div id="searchResults"></div>
     <div class="preset-grid">
       <button class="btn-chip" type="button" data-lat="21.1147" data-lon="-11.3942" data-zoom="11.2">Eye of Sahara</button>
       <button class="btn-chip" type="button" data-lat="27.9881" data-lon="86.9250" data-zoom="11.5">Mt. Everest</button>
@@ -464,6 +504,7 @@
   var layerSelect = document.getElementById("layerSelect");
   var searchInput = document.getElementById("searchInput");
   var searchBtn = document.getElementById("searchBtn");
+  var searchResults = document.getElementById("searchResults");
   var pitchSlider = document.getElementById("pitchSlider");
   var bearingSlider = document.getElementById("bearingSlider");
   var exagSlider = document.getElementById("exagSlider");
@@ -507,8 +548,14 @@
     layer: "esri_topo",
     autoOrbit: false,
     imgLoadedCount: 0,
-    demLoadedCount: 0
+    demLoadedCount: 0,
+    workerActive: false,
+    dirty: true
   };
+
+  function markDirty() {
+    state.dirty = true;
+  }
 
   function clamp(v, minV, maxV) {
     return Math.max(minV, Math.min(maxV, v));
@@ -550,6 +597,27 @@
     coordHud.innerHTML =
       "Lat " + state.lat.toFixed(4) + "&deg;, Lon " + state.lon.toFixed(4) +
       "&deg; &bull; Z " + state.zoom.toFixed(1);
+    markDirty();
+  }
+
+  // Smooth Camera Fly-To Animation
+  var flyAnim = null;
+  function flyTo(targetLat, targetLon, targetZoom) {
+    flyAnim = {
+      startLat: state.lat,
+      startLon: state.lon,
+      startZoom: state.zoom,
+      endLat: targetLat,
+      endLon: targetLon,
+      endZoom: targetZoom,
+      startTime: performance.now(),
+      duration: 850
+    };
+    if (state.pitch < 15) {
+      state.pitch = 50;
+    }
+    state.autoOrbit = false;
+    syncSliders();
   }
 
   // Tile URL Generators
@@ -609,7 +677,8 @@
     "  vElev = aElev;",
     "  vDepth = -viewPos.z;",
     "}"
-  ].join("\n");
+  ].join("
+");
 
   var fsSource = [
     "precision mediump float;",
@@ -631,7 +700,8 @@
     "  vec3 skyCol = vec3(0.05, 0.08, 0.14);",
     "  gl_FragColor = vec4(mix(baseCol, skyCol, fog), 1.0);",
     "}"
-  ].join("\n");
+  ].join("
+");
 
   function compileShader(type, src) {
     var s = gl.createShader(type);
@@ -695,7 +765,6 @@
       ptr++;
     }
   }
-  // Top, Bottom, Left, Right skirt vertices
   for (var c2 = 0; c2 <= GRID_N; c2++) {
     gridCoords[ptr * 2] = c2 / GRID_N;
     gridCoords[ptr * 2 + 1] = 0.0;
@@ -764,43 +833,244 @@
   gl.bindBuffer(gl.ARRAY_BUFFER, flatElevBuf);
   gl.bufferData(gl.ARRAY_BUFFER, flatElevData, gl.STATIC_DRAW);
 
-  // Tile Cache Management
+  // =========================================================================
+  // 1. MULTI-THREADED BACKGROUND DEM DECODING (WEB WORKER POOL + SAFE FALLBACK)
+  // =========================================================================
+  var pendingDemCallbacks = new Map();
+  var workerPool = [];
+  var nextWorkerIdx = 0;
+  var demReqSeq = 1;
+
+  function decodeDemOnMainThread(pixels, subOffX, subOffY, subScale) {
+    var elevArr = new Float32Array(totalVerts);
+    for (var i = 0; i < mainVertCount; i++) {
+      var gx = gridCoords[i * 2];
+      var gy = gridCoords[i * 2 + 1];
+      var u = clamp(subOffX + gx * subScale, 0.0, 0.9999);
+      var v = clamp(subOffY + gy * subScale, 0.0, 0.9999);
+      var px = Math.floor(u * 255.0);
+      var py = Math.floor(v * 255.0);
+      var idx = (py * 256 + px) * 4;
+      var h = (pixels[idx] * 256.0 + pixels[idx + 1] + pixels[idx + 2] / 256.0) - 32768.0;
+      elevArr[i] = clamp(h, -500.0, 9000.0);
+    }
+    for (var s = mainVertCount; s < totalVerts; s++) {
+      elevArr[s] = elevArr[gridMainIndex[s]] - 1500.0;
+    }
+    return elevArr;
+  }
+
+  // Build inline Blob Web Workers (works cleanly even on local file:// origins)
+  (function initWorkerPool() {
+    if (typeof Worker === "undefined" || typeof Blob === "undefined") return;
+    var workerCode = [
+      "self.onmessage = function(e) {",
+      "  var d = e.data;",
+      "  var pixels = new Uint8ClampedArray(d.pixelBuf);",
+      "  var gridCoords = d.gridCoords;",
+      "  var gridMainIndex = d.gridMainIndex;",
+      "  var mainVertCount = d.mainVertCount;",
+      "  var totalVerts = d.totalVerts;",
+      "  var subOffX = d.subOffX, subOffY = d.subOffY, subScale = d.subScale;",
+      "  var elevArr = new Float32Array(totalVerts);",
+      "  for (var i = 0; i < mainVertCount; i++) {",
+      "    var gx = gridCoords[i * 2];",
+      "    var gy = gridCoords[i * 2 + 1];",
+      "    var u = Math.max(0.0, Math.min(0.9999, subOffX + gx * subScale));",
+      "    var v = Math.max(0.0, Math.min(0.9999, subOffY + gy * subScale));",
+      "    var px = (u * 255.0) | 0;",
+      "    var py = (v * 255.0) | 0;",
+      "    var idx = (py * 256 + px) << 2;",
+      "    var h = (pixels[idx] * 256.0 + pixels[idx + 1] + pixels[idx + 2] * 0.00390625) - 32768.0;",
+      "    elevArr[i] = h < -500.0 ? -500.0 : (h > 9000.0 ? 9000.0 : h);",
+      "  }",
+      "  for (var s = mainVertCount; s < totalVerts; s++) {",
+      "    elevArr[s] = elevArr[gridMainIndex[s]] - 1500.0;",
+      "  }",
+      "  self.postMessage({ id: d.id, elevBuf: elevArr.buffer }, [elevArr.buffer]);",
+      "};"
+    ].join("
+");
+
+    try {
+      var blob = new Blob([workerCode], { type: "application/javascript" });
+      var url = URL.createObjectURL(blob);
+      var poolSize = Math.min(navigator.hardwareConcurrency || 2, 4);
+      for (var w = 0; w < poolSize; w++) {
+        var wk = new Worker(url);
+        wk.onmessage = function(ev) {
+          var cb = pendingDemCallbacks.get(ev.data.id);
+          if (cb) {
+            pendingDemCallbacks.delete(ev.data.id);
+            cb(new Float32Array(ev.data.elevBuf));
+          }
+        };
+        workerPool.push(wk);
+      }
+      state.workerActive = workerPool.length > 0;
+    } catch (e) {
+      workerPool = [];
+      state.workerActive = false;
+    }
+  })();
+
+  // =========================================================================
+  // 2. PRIORITY TILE DOWNLOAD QUEUE & LRU CACHE
+  // =========================================================================
   var textureCache = new Map();
   var demCache = new Map();
+  var MAX_CACHE_TILES = 180;
+  var MAX_CONCURRENT_IMG = 8;
+  var MAX_CONCURRENT_DEM = 6;
+  var activeImgLoads = 0;
+  var activeDemLoads = 0;
+  var imgQueue = [];
+  var demQueue = [];
+
   var offCanvas = document.createElement("canvas");
   offCanvas.width = 256;
   offCanvas.height = 256;
   var offCtx = offCanvas.getContext("2d", { willReadFrequently: true });
 
-  function getTileTexture(layer, z, x, y) {
+  function pruneCache(cacheMap, isTex) {
+    if (cacheMap.size <= MAX_CACHE_TILES) return;
+    var oldestKey = null;
+    var oldestTime = Infinity;
+    cacheMap.forEach(function(val, k) {
+      if (val.ready && val.lastUsed < oldestTime) {
+        oldestTime = val.lastUsed;
+        oldestKey = k;
+      }
+    });
+    if (oldestKey) {
+      var item = cacheMap.get(oldestKey);
+      if (isTex && item.tex) gl.deleteTexture(item.tex);
+      if (!isTex && item.buf && item.buf !== flatElevBuf) gl.deleteBuffer(item.buf);
+      cacheMap.delete(oldestKey);
+    }
+  }
+
+  function pumpImgQueue() {
+    while (activeImgLoads < MAX_CONCURRENT_IMG && imgQueue.length > 0) {
+      // Pick highest priority (closest to center)
+      imgQueue.sort(function(a, b) { return a.dist - b.dist; });
+      var job = imgQueue.shift();
+      if (!job || job.entry.cancelled) continue;
+
+      activeImgLoads++;
+      (function(j) {
+        var img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = function() {
+          activeImgLoads--;
+          var t = gl.createTexture();
+          gl.bindTexture(gl.TEXTURE_2D, t);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+          j.entry.tex = t;
+          j.entry.ready = true;
+          j.entry.loading = false;
+          state.imgLoadedCount++;
+          pruneCache(textureCache, true);
+          markDirty();
+          pumpImgQueue();
+        };
+        img.onerror = function() {
+          activeImgLoads--;
+          j.entry.loading = false;
+          pumpImgQueue();
+        };
+        img.src = getMapTileUrl(j.layer, j.z, j.x, j.y);
+      })(job);
+    }
+  }
+
+  function getTileTexture(layer, z, x, y, distSq) {
     var key = layer + "/" + z + "/" + x + "/" + y;
     var entry = textureCache.get(key);
     if (entry) {
       entry.lastUsed = performance.now();
       return entry;
     }
-    entry = { tex: null, ready: false, lastUsed: performance.now() };
+    entry = { tex: null, ready: false, loading: true, lastUsed: performance.now() };
     textureCache.set(key, entry);
-
-    var img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = function() {
-      var t = gl.createTexture();
-      gl.bindTexture(gl.TEXTURE_2D, t);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-      entry.tex = t;
-      entry.ready = true;
-      state.imgLoadedCount++;
-    };
-    img.src = getMapTileUrl(layer, z, x, y);
+    imgQueue.push({ entry: entry, layer: layer, z: z, x: x, y: y, dist: distSq || 0 });
+    pumpImgQueue();
     return entry;
   }
 
-  function getTileDem(z, x, y) {
+  function pumpDemQueue() {
+    while (activeDemLoads < MAX_CONCURRENT_DEM && demQueue.length > 0) {
+      demQueue.sort(function(a, b) { return a.dist - b.dist; });
+      var job = demQueue.shift();
+      if (!job) continue;
+
+      activeDemLoads++;
+      (function(j) {
+        var dz = Math.min(j.z, 14);
+        var shift = j.z - dz;
+        var subScale = 1.0 / (1 << shift);
+        var subOffX = (j.x - ((j.x >> shift) << shift)) * subScale;
+        var subOffY = (j.y - ((j.y >> shift) << shift)) * subScale;
+
+        var img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = function() {
+          activeDemLoads--;
+          try {
+            offCtx.clearRect(0, 0, 256, 256);
+            offCtx.drawImage(img, 0, 0, 256, 256);
+            var imgData = offCtx.getImageData(0, 0, 256, 256);
+
+            var finishBuffer = function(elevArr) {
+              var vbo = gl.createBuffer();
+              gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+              gl.bufferData(gl.ARRAY_BUFFER, elevArr, gl.STATIC_DRAW);
+              j.entry.buf = vbo;
+              j.entry.ready = true;
+              state.demLoadedCount++;
+              pruneCache(demCache, false);
+              markDirty();
+            };
+
+            if (workerPool.length > 0) {
+              var wk = workerPool[nextWorkerIdx];
+              nextWorkerIdx = (nextWorkerIdx + 1) % workerPool.length;
+              var reqId = demReqSeq++;
+              pendingDemCallbacks.set(reqId, finishBuffer);
+              var pxBuffer = imgData.data.buffer;
+              wk.postMessage({
+                id: reqId,
+                pixelBuf: pxBuffer,
+                gridCoords: gridCoords,
+                gridMainIndex: gridMainIndex,
+                mainVertCount: mainVertCount,
+                totalVerts: totalVerts,
+                subOffX: subOffX,
+                subOffY: subOffY,
+                subScale: subScale
+              }, [pxBuffer]);
+            } else {
+              finishBuffer(decodeDemOnMainThread(imgData.data, subOffX, subOffY, subScale));
+            }
+          } catch (err) {
+            // Keep flatElevBuf on error
+          }
+          pumpDemQueue();
+        };
+        img.onerror = function() {
+          activeDemLoads--;
+          pumpDemQueue();
+        };
+        img.src = getDemTileUrl(j.z, j.x, j.y);
+      })(job);
+    }
+  }
+
+  function getTileDem(z, x, y, distSq) {
     var key = z + "/" + x + "/" + y;
     var entry = demCache.get(key);
     if (entry) {
@@ -809,48 +1079,8 @@
     }
     entry = { buf: flatElevBuf, ready: false, lastUsed: performance.now() };
     demCache.set(key, entry);
-
-    var dz = Math.min(z, 14);
-    var shift = z - dz;
-    var subScale = 1.0 / (1 << shift);
-    var subOffX = (x - ((x >> shift) << shift)) * subScale;
-    var subOffY = (y - ((y >> shift) << shift)) * subScale;
-
-    var img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = function() {
-      try {
-        offCtx.clearRect(0, 0, 256, 256);
-        offCtx.drawImage(img, 0, 0, 256, 256);
-        var pixels = offCtx.getImageData(0, 0, 256, 256).data;
-        var elevArr = new Float32Array(totalVerts);
-
-        for (var i = 0; i < mainVertCount; i++) {
-          var gx = gridCoords[i * 2];
-          var gy = gridCoords[i * 2 + 1];
-          var u = clamp(subOffX + gx * subScale, 0.0, 0.9999);
-          var v = clamp(subOffY + gy * subScale, 0.0, 0.9999);
-          var px = Math.floor(u * 255.0);
-          var py = Math.floor(v * 255.0);
-          var idx = (py * 256 + px) * 4;
-          var h = (pixels[idx] * 256.0 + pixels[idx + 1] + pixels[idx + 2] / 256.0) - 32768.0;
-          elevArr[i] = clamp(h, -500.0, 9000.0);
-        }
-        for (var s = mainVertCount; s < totalVerts; s++) {
-          elevArr[s] = elevArr[gridMainIndex[s]] - 1500.0;
-        }
-
-        var vbo = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-        gl.bufferData(gl.ARRAY_BUFFER, elevArr, gl.STATIC_DRAW);
-        entry.buf = vbo;
-        entry.ready = true;
-        state.demLoadedCount++;
-      } catch (err) {
-        // Keep flatElevBuf on error
-      }
-    };
-    img.src = getDemTileUrl(z, x, y);
+    demQueue.push({ entry: entry, z: z, x: x, y: y, dist: distSq || 0 });
+    pumpDemQueue();
     return entry;
   }
 
@@ -899,101 +1129,132 @@
     if (canvas.width !== w || canvas.height !== h) {
       canvas.width = w;
       canvas.height = h;
+      markDirty();
     }
     gl.viewport(0, 0, canvas.width, canvas.height);
   }
   window.addEventListener("resize", resizeCanvas);
   resizeCanvas();
 
-  // Render Loop
+  // Render Loop (On-Demand + Smooth Fly/Orbit)
   var lastFrameTime = performance.now();
   function render(now) {
     var dt = Math.min((now - lastFrameTime) * 0.001, 0.1);
     lastFrameTime = now;
+
+    if (flyAnim) {
+      var t = clamp((now - flyAnim.startTime) / flyAnim.duration, 0, 1);
+      var ease = 1 - Math.pow(1 - t, 3);
+      state.lat = flyAnim.startLat + (flyAnim.endLat - flyAnim.startLat) * ease;
+      state.lon = flyAnim.startLon + (flyAnim.endLon - flyAnim.startLon) * ease;
+      state.zoom = flyAnim.startZoom + (flyAnim.endZoom - flyAnim.startZoom) * ease;
+      if (t >= 1) flyAnim = null;
+      syncSliders();
+    }
 
     if (state.autoOrbit) {
       state.bearing = (state.bearing + 10.0 * dt);
       syncSliders();
     }
 
-    gl.clearColor(0.04, 0.07, 0.12, 1.0);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.enable(gl.DEPTH_TEST);
+    if (state.dirty) {
+      state.dirty = false;
 
-    var zInt = Math.round(clamp(state.zoom, 2, 16));
-    var numTiles = 1 << zInt;
-    var centerMX = lonToMercX(state.lon) * numTiles;
-    var centerMY = latToMercY(state.lat) * numTiles;
+      gl.clearColor(0.04, 0.07, 0.12, 1.0);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      gl.enable(gl.DEPTH_TEST);
 
-    var zoomFrac = state.zoom - zInt;
-    var tileWorldSize = Math.pow(2.0, zoomFrac);
-    var camDist = 4.2;
-    var pitchRad = state.pitch * Math.PI / 180.0;
-    var bearRad = state.bearing * Math.PI / 180.0;
+      var zInt = Math.round(clamp(state.zoom, 2, 16));
+      var numTiles = 1 << zInt;
+      var centerMX = lonToMercX(state.lon) * numTiles;
+      var centerMY = latToMercY(state.lat) * numTiles;
 
-    var horizDist = Math.sin(pitchRad) * camDist;
-    var vertDist = Math.cos(pitchRad) * camDist;
-    var eyeX = -Math.sin(bearRad) * horizDist;
-    var eyeY = -Math.cos(bearRad) * horizDist;
-    var eyeZ = Math.max(0.25, vertDist);
+      var zoomFrac = state.zoom - zInt;
+      var tileWorldSize = Math.pow(2.0, zoomFrac);
+      var camDist = 4.2;
+      var pitchRad = state.pitch * Math.PI / 180.0;
+      var bearRad = state.bearing * Math.PI / 180.0;
 
-    var upVec = state.pitch < 1.0
-      ? [Math.sin(bearRad), Math.cos(bearRad), 0.0]
-      : [0.0, 0.0, 1.0];
+      var horizDist = Math.sin(pitchRad) * camDist;
+      var vertDist = Math.cos(pitchRad) * camDist;
+      var eyeX = -Math.sin(bearRad) * horizDist;
+      var eyeY = -Math.cos(bearRad) * horizDist;
+      var eyeZ = Math.max(0.25, vertDist);
 
-    var aspect = (canvas.width || 1) / (canvas.height || 1);
-    var proj = perspectiveMat(45.0 * Math.PI / 180.0, aspect, 0.05, 80.0);
-    var view = lookAtMat([eyeX, eyeY, eyeZ], [0.0, 0.0, 0.0], upVec);
+      var upVec = state.pitch < 1.0
+        ? [Math.sin(bearRad), Math.cos(bearRad), 0.0]
+        : [0.0, 0.0, 1.0];
 
-    gl.uniformMatrix4fv(uProjLoc, false, proj);
-    gl.uniformMatrix4fv(uViewLoc, false, view);
+      var aspect = (canvas.width || 1) / (canvas.height || 1);
+      var proj = perspectiveMat(45.0 * Math.PI / 180.0, aspect, 0.05, 80.0);
+      var view = lookAtMat([eyeX, eyeY, eyeZ], [0.0, 0.0, 0.0], upVec);
 
-    var latRad = state.lat * Math.PI / 180.0;
-    var metersPerTile = (40075016.686 * Math.cos(latRad)) / numTiles;
-    var elevScale = (tileWorldSize / Math.max(metersPerTile, 1.0)) * state.exag;
-    gl.uniform1f(uElevScaleLoc, elevScale);
-    gl.uniform1f(uFogDistLoc, 16.0);
+      gl.uniformMatrix4fv(uProjLoc, false, proj);
+      gl.uniformMatrix4fv(uViewLoc, false, view);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, gridBuf);
-    gl.enableVertexAttribArray(aGridLoc);
-    gl.vertexAttribPointer(aGridLoc, 2, gl.FLOAT, false, 0, 0);
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idxBuf);
+      var latRad = state.lat * Math.PI / 180.0;
+      var metersPerTile = (40075016.686 * Math.cos(latRad)) / numTiles;
+      var elevScale = (tileWorldSize / Math.max(metersPerTile, 1.0)) * state.exag;
+      gl.uniform1f(uElevScaleLoc, elevScale);
+      gl.uniform1f(uFogDistLoc, 16.0);
 
-    var baseTileX = Math.floor(centerMX);
-    var baseTileY = Math.floor(centerMY);
-    var radius = state.pitch > 35 ? 4 : 3;
+      gl.bindBuffer(gl.ARRAY_BUFFER, gridBuf);
+      gl.enableVertexAttribArray(aGridLoc);
+      gl.vertexAttribPointer(aGridLoc, 2, gl.FLOAT, false, 0, 0);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idxBuf);
 
-    for (var dy = -radius; dy <= radius; dy++) {
-      var ty = baseTileY + dy;
-      if (ty < 0 || ty >= numTiles) continue;
-      for (var dx = -radius; dx <= radius; dx++) {
-        var rawTx = baseTileX + dx;
-        var tx = ((rawTx % numTiles) + numTiles) % numTiles;
+      var baseTileX = Math.floor(centerMX);
+      var baseTileY = Math.floor(centerMY);
+      var radius = state.pitch > 35 ? 3 : 2;
 
-        var originX = (rawTx - centerMX) * tileWorldSize;
-        var originY = -(ty - centerMY) * tileWorldSize;
+      // Build center-out sorted tile list so foreground/center loads first
+      var tileList = [];
+      for (var dy = -radius; dy <= radius; dy++) {
+        var ty = baseTileY + dy;
+        if (ty < 0 || ty >= numTiles) continue;
+        for (var dx = -radius; dx <= radius; dx++) {
+          var rawTx = baseTileX + dx;
+          var distSq = dx * dx + dy * dy;
+          tileList.push({ rawTx: rawTx, ty: ty, distSq: distSq });
+        }
+      }
+      tileList.sort(function(a, b) { return a.distSq - b.distSq; });
 
-        var demEntry = getTileDem(zInt, tx, ty);
+      for (var ti = 0; ti < tileList.length; ti++) {
+        var item = tileList[ti];
+        var tx = ((item.rawTx % numTiles) + numTiles) % numTiles;
+        var ty2 = item.ty;
+
+        var originX = (item.rawTx - centerMX) * tileWorldSize;
+        var originY = -(ty2 - centerMY) * tileWorldSize;
+
+        var demEntry = getTileDem(zInt, tx, ty2, item.distSq);
         gl.bindBuffer(gl.ARRAY_BUFFER, demEntry.buf);
         gl.enableVertexAttribArray(aElevLoc);
         gl.vertexAttribPointer(aElevLoc, 1, gl.FLOAT, false, 0, 0);
 
-        var texEntry = getTileTexture(state.layer, zInt, tx, ty);
+        var texEntry = getTileTexture(state.layer, zInt, tx, ty2, item.distSq);
         var uvOffX = 0.0, uvOffY = 0.0, uvScale = 1.0;
         var activeTex = null;
 
         if (texEntry.ready) {
           activeTex = texEntry.tex;
         } else if (zInt > 2) {
-          var pz = zInt - 1;
-          var ptx = tx >> 1;
-          var pty = ty >> 1;
-          var pEntry = getTileTexture(state.layer, pz, ptx, pty);
-          if (pEntry.ready) {
-            activeTex = pEntry.tex;
-            uvScale = 0.5;
-            uvOffX = (tx & 1) * 0.5;
-            uvOffY = (ty & 1) * 0.5;
+          // Check up to 2 parent zoom levels for instant progressive display
+          for (var up = 1; up <= 2; up++) {
+            if (zInt - up < 2) break;
+            var pz = zInt - up;
+            var ptx = tx >> up;
+            var pty = ty2 >> up;
+            var pEntry = getTileTexture(state.layer, pz, ptx, pty, item.distSq + 10);
+            if (pEntry.ready) {
+              activeTex = pEntry.tex;
+              var div = 1 << up;
+              uvScale = 1.0 / div;
+              uvOffX = (tx & (div - 1)) * uvScale;
+              uvOffY = (ty2 & (div - 1)) * uvScale;
+              break;
+            }
           }
         }
 
@@ -1013,15 +1274,18 @@
 
         gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
       }
+
+      var modeLabel = state.workerActive ? "MT-WebGL" : "WebGL";
+      statusPill.textContent =
+        modeLabel + " • Tiles: " + state.imgLoadedCount + " | DEM: " + state.demLoadedCount;
     }
 
-    statusPill.textContent =
-      "WebGL Active \u2022 Tiles: " + state.imgLoadedCount + " | DEM: " + state.demLoadedCount;
     requestAnimationFrame(render);
   }
 
   // Panning & Camera Helpers
   function panByPixels(dxPx, dyPx) {
+    flyAnim = null;
     var zInt = Math.round(clamp(state.zoom, 2, 16));
     var numTiles = 1 << zInt;
     var zoomFrac = state.zoom - zInt;
@@ -1047,6 +1311,7 @@
   }
 
   function applyZoom(delta) {
+    flyAnim = null;
     state.zoom = clamp(state.zoom + delta, 2.0, 16.0);
     syncSliders();
   }
@@ -1064,6 +1329,7 @@
     lastMouseX = e.clientX;
     lastMouseY = e.clientY;
     state.autoOrbit = false;
+    flyAnim = null;
     syncSliders();
   });
 
@@ -1092,7 +1358,7 @@
     applyZoom(e.deltaY < 0 ? 0.35 : -0.35);
   }, { passive: false });
 
-  // Multi-Touch Mobile Controls (1-Finger Pan, 2-Finger Pinch Zoom, 2-Finger Tilt/Rotate)
+  // Multi-Touch Mobile Controls
   var touchMode = "none";
   var prevTouchX = 0, prevTouchY = 0;
   var prevPinchDist = 0, prevPinchAngle = 0;
@@ -1100,6 +1366,7 @@
   canvas.addEventListener("touchstart", function(e) {
     e.preventDefault();
     state.autoOrbit = false;
+    flyAnim = null;
     syncSliders();
 
     if (e.touches.length === 1) {
@@ -1206,58 +1473,182 @@
 
   layerSelect.addEventListener("change", function() {
     state.layer = layerSelect.value;
+    markDirty();
   });
 
   var chips = document.querySelectorAll(".btn-chip");
   for (var ci = 0; ci < chips.length; ci++) {
     chips[ci].addEventListener("click", function() {
-      state.lat = parseFloat(this.getAttribute("data-lat"));
-      state.lon = parseFloat(this.getAttribute("data-lon"));
-      state.zoom = parseFloat(this.getAttribute("data-zoom"));
-      if (state.pitch < 20) state.pitch = 52;
-      syncSliders();
+      searchResults.style.display = "none";
+      flyTo(
+        parseFloat(this.getAttribute("data-lat")),
+        parseFloat(this.getAttribute("data-lon")),
+        parseFloat(this.getAttribute("data-zoom"))
+      );
     });
+  }
+
+  // =========================================================================
+  // 3. MULTI-PROVIDER GLOBAL GEOCODING SEARCH (WORKS FROM LOCAL file:// TOO)
+  // =========================================================================
+  function zoomForPlaceType(type, cls) {
+    if (cls === "boundary" && (type === "administrative" || type === "country")) return 6.0;
+    if (type === "country") return 5.5;
+    if (type === "state" || type === "region") return 7.5;
+    if (type === "city" || type === "town") return 11.2;
+    if (type === "village" || type === "suburb") return 12.8;
+    if (type === "peak" || type === "volcano" || type === "mountain_range") return 11.8;
+    return 11.5;
+  }
+
+  function showSearchSuggestions(items) {
+    searchResults.innerHTML = "";
+    if (!items || items.length === 0) {
+      searchResults.style.display = "none";
+      return;
+    }
+    items.forEach(function(item) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "search-item";
+      var titleSpan = document.createElement("span");
+      titleSpan.textContent = item.name;
+      var subSpan = document.createElement("small");
+      subSpan.textContent = item.detail + " (" + item.lat.toFixed(3) + ", " + item.lon.toFixed(3) + ")";
+      btn.appendChild(titleSpan);
+      btn.appendChild(subSpan);
+      btn.addEventListener("click", function() {
+        searchInput.value = item.name;
+        searchResults.style.display = "none";
+        flyTo(item.lat, item.lon, item.zoom);
+      });
+      searchResults.appendChild(btn);
+    });
+    searchResults.style.display = "flex";
+  }
+
+  // Provider A: Photon (Komoot OpenStreetMap Geocoder - CORS friendly, no strict Referer block)
+  function searchPhoton(q) {
+    return fetch("https://photon.komoot.io/api/?limit=5&q=" + encodeURIComponent(q))
+      .then(function(r) {
+        if (!r.ok) throw new Error("Photon HTTP " + r.status);
+        return r.json();
+      })
+      .then(function(data) {
+        if (!data || !data.features || data.features.length === 0) return [];
+        return data.features.map(function(f) {
+          var p = f.properties || {};
+          var coords = f.geometry && f.geometry.coordinates ? f.geometry.coordinates : [0, 0];
+          var name = p.name || p.city || p.state || p.country || q;
+          var parts = [];
+          if (p.city && p.city !== name) parts.push(p.city);
+          if (p.state) parts.push(p.state);
+          if (p.country) parts.push(p.country);
+          return {
+            name: name,
+            detail: parts.join(", ") || (p.osm_value || "Location"),
+            lat: parseFloat(coords[1]),
+            lon: parseFloat(coords[0]),
+            zoom: zoomForPlaceType(p.osm_value, p.osm_key)
+          };
+        });
+      });
+  }
+
+  // Provider B: Open-Meteo Geocoding API (Fast global city/mountain/landmark search, open CORS)
+  function searchOpenMeteo(q) {
+    return fetch("https://geocoding-api.open-meteo.com/v1/search?count=5&language=en&format=json&name=" + encodeURIComponent(q))
+      .then(function(r) {
+        if (!r.ok) throw new Error("OpenMeteo HTTP " + r.status);
+        return r.json();
+      })
+      .then(function(data) {
+        if (!data || !data.results || data.results.length === 0) return [];
+        return data.results.map(function(item) {
+          var parts = [];
+          if (item.admin1) parts.push(item.admin1);
+          if (item.country) parts.push(item.country);
+          return {
+            name: item.name,
+            detail: parts.join(", ") || "Place",
+            lat: parseFloat(item.latitude),
+            lon: parseFloat(item.longitude),
+            zoom: 11.2
+          };
+        });
+      });
+  }
+
+  // Provider C: ArcGIS World Geocoding Service (Fallback)
+  function searchArcGis(q) {
+    var url = "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&maxLocations=5&SingleLine=" + encodeURIComponent(q);
+    return fetch(url)
+      .then(function(r) {
+        if (!r.ok) throw new Error("ArcGIS HTTP " + r.status);
+        return r.json();
+      })
+      .then(function(data) {
+        if (!data || !data.candidates || data.candidates.length === 0) return [];
+        return data.candidates.map(function(c) {
+          return {
+            name: c.address,
+            detail: "ArcGIS Global Geocoder",
+            lat: parseFloat(c.location.y),
+            lon: parseFloat(c.location.x),
+            zoom: 11.5
+          };
+        });
+      });
   }
 
   function runSearch() {
     var q = searchInput.value.trim();
     if (!q) return;
+    searchResults.style.display = "none";
 
-    // Parse "lat, lon" without complex regex literals
+    // 1. Direct "lat, lon" coordinate parsing
     var parts = q.split(",");
     if (parts.length === 2) {
       var pLat = parseFloat(parts[0].trim());
       var pLon = parseFloat(parts[1].trim());
       if (!isNaN(pLat) && !isNaN(pLon) && Math.abs(pLat) <= 90 && Math.abs(pLon) <= 180) {
-        state.lat = pLat;
-        state.lon = pLon;
-        state.zoom = Math.max(state.zoom, 11.5);
-        syncSliders();
+        flyTo(pLat, pLon, Math.max(state.zoom, 11.5));
         return;
       }
     }
 
-    statusPill.textContent = "Searching...";
-    fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(q))
-      .then(function(r) { return r.json(); })
-      .then(function(arr) {
-        if (arr && arr.length > 0) {
-          state.lat = parseFloat(arr[0].lat);
-          state.lon = parseFloat(arr[0].lon);
-          state.zoom = 11.5;
-          syncSliders();
-        } else {
-          statusPill.textContent = "Location not found";
-        }
+    statusPill.textContent = "Searching "" + q + ""...";
+
+    // Cascading fallback across 3 CORS-open global geocoding services
+    searchPhoton(q)
+      .catch(function() { return []; })
+      .then(function(res1) {
+        if (res1 && res1.length > 0) return res1;
+        return searchOpenMeteo(q).catch(function() { return []; });
       })
-      .catch(function() {
-        statusPill.textContent = "Search network unavailable";
+      .then(function(res2) {
+        if (res2 && res2.length > 0) return res2;
+        return searchArcGis(q).catch(function() { return []; });
+      })
+      .then(function(results) {
+        if (results && results.length > 0) {
+          flyTo(results[0].lat, results[0].lon, results[0].zoom);
+          if (results.length > 1) {
+            showSearchSuggestions(results);
+          }
+          statusPill.textContent = "Found: " + results[0].name;
+        } else {
+          statusPill.textContent = "No match for "" + q + """;
+        }
       });
   }
 
   searchBtn.addEventListener("click", runSearch);
   searchInput.addEventListener("keydown", function(e) {
-    if (e.key === "Enter") runSearch();
+    if (e.key === "Enter") {
+      e.preventDefault();
+      runSearch();
+    }
   });
 
   window.addEventListener("keydown", function(e) {
