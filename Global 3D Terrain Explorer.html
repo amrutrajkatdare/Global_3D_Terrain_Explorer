@@ -78,7 +78,9 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
       <option value="esri_sat">Esri World Satellite Imagery</option>
       <option value="esri_street">Esri World Street Map</option>
       <option value="esri_hillshade">Esri Shaded Hillshade Relief</option>
+      <option value="bhuvan_lulc_mh_1516">Bhuvan Land Cover · Maharashtra (2015–16)</option>
     </select>
+    <p class="help-note" id="layerSourceNote" style="margin-top:7px">Bhuvan Land Cover is an NRSC thematic overlay for Maharashtra only; coverage and service availability depend on the external Bhuvan service.</p>
   </div>
 
 
@@ -476,7 +478,36 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
   }
 
 
+  // Bhuvan publishes this Maharashtra LULC layer as WMS. Adapt each
+  // Web-Mercator XYZ tile footprint to a WMS 1.1.1 EPSG:4326 GetMap request.
+  // Keep this provider isolated from DEM loading and the terrain renderer.
+  function getBhuvanLulcTileUrl(z, x, y) {
+    var n = Math.pow(2, z);
+    var west = x / n * 360.0 - 180.0;
+    var east = (x + 1) / n * 360.0 - 180.0;
+    var north = mercYToLat(y / n);
+    var south = mercYToLat((y + 1) / n);
+    var params = [
+      "SERVICE=WMS",
+      "VERSION=1.1.1",
+      "REQUEST=GetMap",
+      "LAYERS=lulc%3AMH_LULC50K_1516",
+      "STYLES=",
+      "SRS=EPSG%3A4326",
+      "BBOX=" + [west, south, east, north].map(function(v) { return v.toFixed(8); }).join("%2C"),
+      "WIDTH=256",
+      "HEIGHT=256",
+      "FORMAT=image%2Fpng",
+      "TRANSPARENT=true"
+    ];
+    return "https://bhuvan-vec2.nrsc.gov.in/bhuvan/wms?" + params.join("&");
+  }
+
+
   function getMapTileUrl(layer, z, x, y) {
+    if (layer === "bhuvan_lulc_mh_1516") {
+      return getBhuvanLulcTileUrl(z, x, y);
+    }
     if (layer === "opentopo") {
       var sub = ["a", "b", "c"][(x + y) % 3];
       return "https://" + sub + ".tile.opentopomap.org/" + z + "/" + x + "/" + y + ".png";

@@ -204,6 +204,24 @@ async function waitFor(predicate, timeout = 20000, interval = 250) {
     check("Global search resolves a non-preset place", !!searchStatus && /Found:/i.test(searchStatus),
       (searchStatus || "search did not return within 22 seconds") + (geocoderNetwork.length ? " | " + geocoderNetwork.join(" ; ") : ""));
 
+    // Bhuvan LULC is a native map-surface choice, not a separate links panel.
+    const bhuvanOption = await page.locator('#layerSelect option[value="bhuvan_lulc_mh_1516"]').count();
+    const bhuvanNote = await page.locator("#layerSourceNote").textContent();
+    check("Bhuvan Maharashtra LULC appears in the existing map-layer selector",
+      bhuvanOption === 1 && /Maharashtra only/i.test(bhuvanNote) &&
+      await page.locator("#bhuvanServices").count() === 0,
+      bhuvanNote.trim());
+
+    // Selecting the extension must not change the DEM provider or camera controls.
+    const layerBefore = await page.locator("#layerSelect").inputValue();
+    await page.locator("#layerSelect").selectOption("bhuvan_lulc_mh_1516");
+    const layerAfter = await page.locator("#layerSelect").inputValue();
+    check("Bhuvan LULC selection is isolated to the map surface", layerBefore !== layerAfter &&
+      layerAfter === "bhuvan_lulc_mh_1516");
+    await page.locator("#layerSelect").selectOption("esri_topo");
+    check("Existing map surface can be restored after Bhuvan selection",
+      await page.locator("#layerSelect").inputValue() === "esri_topo");
+
     // Mobile layout / touch pan: viewport layout is checked separately from gesture simulation.
     const mobile = await browser.newContext({
       viewport: { width: 390, height: 844 },
