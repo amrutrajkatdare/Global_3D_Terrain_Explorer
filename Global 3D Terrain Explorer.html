@@ -620,7 +620,7 @@
     syncSliders();
   }
 
-  // Tile URL Generators
+  // Tile URL Generators (Zero API Keys / Zero Tokens)
   function getMapTileUrl(layer, z, x, y) {
     if (layer === "opentopo") {
       var sub = ["a", "b", "c"][(x + y) % 3];
@@ -677,8 +677,7 @@
     "  vElev = aElev;",
     "  vDepth = -viewPos.z;",
     "}"
-  ].join("
-");
+  ].join("\n");
 
   var fsSource = [
     "precision mediump float;",
@@ -700,8 +699,7 @@
     "  vec3 skyCol = vec3(0.05, 0.08, 0.14);",
     "  gl_FragColor = vec4(mix(baseCol, skyCol, fog), 1.0);",
     "}"
-  ].join("
-");
+  ].join("\n");
 
   function compileShader(type, src) {
     var s = gl.createShader(type);
@@ -860,7 +858,6 @@
     return elevArr;
   }
 
-  // Build inline Blob Web Workers (works cleanly even on local file:// origins)
   (function initWorkerPool() {
     if (typeof Worker === "undefined" || typeof Blob === "undefined") return;
     var workerCode = [
@@ -889,8 +886,7 @@
       "  }",
       "  self.postMessage({ id: d.id, elevBuf: elevArr.buffer }, [elevArr.buffer]);",
       "};"
-    ].join("
-");
+    ].join("\n");
 
     try {
       var blob = new Blob([workerCode], { type: "application/javascript" });
@@ -952,7 +948,6 @@
 
   function pumpImgQueue() {
     while (activeImgLoads < MAX_CONCURRENT_IMG && imgQueue.length > 0) {
-      // Pick highest priority (closest to center)
       imgQueue.sort(function(a, b) { return a.dist - b.dist; });
       var job = imgQueue.shift();
       if (!job || job.entry.cancelled) continue;
@@ -1207,7 +1202,6 @@
       var baseTileY = Math.floor(centerMY);
       var radius = state.pitch > 35 ? 3 : 2;
 
-      // Build center-out sorted tile list so foreground/center loads first
       var tileList = [];
       for (var dy = -radius; dy <= radius; dy++) {
         var ty = baseTileY + dy;
@@ -1240,7 +1234,6 @@
         if (texEntry.ready) {
           activeTex = texEntry.tex;
         } else if (zInt > 2) {
-          // Check up to 2 parent zoom levels for instant progressive display
           for (var up = 1; up <= 2; up++) {
             if (zInt - up < 2) break;
             var pz = zInt - up;
@@ -1277,7 +1270,7 @@
 
       var modeLabel = state.workerActive ? "MT-WebGL" : "WebGL";
       statusPill.textContent =
-        modeLabel + " • Tiles: " + state.imgLoadedCount + " | DEM: " + state.demLoadedCount;
+        modeLabel + " \u2022 Tiles: " + state.imgLoadedCount + " | DEM: " + state.demLoadedCount;
     }
 
     requestAnimationFrame(render);
@@ -1489,7 +1482,7 @@
   }
 
   // =========================================================================
-  // 3. MULTI-PROVIDER GLOBAL GEOCODING SEARCH (WORKS FROM LOCAL file:// TOO)
+  // 3. TOKEN-FREE MULTI-PROVIDER GLOBAL GEOCODING SEARCH
   // =========================================================================
   function zoomForPlaceType(type, cls) {
     if (cls === "boundary" && (type === "administrative" || type === "country")) return 6.0;
@@ -1527,7 +1520,6 @@
     searchResults.style.display = "flex";
   }
 
-  // Provider A: Photon (Komoot OpenStreetMap Geocoder - CORS friendly, no strict Referer block)
   function searchPhoton(q) {
     return fetch("https://photon.komoot.io/api/?limit=5&q=" + encodeURIComponent(q))
       .then(function(r) {
@@ -1555,7 +1547,6 @@
       });
   }
 
-  // Provider B: Open-Meteo Geocoding API (Fast global city/mountain/landmark search, open CORS)
   function searchOpenMeteo(q) {
     return fetch("https://geocoding-api.open-meteo.com/v1/search?count=5&language=en&format=json&name=" + encodeURIComponent(q))
       .then(function(r) {
@@ -1579,7 +1570,6 @@
       });
   }
 
-  // Provider C: ArcGIS World Geocoding Service (Fallback)
   function searchArcGis(q) {
     var url = "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&maxLocations=5&SingleLine=" + encodeURIComponent(q);
     return fetch(url)
@@ -1606,7 +1596,6 @@
     if (!q) return;
     searchResults.style.display = "none";
 
-    // 1. Direct "lat, lon" coordinate parsing
     var parts = q.split(",");
     if (parts.length === 2) {
       var pLat = parseFloat(parts[0].trim());
@@ -1617,9 +1606,8 @@
       }
     }
 
-    statusPill.textContent = "Searching "" + q + ""...";
+    statusPill.textContent = "Searching: " + q + "...";
 
-    // Cascading fallback across 3 CORS-open global geocoding services
     searchPhoton(q)
       .catch(function() { return []; })
       .then(function(res1) {
@@ -1638,7 +1626,7 @@
           }
           statusPill.textContent = "Found: " + results[0].name;
         } else {
-          statusPill.textContent = "No match for "" + q + """;
+          statusPill.textContent = "No match for: " + q;
         }
       });
   }
