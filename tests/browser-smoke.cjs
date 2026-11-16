@@ -165,15 +165,17 @@ async function waitFor(predicate, timeout = 20000, interval = 250) {
       const panel = document.getElementById("toolPanel");
       const dock = document.getElementById("quickDock");
       const canvas = document.getElementById("glCanvas");
+      const statusPill = document.getElementById("statusPill");
       const p = getComputedStyle(panel);
       return {
         panelWithinViewport: panel.getBoundingClientRect().bottom <= innerHeight + 1,
         dockVisible: getComputedStyle(dock).display !== "none",
+        secondaryStatusHidden: getComputedStyle(statusPill).display === "none",
         touchAction: getComputedStyle(canvas).touchAction
       };
     });
     check("Mobile viewport layout and touch affordances",
-      mobileLayout.panelWithinViewport && mobileLayout.dockVisible && mobileLayout.touchAction === "none",
+      mobileLayout.panelWithinViewport && mobileLayout.dockVisible && mobileLayout.secondaryStatusHidden && mobileLayout.touchAction === "none",
       JSON.stringify(mobileLayout));
 
     // Simulate a single-finger pan using browser Touch objects.
