@@ -157,9 +157,11 @@ async function waitFor(predicate, timeout = 20000, interval = 250) {
       savedPlaceCheck.hasEye && savedPlaceCheck.hasAndaman && savedPlaceCheck.hasOxford &&
       savedPlaceCheck.hasLiberty && savedPlaceCheck.removedOldPresets, JSON.stringify(savedPlaceCheck));
     await page.locator("#savedLocationSelect").selectOption("51.75717365694981,-1.2538370726565802,13");
-    await page.waitForTimeout(700);
-    check("Saved place selection starts fly-to", await page.locator("#coordHud").textContent().then(t => /Lat 51\./.test(t)),
-      await page.locator("#coordHud").textContent());
+    const oxfordHud = await waitFor(async () => {
+      const value = await page.locator("#coordHud").textContent();
+      return value && /Lat 51\./.test(value) ? value : null;
+    }, 5000);
+    check("Saved place selection starts fly-to", !!oxfordHud, oxfordHud || await page.locator("#coordHud").textContent());
 
     // Global search test. Search should resolve a non-preset city.
     await page.locator("#searchInput").fill("Paris");
