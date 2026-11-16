@@ -37,7 +37,18 @@ async function waitFor(predicate, timeout = 20000, interval = 250) {
     });
     const page = await context.newPage();
     const pageErrors = [];
+    const geocoderNetwork = [];
     page.on("pageerror", error => pageErrors.push(error.message));
+    page.on("requestfailed", request => {
+      if (/photon|geocoding-api|geocode\.arcgis/i.test(request.url())) {
+        geocoderNetwork.push("FAILED " + request.url() + " :: " + (request.failure()?.errorText || "unknown"));
+      }
+    });
+    page.on("response", response => {
+      if (/photon|geocoding-api|geocode\.arcgis/i.test(response.url())) {
+        geocoderNetwork.push("HTTP " + response.status() + " " + response.url());
+      }
+    });
     await page.goto(APP_URL, { waitUntil: "domcontentloaded", timeout: 30000 });
 
     const webgl = await page.evaluate(() => {
@@ -96,14 +107,14 @@ async function waitFor(predicate, timeout = 20000, interval = 250) {
       beforeDrag + " | during: " + duringDrag + " | after: " + afterDrag);
 
     // Global search test. Search should resolve a non-preset city.
-    await page.locator("#searchInput").fill("Bengaluru");
+    await page.locator("#searchInput").fill("Paris");
     await page.locator("#searchBtn").click();
     const searchStatus = await waitFor(async () => {
-      const value = await page.locator("#statusPill").textContent();
-      return value && (/Found:|No match for:/.test(value)) ? value : null;
-    }, 25000);
-    check("Global search responds for a non-preset place", !!searchStatus && /Found:/i.test(searchStatus),
-      searchStatus || "search did not return within 25 seconds");
+      const value = await page.locator("#searchStatus").textContent();
+      return value && (/Found:|No match found/.test(value)) ? value : null;
+    }, 22000);
+    check("Global search resolves a non-preset place", !!searchStatus && /Found:/i.test(searchStatus),
+      (searchStatus || "search did not return within 22 seconds") + (geocoderNetwork.length ? " | " + geocoderNetwork.join(" ; ") : ""));
 
     // Mobile layout / touch pan: viewport layout is checked separately from gesture simulation.
     const mobile = await browser.newContext({
