@@ -45,7 +45,7 @@
 .section-box { background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(148, 163, 184, 0.14); border-radius: 10px; padding: 10px; margin-bottom: 10px; position: relative; } .section-label { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #94a3b8; margin-bottom: 7px; display: block; }
 select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; outline: none; user-select: text; -webkit-user-select: text; } select:focus, input[type="text"]:focus { border-color: #38bdf8; }
 .search-row { display: flex; gap: 6px; margin-bottom: 6px; } .btn-primary { background: #0284c7; color: #fff; border: none; border-radius: 8px; padding: 0 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; flex-shrink: 0; } .btn-primary:hover { background: #0369a1; }
-#searchResults { display: none; flex-direction: column; background: #0b1120; border: 1px solid rgba(56, 189, 248, 0.45); border-radius: 8px; margin-bottom: 8px; max-height: 150px; overflow-y: auto; } .search-item { padding: 7px 10px; font-size: 11.5px; color: #e2e8f0; border-bottom: 1px solid rgba(148, 163, 184, 0.12); cursor: pointer; text-align: left; background: transparent; border-left: none; border-right: none; border-top: none; width: 100%; } .search-item:last-child { border-bottom: none; } .search-item:hover { background: rgba(2, 132, 199, 0.35); color: #ffffff; } .search-item small { display: block; color: #94a3b8; font-size: 10px; margin-top: 1px; }
+#searchResults { display: none; flex-direction: column; background: #0b1120; border: 1px solid rgba(56, 189, 248, 0.45); border-radius: 8px; margin-bottom: 8px; max-height: 150px; overflow-y: auto; } #searchStatus { min-height: 14px; margin: 2px 0 7px; font-size: 10.5px; line-height: 1.35; color: #7dd3fc; overflow-wrap: anywhere; } #searchStatus.error { color: #fca5a5; } .search-item { padding: 7px 10px; font-size: 11.5px; color: #e2e8f0; border-bottom: 1px solid rgba(148, 163, 184, 0.12); cursor: pointer; text-align: left; background: transparent; border-left: none; border-right: none; border-top: none; width: 100%; } .search-item:last-child { border-bottom: none; } .search-item:hover { background: rgba(2, 132, 199, 0.35); color: #ffffff; } .search-item small { display: block; color: #94a3b8; font-size: 10px; margin-top: 1px; }
 .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; } .btn-chip { background: rgba(30, 41, 59, 0.85); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.22); border-radius: 7px; padding: 6px 6px; font-size: 11px; font-weight: 500; cursor: pointer; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .btn-chip:hover { background: rgba(51, 65, 85, 0.95); color: #fff; border-color: #38bdf8; }
 .btn-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-bottom: 8px; } .btn-mode { background: rgba(30, 41, 59, 0.9); color: #e2e8f0; border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 7px; padding: 7px 4px; font-size: 11px; font-weight: 600; cursor: pointer; text-align: center; } .btn-mode:hover { border-color: #38bdf8; } .btn-mode.active { background: #0284c7; border-color: #38bdf8; color: #fff; }
 .slider-group { margin-top: 7px; } .slider-header { display: flex; justify-content: space-between; font-size: 11.5px; color: #cbd5e1; margin-bottom: 3px; } .slider-val { color: #38bdf8; font-weight: 600; font-variant-numeric: tabular-nums; } input[type="range"] { width: 100%; accent-color: #38bdf8; cursor: pointer; height: 18px; }
@@ -89,6 +89,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
       <button id="searchBtn" class="btn-primary" type="button">Go</button>
     </div>
     <div id="searchResults"></div>
+    <div id="searchStatus" role="status" aria-live="polite"></div>
     <div class="preset-grid">
       <button class="btn-chip" type="button" data-lat="21.1147" data-lon="-11.3942" data-zoom="11.2">Eye of Sahara</button>
       <button class="btn-chip" type="button" data-lat="27.9881" data-lon="86.9250" data-zoom="11.5">Mt. Everest</button>
@@ -174,6 +175,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
   var searchInput = document.getElementById("searchInput");
   var searchBtn = document.getElementById("searchBtn");
   var searchResults = document.getElementById("searchResults");
+  var searchStatus = document.getElementById("searchStatus");
   var pitchSlider = document.getElementById("pitchSlider");
   var bearingSlider = document.getElementById("bearingSlider");
   var exagSlider = document.getElementById("exagSlider");
@@ -1505,12 +1507,22 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
   }
 
 
-  function searchPhoton(q) {
-    return fetch("https://photon.komoot.io/api/?limit=5&q=" + encodeURIComponent(q))
+  // Public geocoders occasionally stall or rate-limit. Bound each attempt so
+  // a single unresponsive provider cannot make global search appear frozen.
+  function fetchGeocoderJson(url, provider, timeoutMs) {
+    var controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    var timer = controller ? setTimeout(function() { controller.abort(); }, timeoutMs || 5000) : null;
+    return fetch(url, controller ? { signal: controller.signal } : {})
       .then(function(r) {
-        if (!r.ok) throw new Error("Photon HTTP " + r.status);
+        if (!r.ok) throw new Error(provider + " HTTP " + r.status);
         return r.json();
       })
+      .finally(function() { if (timer) clearTimeout(timer); });
+  }
+
+  function searchPhoton(q) {
+    return fetchGeocoderJson("https://photon.komoot.io/api/?limit=5&q=" + encodeURIComponent(q), "Photon", 5000)
+      
       .then(function(data) {
         if (!data || !data.features || data.features.length === 0) return [];
         return data.features.map(function(f) {
@@ -1534,11 +1546,8 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
 
 
   function searchOpenMeteo(q) {
-    return fetch("https://geocoding-api.open-meteo.com/v1/search?count=5&language=en&format=json&name=" + encodeURIComponent(q))
-      .then(function(r) {
-        if (!r.ok) throw new Error("OpenMeteo HTTP " + r.status);
-        return r.json();
-      })
+    return fetchGeocoderJson("https://geocoding-api.open-meteo.com/v1/search?count=5&language=en&format=json&name=" + encodeURIComponent(q), "Open-Meteo", 5000)
+      
       .then(function(data) {
         if (!data || !data.results || data.results.length === 0) return [];
         return data.results.map(function(item) {
@@ -1559,11 +1568,8 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
 
   function searchArcGis(q) {
     var url = "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&maxLocations=5&SingleLine=" + encodeURIComponent(q);
-    return fetch(url)
-      .then(function(r) {
-        if (!r.ok) throw new Error("ArcGIS HTTP " + r.status);
-        return r.json();
-      })
+    return fetchGeocoderJson(url, "ArcGIS", 5000)
+      
       .then(function(data) {
         if (!data || !data.candidates || data.candidates.length === 0) return [];
         return data.candidates.map(function(c) {
@@ -1586,6 +1592,8 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
     var q = searchInput.value.trim();
     if (!q) return;
     searchResults.style.display = "none";
+    searchStatus.classList.remove("error");
+    searchStatus.textContent = "Searching worldwide…";
 
 
     var parts = q.split(",");
@@ -1593,6 +1601,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
       var pLat = parseFloat(parts[0].trim());
       var pLon = parseFloat(parts[1].trim());
       if (!isNaN(pLat) && !isNaN(pLon) && Math.abs(pLat) <= 90 && Math.abs(pLon) <= 180) {
+        searchStatus.textContent = "Coordinates accepted · " + pLat.toFixed(4) + ", " + pLon.toFixed(4);
         flyTo(pLat, pLon, Math.max(state.zoom, 11.5));
         return;
       }
@@ -1620,9 +1629,11 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
           if (results.length > 1) {
             showSearchSuggestions(results);
           }
-            statusPill.textContent = "Found: " + results[0].name;
+            searchStatus.classList.remove("error");
+          searchStatus.textContent = "Found: " + results[0].name + (results.length > 1 ? " · " + results.length + " matches" : "");
         } else {
-          statusPill.textContent = "No match for: " + q;
+          searchStatus.classList.add("error");
+          searchStatus.textContent = "No match found. Try a more specific place name or coordinates.";
         }
       });
   }
