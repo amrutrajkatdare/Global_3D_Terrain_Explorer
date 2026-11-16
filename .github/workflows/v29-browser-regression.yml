@@ -1,0 +1,37 @@
+name: V29 Browser Regression Tests
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  chromium-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Check out proposed release
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install Chromium
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Serve the standalone HTML app
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/terrain-http.log 2>&1 &
+          echo $! > /tmp/terrain-http.pid
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/Global%203D%20Terrain%20Explorer.html >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/terrain-http.log
+          exit 1
+      - name: Run browser regression suite
+        run: node tests/browser-smoke.cjs

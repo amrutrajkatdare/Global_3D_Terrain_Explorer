@@ -45,14 +45,14 @@
 .section-box { background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(148, 163, 184, 0.14); border-radius: 10px; padding: 10px; margin-bottom: 10px; position: relative; } .section-label { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #94a3b8; margin-bottom: 7px; display: block; }
 select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; outline: none; user-select: text; -webkit-user-select: text; } select:focus, input[type="text"]:focus { border-color: #38bdf8; }
 .search-row { display: flex; gap: 6px; margin-bottom: 6px; } .btn-primary { background: #0284c7; color: #fff; border: none; border-radius: 8px; padding: 0 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; flex-shrink: 0; } .btn-primary:hover { background: #0369a1; }
-#searchResults { display: none; flex-direction: column; background: #0b1120; border: 1px solid rgba(56, 189, 248, 0.45); border-radius: 8px; margin-bottom: 8px; max-height: 150px; overflow-y: auto; } .search-item { padding: 7px 10px; font-size: 11.5px; color: #e2e8f0; border-bottom: 1px solid rgba(148, 163, 184, 0.12); cursor: pointer; text-align: left; background: transparent; border-left: none; border-right: none; border-top: none; width: 100%; } .search-item:last-child { border-bottom: none; } .search-item:hover { background: rgba(2, 132, 199, 0.35); color: #ffffff; } .search-item small { display: block; color: #94a3b8; font-size: 10px; margin-top: 1px; }
+#searchResults { display: none; flex-direction: column; background: #0b1120; border: 1px solid rgba(56, 189, 248, 0.45); border-radius: 8px; margin-bottom: 8px; max-height: 150px; overflow-y: auto; } #searchStatus { min-height: 14px; margin: 2px 0 7px; font-size: 10.5px; line-height: 1.35; color: #7dd3fc; overflow-wrap: anywhere; } #searchStatus.error { color: #fca5a5; } .search-item { padding: 7px 10px; font-size: 11.5px; color: #e2e8f0; border-bottom: 1px solid rgba(148, 163, 184, 0.12); cursor: pointer; text-align: left; background: transparent; border-left: none; border-right: none; border-top: none; width: 100%; } .search-item:last-child { border-bottom: none; } .search-item:hover { background: rgba(2, 132, 199, 0.35); color: #ffffff; } .search-item small { display: block; color: #94a3b8; font-size: 10px; margin-top: 1px; }
 .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; } .btn-chip { background: rgba(30, 41, 59, 0.85); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.22); border-radius: 7px; padding: 6px 6px; font-size: 11px; font-weight: 500; cursor: pointer; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .btn-chip:hover { background: rgba(51, 65, 85, 0.95); color: #fff; border-color: #38bdf8; }
 .btn-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-bottom: 8px; } .btn-mode { background: rgba(30, 41, 59, 0.9); color: #e2e8f0; border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 7px; padding: 7px 4px; font-size: 11px; font-weight: 600; cursor: pointer; text-align: center; } .btn-mode:hover { border-color: #38bdf8; } .btn-mode.active { background: #0284c7; border-color: #38bdf8; color: #fff; }
 .slider-group { margin-top: 7px; } .slider-header { display: flex; justify-content: space-between; font-size: 11.5px; color: #cbd5e1; margin-bottom: 3px; } .slider-val { color: #38bdf8; font-weight: 600; font-variant-numeric: tabular-nums; } input[type="range"] { width: 100%; accent-color: #38bdf8; cursor: pointer; height: 18px; }
 .help-note { font-size: 10.5px; color: #94a3b8; line-height: 1.45; }
 #quickDock { position: fixed; top: calc(14px + env(safe-area-inset-top)); right: calc(14px + env(safe-area-inset-right)); z-index: 25; display: flex; flex-direction: column; gap: 6px; } .dock-btn { width: 40px; height: 40px; background: rgba(15, 23, 42, 0.92); color: #f8fafc; border: 1px solid rgba(148, 163, 184, 0.35); border-radius: 10px; font-size: 18px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px); } .dock-btn:hover { background: rgba(30, 41, 59, 0.98); border-color: #38bdf8; } .dock-btn:active { transform: scale(0.95); } .dock-btn.small-text { font-size: 12px; }
-#coordHud { position: fixed; bottom: calc(12px + env(safe-area-inset-bottom)); left: calc(14px + env(safe-area-inset-left)); z-index: 15; background: rgba(15, 23, 42, 0.86); border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 999px; padding: 5px 12px; font-size: 11px; color: #cbd5e1; font-variant-numeric: tabular-nums; backdrop-filter: blur(8px); pointer-events: none; } #statusPill { position: fixed; bottom: calc(12px + env(safe-area-inset-bottom)); right: calc(14px + env(safe-area-inset-right)); z-index: 15; background: rgba(15, 23, 42, 0.86); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 999px; padding: 5px 12px; font-size: 11px; color: #7dd3fc; backdrop-filter: blur(8px); pointer-events: none; }
-@media (max-width: 640px) { #toolPanel { top: auto; bottom: calc(46px + env(safe-area-inset-bottom)); left: calc(10px + env(safe-area-inset-left)); right: calc(10px + env(safe-area-inset-right)); width: auto; max-height: 52vh; padding: 12px; } .dock-btn { width: 44px; height: 44px; } #coordHud, #statusPill { font-size: 10px; padding: 4px 9px; } }
+#coordHud { position: fixed; bottom: calc(12px + env(safe-area-inset-bottom)); left: calc(14px + env(safe-area-inset-left)); z-index: 15; background: rgba(15, 23, 42, 0.92); border: 1px solid rgba(148, 163, 184, 0.35); border-radius: 999px; padding: 7px 13px; font-size: 11px; color: #cbd5e1; font-variant-numeric: tabular-nums; backdrop-filter: blur(8px); cursor: pointer; font-family: inherit; text-align: left; touch-action: manipulation; user-select: none; -webkit-user-select: none; } #coordHud:hover, #coordHud:focus-visible { border-color: #38bdf8; color: #fff; outline: none; } #coordHud:active { transform: scale(0.98); } #statusPill { position: fixed; bottom: calc(12px + env(safe-area-inset-bottom)); right: calc(14px + env(safe-area-inset-right)); z-index: 15; background: rgba(15, 23, 42, 0.86); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 999px; padding: 5px 12px; font-size: 11px; color: #7dd3fc; backdrop-filter: blur(8px); pointer-events: none; }
+@media (max-width: 640px) { #statusPill { display: none; } #toolPanel { top: auto; bottom: calc(46px + env(safe-area-inset-bottom)); left: calc(10px + env(safe-area-inset-left)); right: calc(10px + env(safe-area-inset-right)); width: auto; max-height: 52vh; padding: 12px; } .dock-btn { width: 44px; height: 44px; } #coordHud, #statusPill { font-size: 10px; padding: 4px 9px; } }
 @media (max-height: 500px) { #toolPanel { width: 280px; max-height: calc(100vh - 64px); padding: 10px; } .section-box { padding: 8px; margin-bottom: 7px; } } </style>
 </head>
 <body>
@@ -89,22 +89,41 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
       <button id="searchBtn" class="btn-primary" type="button">Go</button>
     </div>
     <div id="searchResults"></div>
-    <div class="preset-grid">
-      <button class="btn-chip" type="button" data-lat="21.1147" data-lon="-11.3942" data-zoom="11.2">Eye of Sahara</button>
-      <button class="btn-chip" type="button" data-lat="27.9881" data-lon="86.9250" data-zoom="11.5">Mt. Everest</button>
-      <button class="btn-chip" type="button" data-lat="36.1069" data-lon="-112.1129" data-zoom="11.5">Grand Canyon</button>
-      <button class="btn-chip" type="button" data-lat="35.3606" data-lon="138.7274" data-zoom="11.8">Mt. Fuji</button>
-      <button class="btn-chip" type="button" data-lat="45.9766" data-lon="7.6585" data-zoom="12.2">Matterhorn</button>
-      <button class="btn-chip" type="button" data-lat="17.4840" data-lon="73.1890" data-zoom="11.5">Konkan Coast</button>
-    </div>
+    <div id="searchStatus" role="status" aria-live="polite"></div>
+    <label class="section-label" for="savedLocationSelect">Explore Featured Locations</label>
+    <select id="savedLocationSelect">
+      <option value="">Choose a location to explore…</option>
+      <optgroup label="Islands">
+        <option value="12.500000,92.750000,8.8">Andaman Islands</option>
+        <option value="4.175500,73.509300,8.8">Maldives · Malé</option>
+      </optgroup>
+      <optgroup label="Lakes, Deserts &amp; Landforms">
+        <option value="13.000000,14.000000,8.5">Lake Chad · shrinking lake &amp; paleochannels</option>
+        <option value="21.114700,-11.394200,11.2">Eye of Sahara</option>
+        <option value="37.133767012398984,79.23768951685483,12">Yatan Qitahe</option>
+      </optgroup>
+      <optgroup label="Himalayan River Origins">
+        <option value="30.920000,79.080000,10.5">Gangotri Glacier · Ganges</option>
+        <option value="31.010000,78.460000,10.5">Yamunotri Glacier · Yamuna</option>
+        <option value="30.480000,79.350000,10.0">Satopanth Glacier · Alaknanda</option>
+        <option value="31.200830,81.754440,9.8">Upper Gê'gyai · Indus source region</option>
+        <option value="30.350000,82.000000,9.8">Angsi Glacier region · Yarlung Tsangpo / Brahmaputra</option>
+      </optgroup>
+      <optgroup label="Places &amp; Monuments">
+        <option value="18.939800,72.835500,14">Mumbai · CSMT (formerly Victoria Terminus)</option>
+        <option value="51.75717365694981,-1.2538370726565802,13">University of Oxford</option>
+        <option value="21.838000,73.719100,14.5">Statue of Unity · Gujarat</option>
+        <option value="40.689200,-74.044500,14">Statue of Liberty</option>
+      </optgroup>
+    </select>
   </div>
 
 
   <div class="section-box">
     <span class="section-label">Camera &amp; Perspective</span>
     <div class="btn-row-3">
-      <button id="btn2D" class="btn-mode" type="button">2D Top</button>
-      <button id="btn3D" class="btn-mode active" type="button">3D Tilt</button>
+      <button id="btn2D" class="btn-mode active" type="button">2D Top</button>
+      <button id="btn3D" class="btn-mode" type="button">3D Tilt</button>
       <button id="btnOrbit" class="btn-mode" type="button">Auto-Orbit</button>
     </div>
 
@@ -112,9 +131,9 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
 <div class="slider-group">
   <div class="slider-header">
     <span>Camera Tilt (Pitch)</span>
-    <span id="pitchVal" class="slider-val">52&deg;</span>
+    <span id="pitchVal" class="slider-val">0&deg;</span>
   </div>
-  <input id="pitchSlider" type="range" min="0" max="72" step="1" value="52">
+  <input id="pitchSlider" type="range" min="0" max="72" step="1" value="0">
 </div>
 
 
@@ -132,7 +151,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
     <span>Elevation Exaggeration</span>
     <span id="exagVal" class="slider-val">2.4x</span>
   </div>
-  <input id="exagSlider" type="range" min="0.5" max="6.0" step="0.1" value="2.4">
+  <input id="exagSlider" type="range" min="0" max="6.0" step="0.1" value="2.4">
 </div>
   </div>
 
@@ -149,11 +168,11 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
 <div id="quickDock" aria-label="Quick Zoom and 3D Controls">
   <button id="zoomInBtn" class="dock-btn" type="button" title="Zoom In (+)">+</button>
   <button id="zoomOutBtn" class="dock-btn" type="button" title="Zoom Out (-)">&minus;</button>
-  <button id="quickTiltBtn" class="dock-btn small-text" type="button" title="Toggle 2D / 3D Tilt">3D</button>
+  <button id="quickTiltBtn" class="dock-btn small-text" type="button" title="Switch to 3D terrain view">3D</button>
 </div>
 
 
-<div id="coordHud">Lat 21.1147&deg;, Lon -11.3942&deg; &bull; Z 11.2</div>
+<button id="coordHud" type="button" title="Click or tap to copy coordinates" aria-label="Copy map center coordinates">Lat 21.1147&deg;, Lon -11.3942&deg; &bull; Z 11.2</button>
 <div id="statusPill">Initializing WebGL...</div>
 
 
@@ -174,6 +193,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
   var searchInput = document.getElementById("searchInput");
   var searchBtn = document.getElementById("searchBtn");
   var searchResults = document.getElementById("searchResults");
+  var searchStatus = document.getElementById("searchStatus");
   var pitchSlider = document.getElementById("pitchSlider");
   var bearingSlider = document.getElementById("bearingSlider");
   var exagSlider = document.getElementById("exagSlider");
@@ -211,7 +231,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
     lat: 21.1147,
     lon: -11.3942,
     zoom: 11.2,
-    pitch: 52.0,
+    pitch: 0.0,
     bearing: 0.0,
     exag: 2.4,
     layer: "esri_topo",
@@ -224,8 +244,18 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
   };
 
 
+  // Schedule a frame only when something changed or an animation is active.
+  // This avoids keeping a permanent requestAnimationFrame loop alive on idle maps.
+  var renderFramePending = false;
+  function requestRender() {
+    if (renderFramePending) return;
+    renderFramePending = true;
+    requestAnimationFrame(render);
+  }
+
   function markDirty() {
     state.dirty = true;
+    requestRender();
   }
 
   // Request tiles only after the camera has settled. This prevents every
@@ -256,6 +286,18 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
 
     tileRefreshTimer = setTimeout(function() {
       tileRefreshTimer = null;
+
+      // A fly-to is a visual transition, not a sequence of destinations.
+      // Keep the current terrain intact and wait until the camera reaches its
+      // final target before computing or requesting replacement coverage.
+      if (flyAnim) {
+        tileRefreshTimer = setTimeout(function retryAfterFlight() {
+          tileRefreshTimer = null;
+          scheduleTileRefresh();
+        }, 120);
+        return;
+      }
+
       tileRequestsEnabled = true;
       markDirty(); // Start loading the committed view, nearest tiles first.
 
@@ -318,7 +360,52 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
   }
 
 
-  function syncSliders() {
+  var coordCopyFeedbackTimer = null;
+  function updateCoordHud() {
+    coordHud.innerHTML =
+      "Lat " + state.lat.toFixed(6) + "&deg;, Lon " + state.lon.toFixed(6) +
+      "&deg; &bull; Z " + state.zoom.toFixed(1);
+    coordHud.setAttribute("aria-label",
+      "Copy coordinates " + state.lat.toFixed(6) + ", " + state.lon.toFixed(6));
+  }
+
+  function copyMapCoordinates() {
+    // Decimal latitude, longitude is accepted by Google Maps, Google Earth,
+    // OpenStreetMap and most coordinate-aware map applications.
+    var coords = state.lat.toFixed(6) + ", " + state.lon.toFixed(6);
+    function showCopied() {
+      coordHud.textContent = "Copied: " + coords;
+      if (coordCopyFeedbackTimer) clearTimeout(coordCopyFeedbackTimer);
+      coordCopyFeedbackTimer = setTimeout(updateCoordHud, 1800);
+    }
+    function fallbackCopy() {
+      var field = document.createElement("textarea");
+      field.value = coords;
+      field.setAttribute("readonly", "");
+      field.style.position = "fixed";
+      field.style.opacity = "0";
+      document.body.appendChild(field);
+      field.select();
+      var ok = false;
+      try { ok = document.execCommand("copy"); } catch (e) {}
+      document.body.removeChild(field);
+      if (ok) showCopied();
+      else {
+        coordHud.textContent = "Copy unavailable · " + coords;
+        if (coordCopyFeedbackTimer) clearTimeout(coordCopyFeedbackTimer);
+        coordCopyFeedbackTimer = setTimeout(updateCoordHud, 2200);
+      }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(coords).then(showCopied).catch(fallbackCopy);
+    } else {
+      fallbackCopy();
+    }
+  }
+
+  coordHud.addEventListener("click", copyMapCoordinates);
+
+  function syncSliders(scheduleTerrainRefresh) {
     pitchSlider.value = String(Math.round(state.pitch));
     pitchVal.innerHTML = Math.round(state.pitch) + "&deg;";
     var bNorm = ((state.bearing + 180) % 360 + 360) % 360 - 180;
@@ -334,11 +421,9 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
     quickTiltBtn.textContent = state.pitch >= 5 ? "2D" : "3D";
 
 
-    coordHud.innerHTML =
-      "Lat " + state.lat.toFixed(4) + "&deg;, Lon " + state.lon.toFixed(4) +
-      "&deg; &bull; Z " + state.zoom.toFixed(1);
+    updateCoordHud();
     markDirty();
-    if (!state.autoOrbit) scheduleTileRefresh();
+    if (scheduleTerrainRefresh !== false && !state.autoOrbit) scheduleTileRefresh();
   }
 
 
@@ -378,14 +463,14 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
       startLon: state.lon,
       startZoom: state.zoom,
       endLat: targetLat,
-      endLon: targetLon,
+      // Interpolate across the antimeridian using the shortest longitude arc.
+      endLon: state.lon + ((((targetLon - state.lon) % 360) + 540) % 360) - 180,
       endZoom: targetZoom,
       startTime: performance.now(),
       duration: 850
     };
-    if (state.pitch < 15) {
-      state.pitch = 50;
-    }
+    // Navigating to any destination stays in 2D until the user explicitly enables 3D.
+    state.pitch = 0;
     state.autoOrbit = false;
     syncSliders();
   }
@@ -627,10 +712,10 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
     for (var i = 0; i < mainVertCount; i++) {
       var gx = gridCoords[i * 2];
       var gy = gridCoords[i * 2 + 1];
-      var u = clamp(subOffX + gx * subScale, 0.0, 0.9999);
-      var v = clamp(subOffY + gy * subScale, 0.0, 0.9999);
-      var px = Math.floor(u * 255.0);
-      var py = Math.floor(v * 255.0);
+      var u = clamp(subOffX + gx * subScale, 0.0, 1.0);
+      var v = clamp(subOffY + gy * subScale, 0.0, 1.0);
+      var px = Math.round(u * 255.0);
+      var py = Math.round(v * 255.0);
       var idx = (py * 256 + px) * 4;
       var h = (pixels[idx] * 256.0 + pixels[idx + 1] + pixels[idx + 2] / 256.0) - 32768.0;
       elevArr[i] = clamp(h, -500.0, 9000.0);
@@ -657,10 +742,10 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
       "  for (var i = 0; i < mainVertCount; i++) {",
       "    var gx = gridCoords[i * 2];",
       "    var gy = gridCoords[i * 2 + 1];",
-      "    var u = Math.max(0.0, Math.min(0.9999, subOffX + gx * subScale));",
-      "    var v = Math.max(0.0, Math.min(0.9999, subOffY + gy * subScale));",
-      "    var px = (u * 255.0) | 0;",
-      "    var py = (v * 255.0) | 0;",
+      "    var u = Math.max(0.0, Math.min(1.0, subOffX + gx * subScale));",
+      "    var v = Math.max(0.0, Math.min(1.0, subOffY + gy * subScale));",
+      "    var px = Math.round(u * 255.0);", 
+      "    var py = Math.round(v * 255.0);", 
       "    var idx = (py * 256 + px) << 2;",
       "    var h = (pixels[idx] * 256.0 + pixels[idx + 1] + pixels[idx + 2] * 0.00390625) - 32768.0;",
       "    elevArr[i] = h < -500.0 ? -500.0 : (h > 9000.0 ? 9000.0 : h);",
@@ -699,6 +784,48 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
   var textureCache = new Map();
   var demCache = new Map();
   var pendingFetches = new Set();
+  // Bounded retries prevent transient tile/CDN failures from becoming
+  // permanent blank tiles, without creating an uncontrolled request loop.
+  var tileRetryState = new Map();
+  var MAX_TILE_RETRIES = 3;
+
+  function retryBlocked(key) {
+    var retry = tileRetryState.get(key);
+    return !!retry && (retry.retryAt === Infinity || performance.now() < retry.retryAt);
+  }
+
+  function scheduleTileRetry(key, cacheMap, entry) {
+    if (cacheMap.get(key) === entry) cacheMap.delete(key);
+    var retry = tileRetryState.get(key) || { attempts: 0, retryAt: 0, timer: null };
+    if (retry.timer) clearTimeout(retry.timer);
+    retry.attempts += 1;
+    if (retry.attempts > MAX_TILE_RETRIES) {
+      // Back off for 30 seconds, then allow a fresh bounded retry cycle.
+      retry.attempts = 0;
+      retry.retryAt = performance.now() + 30000;
+      retry.timer = setTimeout(function() {
+        retry.timer = null;
+        retry.retryAt = 0;
+        markDirty();
+      }, 30000);
+      tileRetryState.set(key, retry);
+      return;
+    }
+    var delay = Math.min(750 * Math.pow(2, retry.attempts - 1), 6000);
+    retry.retryAt = performance.now() + delay;
+    retry.timer = setTimeout(function() {
+      retry.timer = null;
+      retry.retryAt = 0;
+      markDirty();
+    }, delay);
+    tileRetryState.set(key, retry);
+  }
+
+  function clearTileRetry(key) {
+    var retry = tileRetryState.get(key);
+    if (retry && retry.timer) clearTimeout(retry.timer);
+    tileRetryState.delete(key);
+  }
   var MAX_CACHE_TILES = 120;
   var MAX_CONCURRENT_IMG = 4;
   var MAX_CONCURRENT_DEM = 3;
@@ -747,6 +874,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
         img.onload = function() {
           activeImgLoads--;
           pendingFetches.delete(j.key);
+          clearTileRetry(j.key);
           var t = gl.createTexture();
           gl.bindTexture(gl.TEXTURE_2D, t);
           gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -766,6 +894,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
           activeImgLoads--;
           pendingFetches.delete(j.key);
           j.entry.loading = false;
+          scheduleTileRetry(j.key, textureCache, j.entry);
           pumpImgQueue();
         };
         img.src = getMapTileUrl(j.layer, j.z, j.x, j.y);
@@ -781,6 +910,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
       entry.lastUsed = performance.now();
       return entry;
     }
+    if (retryBlocked(key)) return { tex: null, ready: false, loading: false };
     if (pendingFetches.has(key)) {
       return { tex: null, ready: false, loading: true };
     }
@@ -821,6 +951,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
         img.onload = function() {
           activeDemLoads--;
           pendingFetches.delete(j.key);
+          clearTileRetry(j.key);
           try {
             offCtx.clearRect(0, 0, 256, 256);
             offCtx.drawImage(img, 0, 0, 256, 256);
@@ -859,12 +990,15 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
             } else {
               finishBuffer(decodeDemOnMainThread(imgData.data, subOffX, subOffY, subScale));
             }
-          } catch (err) {}
+          } catch (err) {
+            scheduleTileRetry(j.key, demCache, j.entry);
+          }
           pumpDemQueue();
         };
         img.onerror = function() {
           activeDemLoads--;
           pendingFetches.delete(j.key);
+          scheduleTileRetry(j.key, demCache, j.entry);
           pumpDemQueue();
         };
         img.src = getDemTileUrl(j.z, j.x, j.y);
@@ -880,6 +1014,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
       entry.lastUsed = performance.now();
       return entry;
     }
+    if (retryBlocked(key)) return { buf: flatElevBuf, ready: false, loading: false };
     if (pendingFetches.has(key)) {
       return { buf: flatElevBuf, ready: false };
     }
@@ -958,6 +1093,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
 
   var lastFrameTime = performance.now();
   function render(now) {
+    renderFramePending = false;
     var dt = Math.min((now - lastFrameTime) * 0.001, 0.1);
     lastFrameTime = now;
 
@@ -969,6 +1105,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
       state.lon = flyAnim.startLon + (flyAnim.endLon - flyAnim.startLon) * ease;
       state.zoom = flyAnim.startZoom + (flyAnim.endZoom - flyAnim.startZoom) * ease;
       if (t >= 1) {
+        state.lon = ((state.lon + 180) % 360 + 360) % 360 - 180;
         flyAnim = null;
         syncSliders(); // Commit the final destination once, not every animation frame.
       }
@@ -978,7 +1115,9 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
 
     if (state.autoOrbit) {
       state.bearing = (state.bearing + 10.0 * dt);
-      syncSliders();
+      // Auto-orbit is a camera-only animation. Do not reschedule tile work
+      // on every animation frame; that would perpetually reset the debounce.
+      syncSliders(false);
     }
 
 
@@ -999,6 +1138,11 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
 
       var zoomFrac = state.zoom - zInt;
       var tileWorldSize = Math.pow(2.0, zoomFrac);
+      var latRad = state.lat * Math.PI / 180.0;
+      var metersPerTile = (40075016.686 * Math.cos(latRad)) / numTiles;
+      // Preserve the original independent elevation exaggeration model.
+      // Zoom changes map scale; this control only scales terrain elevation.
+      var elevScale = (tileWorldSize / Math.max(metersPerTile, 1.0)) * state.exag;
       var camDist = 4.2;
       var pitchRad = state.pitch * Math.PI / 180.0;
       var bearRad = state.bearing * Math.PI / 180.0;
@@ -1017,7 +1161,9 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
 
 
       var aspect = (canvas.width || 1) / (canvas.height || 1);
-      var proj = perspectiveMat(45.0 * Math.PI / 180.0, aspect, 0.05, 80.0);
+      // The adaptive camera can sit farther away at high zoom; keep a useful
+      // near plane for depth precision while allowing the full view to render.
+      var proj = perspectiveMat(45.0 * Math.PI / 180.0, aspect, 0.1, 100.0);
       var view = lookAtMat([eyeX, eyeY, eyeZ], [0.0, 0.0, 0.0], upVec);
 
 
@@ -1025,9 +1171,6 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
       gl.uniformMatrix4fv(uViewLoc, false, view);
 
 
-      var latRad = state.lat * Math.PI / 180.0;
-      var metersPerTile = (40075016.686 * Math.cos(latRad)) / numTiles;
-      var elevScale = (tileWorldSize / Math.max(metersPerTile, 1.0)) * state.exag;
       gl.uniform1f(uElevScaleLoc, elevScale);
       gl.uniform1f(uFogDistLoc, 16.0);
 
@@ -1127,7 +1270,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
     }
 
 
-    requestAnimationFrame(render);
+    if (flyAnim || state.autoOrbit) requestRender();
   }
 
 
@@ -1328,6 +1471,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
 
   quickTiltBtn.addEventListener("click", function() {
     state.pitch = state.pitch >= 5 ? 0 : 54;
+    state.autoOrbit = false;
     syncSliders();
   });
 
@@ -1377,17 +1521,13 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
   });
 
 
-  var chips = document.querySelectorAll(".btn-chip");
-  for (var ci = 0; ci < chips.length; ci++) {
-    chips[ci].addEventListener("click", function() {
-      searchResults.style.display = "none";
-      flyTo(
-        parseFloat(this.getAttribute("data-lat")),
-        parseFloat(this.getAttribute("data-lon")),
-        parseFloat(this.getAttribute("data-zoom"))
-      );
-    });
-  }
+  var savedLocationSelect = document.getElementById("savedLocationSelect");
+  savedLocationSelect.addEventListener("change", function() {
+    if (!this.value) return;
+    var coords = this.value.split(",");
+    searchResults.style.display = "none";
+    flyTo(parseFloat(coords[0]), parseFloat(coords[1]), parseFloat(coords[2]));
+  });
 
 
   function zoomForPlaceType(type, cls) {
@@ -1428,12 +1568,22 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
   }
 
 
-  function searchPhoton(q) {
-    return fetch("https://photon.komoot.io/api/?limit=5&q=" + encodeURIComponent(q))
+  // Public geocoders occasionally stall or rate-limit. Bound each attempt so
+  // a single unresponsive provider cannot make global search appear frozen.
+  function fetchGeocoderJson(url, provider, timeoutMs) {
+    var controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    var timer = controller ? setTimeout(function() { controller.abort(); }, timeoutMs || 5000) : null;
+    return fetch(url, controller ? { signal: controller.signal } : {})
       .then(function(r) {
-        if (!r.ok) throw new Error("Photon HTTP " + r.status);
+        if (!r.ok) throw new Error(provider + " HTTP " + r.status);
         return r.json();
       })
+      .finally(function() { if (timer) clearTimeout(timer); });
+  }
+
+  function searchPhoton(q) {
+    return fetchGeocoderJson("https://photon.komoot.io/api/?limit=5&q=" + encodeURIComponent(q), "Photon", 5000)
+      
       .then(function(data) {
         if (!data || !data.features || data.features.length === 0) return [];
         return data.features.map(function(f) {
@@ -1457,11 +1607,8 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
 
 
   function searchOpenMeteo(q) {
-    return fetch("https://geocoding-api.open-meteo.com/v1/search?count=5&language=en&format=json&name=" + encodeURIComponent(q))
-      .then(function(r) {
-        if (!r.ok) throw new Error("OpenMeteo HTTP " + r.status);
-        return r.json();
-      })
+    return fetchGeocoderJson("https://geocoding-api.open-meteo.com/v1/search?count=5&language=en&format=json&name=" + encodeURIComponent(q), "Open-Meteo", 5000)
+      
       .then(function(data) {
         if (!data || !data.results || data.results.length === 0) return [];
         return data.results.map(function(item) {
@@ -1482,11 +1629,8 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
 
   function searchArcGis(q) {
     var url = "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&maxLocations=5&SingleLine=" + encodeURIComponent(q);
-    return fetch(url)
-      .then(function(r) {
-        if (!r.ok) throw new Error("ArcGIS HTTP " + r.status);
-        return r.json();
-      })
+    return fetchGeocoderJson(url, "ArcGIS", 5000)
+      
       .then(function(data) {
         if (!data || !data.candidates || data.candidates.length === 0) return [];
         return data.candidates.map(function(c) {
@@ -1509,6 +1653,8 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
     var q = searchInput.value.trim();
     if (!q) return;
     searchResults.style.display = "none";
+    searchStatus.classList.remove("error");
+    searchStatus.textContent = "Searching worldwide…";
 
 
     var parts = q.split(",");
@@ -1516,6 +1662,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
       var pLat = parseFloat(parts[0].trim());
       var pLon = parseFloat(parts[1].trim());
       if (!isNaN(pLat) && !isNaN(pLon) && Math.abs(pLat) <= 90 && Math.abs(pLon) <= 180) {
+        searchStatus.textContent = "Coordinates accepted · " + pLat.toFixed(4) + ", " + pLon.toFixed(4);
         flyTo(pLat, pLon, Math.max(state.zoom, 11.5));
         return;
       }
@@ -1543,9 +1690,11 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
           if (results.length > 1) {
             showSearchSuggestions(results);
           }
-            statusPill.textContent = "Found: " + results[0].name;
+            searchStatus.classList.remove("error");
+          searchStatus.textContent = "Found: " + results[0].name + (results.length > 1 ? " · " + results.length + " matches" : "");
         } else {
-          statusPill.textContent = "No match for: " + q;
+          searchStatus.classList.add("error");
+          searchStatus.textContent = "No match found. Try a more specific place name or coordinates.";
         }
       });
   }
@@ -1568,7 +1717,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
 
 
   syncSliders();
-  requestAnimationFrame(render);
+  requestRender();
 })();
 </script>
 
