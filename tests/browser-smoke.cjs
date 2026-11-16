@@ -87,6 +87,16 @@ async function waitFor(predicate, timeout = 20000, interval = 250) {
       zoomBefore !== zoomAfterIn && zoomAfterIn !== zoomAfterOut,
       [zoomBefore, zoomAfterIn, zoomAfterOut].join(" -> "));
 
+    // Coordinate HUD should copy paste-ready decimal lat,lon values.
+    await page.locator("#coordHud").click();
+    const copyFeedback = await waitFor(async () => {
+      const value = await page.locator("#coordHud").textContent();
+      return value && value.startsWith("Copied: ") ? value : null;
+    }, 3000, 100);
+    check("Coordinate HUD copies map center in standard lat, lon format",
+      !!copyFeedback && /Copied: -?\d+\.\d{6}, -?\d+\.\d{6}/.test(copyFeedback),
+      copyFeedback || "copy feedback was not shown");
+
     // Stress the high-zoom camera while repeatedly changing pitch. This guards
     // against invalid GL state during the camera/terrain clipping regression.
     for (let i = 0; i < 9; i++) await page.locator("#zoomInBtn").click();
