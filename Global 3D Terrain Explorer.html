@@ -64,7 +64,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
   <div class="panel-header">
     <div class="panel-title">
       <h1>Global 3D Terrain Explorer</h1>
-      <span>Progressive Center-Out Tile Loading</span>
+      <span>Adaptive Terrain Overscan · Progressive Tile Loading</span>
     </div>
     <button id="hideToolsBtn" type="button" title="Minimize Tools Panel">Hide &#10005;</button>
   </div>
@@ -233,17 +233,28 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
   var tileRefreshTimer = null;
   var tileExpansionTimer = null;
 
+  // Adapt the terrain coverage to the camera pitch. A tilted camera sees
+  // farther across the ground plane, so it needs more surrounding map tiles.
+  // Keep the 2D footprint compact and cap 3D overscan to avoid unbounded loads.
+  function getTerrainOverscanRadius() {
+    var pitch = clamp(state.pitch, 0.0, 72.0);
+    if (pitch < 8.0) return 2;
+    return clamp(2 + Math.round(pitch / 24.0), 2, 5);
+  }
+
   function scheduleTileRefresh() {
     if (tileRefreshTimer) clearTimeout(tileRefreshTimer);
     if (tileExpansionTimer) clearTimeout(tileExpansionTimer);
     state.tileLoadRadius = 0;
+
+    var targetRadius = getTerrainOverscanRadius();
 
     tileRefreshTimer = setTimeout(function() {
       tileRefreshTimer = null;
       markDirty(); // Load the center tile first.
 
       function expandTileRing() {
-        if (state.tileLoadRadius >= 2) {
+        if (state.tileLoadRadius >= targetRadius) {
           tileExpansionTimer = null;
           return;
         }
@@ -602,7 +613,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
       elevArr[i] = clamp(h, -500.0, 9000.0);
     }
     for (var s = mainVertCount; s < totalVerts; s++) {
-      elevArr[s] = elevArr[gridMainIndex[s]] - 1500.0;
+      elevArr[s] = elevArr[gridMainIndex[s]] - 350.0;
     }
     return elevArr;
   }
@@ -632,7 +643,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
       "    elevArr[i] = h < -500.0 ? -500.0 : (h > 9000.0 ? 9000.0 : h);",
       "  }",
       "  for (var s = mainVertCount; s < totalVerts; s++) {",
-      "    elevArr[s] = elevArr[gridMainIndex[s]] - 1500.0;",
+      "    elevArr[s] = elevArr[gridMainIndex[s]] - 350.0;",
       "  }",
       "  self.postMessage({ id: d.id, elevBuf: elevArr.buffer }, [elevArr.buffer]);",
       "};"
@@ -997,12 +1008,13 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
 
       var baseTileX = Math.floor(centerMX);
       var baseTileY = Math.floor(centerMY);
-      // Progressive center-out loading: 1 tile, then 3x3, then 5x5.
-      // The radius advances only after the camera has stopped moving.
+      // Adaptive terrain overscan: progressively expand beyond the viewport
+      // as pitch increases. At the maximum 72-degree pitch this reaches 11x11.
+      // Tile requests still begin only after camera movement settles.
 
 
       var tileList = [];
-      var radius = clamp(state.tileLoadRadius, 0, 2);
+      var radius = clamp(state.tileLoadRadius, 0, 5);
       for (var dy = -radius; dy <= radius; dy++) {
         var ty = baseTileY + dy;
         if (ty < 0 || ty >= numTiles) continue;
