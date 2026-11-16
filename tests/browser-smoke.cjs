@@ -121,6 +121,13 @@ async function waitFor(predicate, timeout = 20000, interval = 250) {
       cameraStress.available && cameraStress.errors.length === 0,
       JSON.stringify(cameraStress));
 
+    // Elevation exaggeration remains an independent control and reaches true zero.
+    const exaggerationRange = await page.locator("#exagSlider").evaluate(el => ({
+      min: el.min, max: el.max, value: el.value
+    }));
+    check("Elevation exaggeration supports zero independently", exaggerationRange.min === "0" &&
+      exaggerationRange.max === "6.0", JSON.stringify(exaggerationRange));
+
     // Camera mode controls update pitch state.
     await page.locator("#btn2D").click();
     const pitch2d = await page.locator("#pitchVal").textContent();
