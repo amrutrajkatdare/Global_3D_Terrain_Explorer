@@ -1,4 +1,6 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
+
+
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -36,380 +38,37 @@
     cursor: grabbing;
   }
 
-  /* Minimized Tools Toggle Button */
-  #showToolsBtn {
-    position: fixed;
-    top: calc(14px + env(safe-area-inset-top));
-    left: calc(14px + env(safe-area-inset-left));
-    z-index: 25;
-    display: none;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 14px;
-    background: rgba(15, 23, 42, 0.92);
-    color: #f8fafc;
-    border: 1px solid rgba(148, 163, 184, 0.35);
-    border-radius: 10px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
-    backdrop-filter: blur(10px);
-  }
-  #showToolsBtn:hover {
-    background: rgba(30, 41, 59, 0.96);
-    border-color: #38bdf8;
-  }
 
-  /* Main Floating Tool Panel */
-  #toolPanel {
-    position: fixed;
-    top: calc(14px + env(safe-area-inset-top));
-    left: calc(14px + env(safe-area-inset-left));
-    width: 318px;
-    max-height: calc(100vh - 76px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-    overflow-y: auto;
-    z-index: 20;
-    background: rgba(13, 20, 36, 0.90);
-    border: 1px solid rgba(148, 163, 184, 0.25);
-    border-radius: 14px;
-    padding: 14px;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(12px);
-    scrollbar-width: thin;
-    scrollbar-color: rgba(148,163,184,0.3) transparent;
-  }
-  #toolPanel.minimized {
-    display: none !important;
-  }
-
-  .panel-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding-bottom: 10px;
-    margin-bottom: 10px;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.18);
-  }
-  .panel-title h1 {
-    font-size: 14px;
-    font-weight: 700;
-    color: #f8fafc;
-    line-height: 1.2;
-  }
-  .panel-title span {
-    font-size: 11px;
-    color: #38bdf8;
-    display: block;
-    margin-top: 2px;
-  }
-  #hideToolsBtn {
-    padding: 6px 10px;
-    background: rgba(30, 41, 59, 0.95);
-    color: #e2e8f0;
-    border: 1px solid rgba(148, 163, 184, 0.35);
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-  #hideToolsBtn:hover {
-    background: #334155;
-    border-color: #38bdf8;
-    color: #ffffff;
-  }
-
-  .section-box {
-    background: rgba(15, 23, 42, 0.65);
-    border: 1px solid rgba(148, 163, 184, 0.14);
-    border-radius: 10px;
-    padding: 10px;
-    margin-bottom: 10px;
-    position: relative;
-  }
-  .section-label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: #94a3b8;
-    margin-bottom: 7px;
-    display: block;
-  }
-
-  select, input[type="text"] {
-    width: 100%;
-    background: #0f172a;
-    color: #f1f5f9;
-    border: 1px solid rgba(148, 163, 184, 0.3);
-    border-radius: 8px;
-    padding: 8px 10px;
-    font-size: 12.5px;
-    outline: none;
-    user-select: text;
-    -webkit-user-select: text;
-  }
-  select:focus, input[type="text"]:focus {
-    border-color: #38bdf8;
-  }
-
-  .search-row {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 6px;
-  }
-  .btn-primary {
-    background: #0284c7;
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    padding: 0 12px;
-    font-size: 12.5px;
-    font-weight: 600;
-    cursor: pointer;
-    flex-shrink: 0;
-  }
-  .btn-primary:hover {
-    background: #0369a1;
-  }
-
-  /* Search Suggestions Dropdown */
-  #searchResults {
-    display: none;
-    flex-direction: column;
-    background: #0b1120;
-    border: 1px solid rgba(56, 189, 248, 0.45);
-    border-radius: 8px;
-    margin-bottom: 8px;
-    max-height: 150px;
-    overflow-y: auto;
-  }
-  .search-item {
-    padding: 7px 10px;
-    font-size: 11.5px;
-    color: #e2e8f0;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
-    cursor: pointer;
-    text-align: left;
-    background: transparent;
-    border-left: none;
-    border-right: none;
-    border-top: none;
-    width: 100%;
-  }
-  .search-item:last-child {
-    border-bottom: none;
-  }
-  .search-item:hover {
-    background: rgba(2, 132, 199, 0.35);
-    color: #ffffff;
-  }
-  .search-item small {
-    display: block;
-    color: #94a3b8;
-    font-size: 10px;
-    margin-top: 1px;
-  }
-
-  .preset-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 5px;
-  }
-  .btn-chip {
-    background: rgba(30, 41, 59, 0.85);
-    color: #cbd5e1;
-    border: 1px solid rgba(148, 163, 184, 0.22);
-    border-radius: 7px;
-    padding: 6px 6px;
-    font-size: 11px;
-    font-weight: 500;
-    cursor: pointer;
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .btn-chip:hover {
-    background: rgba(51, 65, 85, 0.95);
-    color: #fff;
-    border-color: #38bdf8;
-  }
-
-  .btn-row-3 {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 5px;
-    margin-bottom: 8px;
-  }
-  .btn-mode {
-    background: rgba(30, 41, 59, 0.9);
-    color: #e2e8f0;
-    border: 1px solid rgba(148, 163, 184, 0.25);
-    border-radius: 7px;
-    padding: 7px 4px;
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    text-align: center;
-  }
-  .btn-mode:hover {
-    border-color: #38bdf8;
-  }
-  .btn-mode.active {
-    background: #0284c7;
-    border-color: #38bdf8;
-    color: #fff;
-  }
-
-  .slider-group {
-    margin-top: 7px;
-  }
-  .slider-header {
-    display: flex;
-    justify-content: space-between;
-    font-size: 11.5px;
-    color: #cbd5e1;
-    margin-bottom: 3px;
-  }
-  .slider-val {
-    color: #38bdf8;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-  }
-  input[type="range"] {
-    width: 100%;
-    accent-color: #38bdf8;
-    cursor: pointer;
-    height: 18px;
-  }
-
-  .help-note {
-    font-size: 10.5px;
-    color: #94a3b8;
-    line-height: 1.45;
-  }
-
-  /* Single Clean Right-Edge Quick Dock (+ / - / 3D) */
-  #quickDock {
-    position: fixed;
-    top: calc(14px + env(safe-area-inset-top));
-    right: calc(14px + env(safe-area-inset-right));
-    z-index: 25;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .dock-btn {
-    width: 40px;
-    height: 40px;
-    background: rgba(15, 23, 42, 0.92);
-    color: #f8fafc;
-    border: 1px solid rgba(148, 163, 184, 0.35);
-    border-radius: 10px;
-    font-size: 18px;
-    font-weight: 700;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(10px);
-  }
-  .dock-btn:hover {
-    background: rgba(30, 41, 59, 0.98);
-    border-color: #38bdf8;
-  }
-  .dock-btn:active {
-    transform: scale(0.95);
-  }
-  .dock-btn.small-text {
-    font-size: 12px;
-  }
-
-  /* Bottom Status Pills */
-  #coordHud {
-    position: fixed;
-    bottom: calc(12px + env(safe-area-inset-bottom));
-    left: calc(14px + env(safe-area-inset-left));
-    z-index: 15;
-    background: rgba(15, 23, 42, 0.86);
-    border: 1px solid rgba(148, 163, 184, 0.25);
-    border-radius: 999px;
-    padding: 5px 12px;
-    font-size: 11px;
-    color: #cbd5e1;
-    font-variant-numeric: tabular-nums;
-    backdrop-filter: blur(8px);
-    pointer-events: none;
-  }
-  #statusPill {
-    position: fixed;
-    bottom: calc(12px + env(safe-area-inset-bottom));
-    right: calc(14px + env(safe-area-inset-right));
-    z-index: 15;
-    background: rgba(15, 23, 42, 0.86);
-    border: 1px solid rgba(56, 189, 248, 0.35);
-    border-radius: 999px;
-    padding: 5px 12px;
-    font-size: 11px;
-    color: #7dd3fc;
-    backdrop-filter: blur(8px);
-    pointer-events: none;
-  }
-
-  /* Responsive Mobile Portrait Bottom Sheet */
-  @media (max-width: 640px) {
-    #toolPanel {
-      top: auto;
-      bottom: calc(46px + env(safe-area-inset-bottom));
-      left: calc(10px + env(safe-area-inset-left));
-      right: calc(10px + env(safe-area-inset-right));
-      width: auto;
-      max-height: 52vh;
-      padding: 12px;
-    }
-    .dock-btn {
-      width: 44px;
-      height: 44px;
-    }
-    #coordHud, #statusPill {
-      font-size: 10px;
-      padding: 4px 9px;
-    }
-  }
-
-  /* Responsive Short Landscape Screens */
-  @media (max-height: 500px) {
-    #toolPanel {
-      width: 280px;
-      max-height: calc(100vh - 64px);
-      padding: 10px;
-    }
-    .section-box {
-      padding: 8px;
-      margin-bottom: 7px;
-    }
-  }
-</style>
+/* Minimized Tools Toggle Button */ #showToolsBtn { position: fixed; top: calc(14px + env(safe-area-inset-top)); left: calc(14px + env(safe-area-inset-left)); z-index: 25; display: none; align-items: center; gap: 8px; padding: 10px 14px; background: rgba(15, 23, 42, 0.92); color: #f8fafc; border: 1px solid rgba(148, 163, 184, 0.35); border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55); backdrop-filter: blur(10px); } #showToolsBtn:hover { background: rgba(30, 41, 59, 0.96); border-color: #38bdf8; }
+/* Main Floating Tool Panel */ #toolPanel { position: fixed; top: calc(14px + env(safe-area-inset-top)); left: calc(14px + env(safe-area-inset-left)); width: 318px; max-height: calc(100vh - 76px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); overflow-y: auto; z-index: 20; background: rgba(13, 20, 36, 0.90); border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 14px; padding: 14px; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6); backdrop-filter: blur(12px); scrollbar-width: thin; scrollbar-color: rgba(148,163,184,0.3) transparent; } #toolPanel.minimized { display: none !important; }
+.panel-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid rgba(148, 163, 184, 0.18); } .panel-title h1 { font-size: 14px; font-weight: 700; color: #f8fafc; line-height: 1.2; } .panel-title span { font-size: 11px; color: #38bdf8; display: block; margin-top: 2px; } #hideToolsBtn { padding: 6px 10px; background: rgba(30, 41, 59, 0.95); color: #e2e8f0; border: 1px solid rgba(148, 163, 184, 0.35); border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; flex-shrink: 0; } #hideToolsBtn:hover { background: #334155; border-color: #38bdf8; color: #ffffff; }
+.section-box { background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(148, 163, 184, 0.14); border-radius: 10px; padding: 10px; margin-bottom: 10px; position: relative; } .section-label { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #94a3b8; margin-bottom: 7px; display: block; }
+select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; outline: none; user-select: text; -webkit-user-select: text; } select:focus, input[type="text"]:focus { border-color: #38bdf8; }
+.search-row { display: flex; gap: 6px; margin-bottom: 6px; } .btn-primary { background: #0284c7; color: #fff; border: none; border-radius: 8px; padding: 0 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; flex-shrink: 0; } .btn-primary:hover { background: #0369a1; }
+#searchResults { display: none; flex-direction: column; background: #0b1120; border: 1px solid rgba(56, 189, 248, 0.45); border-radius: 8px; margin-bottom: 8px; max-height: 150px; overflow-y: auto; } .search-item { padding: 7px 10px; font-size: 11.5px; color: #e2e8f0; border-bottom: 1px solid rgba(148, 163, 184, 0.12); cursor: pointer; text-align: left; background: transparent; border-left: none; border-right: none; border-top: none; width: 100%; } .search-item:last-child { border-bottom: none; } .search-item:hover { background: rgba(2, 132, 199, 0.35); color: #ffffff; } .search-item small { display: block; color: #94a3b8; font-size: 10px; margin-top: 1px; }
+.preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; } .btn-chip { background: rgba(30, 41, 59, 0.85); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.22); border-radius: 7px; padding: 6px 6px; font-size: 11px; font-weight: 500; cursor: pointer; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .btn-chip:hover { background: rgba(51, 65, 85, 0.95); color: #fff; border-color: #38bdf8; }
+.btn-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-bottom: 8px; } .btn-mode { background: rgba(30, 41, 59, 0.9); color: #e2e8f0; border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 7px; padding: 7px 4px; font-size: 11px; font-weight: 600; cursor: pointer; text-align: center; } .btn-mode:hover { border-color: #38bdf8; } .btn-mode.active { background: #0284c7; border-color: #38bdf8; color: #fff; }
+.slider-group { margin-top: 7px; } .slider-header { display: flex; justify-content: space-between; font-size: 11.5px; color: #cbd5e1; margin-bottom: 3px; } .slider-val { color: #38bdf8; font-weight: 600; font-variant-numeric: tabular-nums; } input[type="range"] { width: 100%; accent-color: #38bdf8; cursor: pointer; height: 18px; }
+.help-note { font-size: 10.5px; color: #94a3b8; line-height: 1.45; }
+#quickDock { position: fixed; top: calc(14px + env(safe-area-inset-top)); right: calc(14px + env(safe-area-inset-right)); z-index: 25; display: flex; flex-direction: column; gap: 6px; } .dock-btn { width: 40px; height: 40px; background: rgba(15, 23, 42, 0.92); color: #f8fafc; border: 1px solid rgba(148, 163, 184, 0.35); border-radius: 10px; font-size: 18px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px); } .dock-btn:hover { background: rgba(30, 41, 59, 0.98); border-color: #38bdf8; } .dock-btn:active { transform: scale(0.95); } .dock-btn.small-text { font-size: 12px; }
+#coordHud { position: fixed; bottom: calc(12px + env(safe-area-inset-bottom)); left: calc(14px + env(safe-area-inset-left)); z-index: 15; background: rgba(15, 23, 42, 0.86); border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 999px; padding: 5px 12px; font-size: 11px; color: #cbd5e1; font-variant-numeric: tabular-nums; backdrop-filter: blur(8px); pointer-events: none; } #statusPill { position: fixed; bottom: calc(12px + env(safe-area-inset-bottom)); right: calc(14px + env(safe-area-inset-right)); z-index: 15; background: rgba(15, 23, 42, 0.86); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 999px; padding: 5px 12px; font-size: 11px; color: #7dd3fc; backdrop-filter: blur(8px); pointer-events: none; }
+@media (max-width: 640px) { #toolPanel { top: auto; bottom: calc(46px + env(safe-area-inset-bottom)); left: calc(10px + env(safe-area-inset-left)); right: calc(10px + env(safe-area-inset-right)); width: auto; max-height: 52vh; padding: 12px; } .dock-btn { width: 44px; height: 44px; } #coordHud, #statusPill { font-size: 10px; padding: 4px 9px; } }
+@media (max-height: 500px) { #toolPanel { width: 280px; max-height: calc(100vh - 64px); padding: 10px; } .section-box { padding: 8px; margin-bottom: 7px; } } </style>
 </head>
 <body>
 
+
 <canvas id="glCanvas"></canvas>
-
 <button id="showToolsBtn" type="button" title="Maximize Tools Panel">&#9776; Tools &amp; Layers</button>
-
 <aside id="toolPanel" aria-label="Map and Terrain Tools">
   <div class="panel-header">
     <div class="panel-title">
       <h1>Global 3D Terrain Explorer</h1>
-      <span>Multi-Threaded WebGL DEM Engine</span>
+      <span>Optimized Request Throttling</span>
     </div>
     <button id="hideToolsBtn" type="button" title="Minimize Tools Panel">Hide &#10005;</button>
   </div>
+
 
   <div class="section-box">
     <label class="section-label" for="layerSelect">Map Surface Layer</label>
@@ -421,6 +80,7 @@
       <option value="esri_hillshade">Esri Shaded Hillshade Relief</option>
     </select>
   </div>
+
 
   <div class="section-box">
     <label class="section-label" for="searchInput">Global Location or Coordinates</label>
@@ -439,6 +99,7 @@
     </div>
   </div>
 
+
   <div class="section-box">
     <span class="section-label">Camera &amp; Perspective</span>
     <div class="btn-row-3">
@@ -447,30 +108,34 @@
       <button id="btnOrbit" class="btn-mode" type="button">Auto-Orbit</button>
     </div>
 
-    <div class="slider-group">
-      <div class="slider-header">
-        <span>Camera Tilt (Pitch)</span>
-        <span id="pitchVal" class="slider-val">52&deg;</span>
-      </div>
-      <input id="pitchSlider" type="range" min="0" max="72" step="1" value="52">
-    </div>
 
-    <div class="slider-group">
-      <div class="slider-header">
-        <span>Compass Rotation (Bearing)</span>
-        <span id="bearingVal" class="slider-val">0&deg;</span>
-      </div>
-      <input id="bearingSlider" type="range" min="-180" max="180" step="1" value="0">
-    </div>
-
-    <div class="slider-group">
-      <div class="slider-header">
-        <span>Elevation Exaggeration</span>
-        <span id="exagVal" class="slider-val">2.4x</span>
-      </div>
-      <input id="exagSlider" type="range" min="0.5" max="6.0" step="0.1" value="2.4">
-    </div>
+<div class="slider-group">
+  <div class="slider-header">
+    <span>Camera Tilt (Pitch)</span>
+    <span id="pitchVal" class="slider-val">52&deg;</span>
   </div>
+  <input id="pitchSlider" type="range" min="0" max="72" step="1" value="52">
+</div>
+
+
+<div class="slider-group">
+  <div class="slider-header">
+    <span>Compass Rotation (Bearing)</span>
+    <span id="bearingVal" class="slider-val">0&deg;</span>
+  </div>
+  <input id="bearingSlider" type="range" min="-180" max="180" step="1" value="0">
+</div>
+
+
+<div class="slider-group">
+  <div class="slider-header">
+    <span>Elevation Exaggeration</span>
+    <span id="exagVal" class="slider-val">2.4x</span>
+  </div>
+  <input id="exagSlider" type="range" min="0.5" max="6.0" step="0.1" value="2.4">
+</div>
+  </div>
+
 
   <div class="help-note">
     <strong>Touch &amp; Mouse Controls:</strong><br>
@@ -480,24 +145,28 @@
   </div>
 </aside>
 
+
 <div id="quickDock" aria-label="Quick Zoom and 3D Controls">
   <button id="zoomInBtn" class="dock-btn" type="button" title="Zoom In (+)">+</button>
   <button id="zoomOutBtn" class="dock-btn" type="button" title="Zoom Out (-)">&minus;</button>
   <button id="quickTiltBtn" class="dock-btn small-text" type="button" title="Toggle 2D / 3D Tilt">3D</button>
 </div>
 
+
 <div id="coordHud">Lat 21.1147&deg;, Lon -11.3942&deg; &bull; Z 11.2</div>
 <div id="statusPill">Initializing WebGL...</div>
+
 
 <script>
 (function() {
   "use strict";
 
+
   var canvas = document.getElementById("glCanvas");
   var statusPill = document.getElementById("statusPill");
   var coordHud = document.getElementById("coordHud");
 
-  // UI Elements
+
   var toolPanel = document.getElementById("toolPanel");
   var hideToolsBtn = document.getElementById("hideToolsBtn");
   var showToolsBtn = document.getElementById("showToolsBtn");
@@ -518,7 +187,7 @@
   var zoomOutBtn = document.getElementById("zoomOutBtn");
   var quickTiltBtn = document.getElementById("quickTiltBtn");
 
-  // Minimize / Maximize Panel Handlers
+
   function setPanelMinimized(minimized) {
     if (minimized) {
       toolPanel.classList.add("minimized");
@@ -537,7 +206,7 @@
     setPanelMinimized(false);
   });
 
-  // Map State (Centered on Eye of Sahara)
+
   var state = {
     lat: 21.1147,
     lon: -11.3942,
@@ -553,17 +222,21 @@
     dirty: true
   };
 
+
   function markDirty() {
     state.dirty = true;
   }
+
 
   function clamp(v, minV, maxV) {
     return Math.max(minV, Math.min(maxV, v));
   }
 
+
   function lonToMercX(lon) {
     return (lon + 180.0) / 360.0;
   }
+
 
   function latToMercY(lat) {
     var clampedLat = clamp(lat, -85.05112878, 85.05112878);
@@ -571,14 +244,17 @@
     return (1.0 - Math.log(Math.tan(rad) + 1.0 / Math.cos(rad)) / Math.PI) * 0.5;
   }
 
+
   function mercXToLon(x) {
     return x * 360.0 - 180.0;
   }
+
 
   function mercYToLat(y) {
     var n = Math.PI - 2.0 * Math.PI * clamp(y, 0.0, 1.0);
     return 180.0 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
   }
+
 
   function syncSliders() {
     pitchSlider.value = String(Math.round(state.pitch));
@@ -589,10 +265,12 @@
     exagSlider.value = state.exag.toFixed(1);
     exagVal.textContent = state.exag.toFixed(1) + "x";
 
+
     btn2D.classList.toggle("active", state.pitch < 5);
     btn3D.classList.toggle("active", state.pitch >= 5);
     btnOrbit.classList.toggle("active", state.autoOrbit);
     quickTiltBtn.textContent = state.pitch >= 5 ? "2D" : "3D";
+
 
     coordHud.innerHTML =
       "Lat " + state.lat.toFixed(4) + "&deg;, Lon " + state.lon.toFixed(4) +
@@ -600,9 +278,17 @@
     markDirty();
   }
 
-  // Smooth Camera Fly-To Animation
+
   var flyAnim = null;
+  function cancelAllRequests() {
+    imgQueue = [];
+    demQueue = [];
+    pendingFetches.clear();
+  }
+
+
   function flyTo(targetLat, targetLon, targetZoom) {
+    cancelAllRequests();
     flyAnim = {
       startLat: state.lat,
       startLon: state.lon,
@@ -620,7 +306,7 @@
     syncSliders();
   }
 
-  // Tile URL Generators (Zero API Keys / Zero Tokens)
+
   function getMapTileUrl(layer, z, x, y) {
     if (layer === "opentopo") {
       var sub = ["a", "b", "c"][(x + y) % 3];
@@ -638,6 +324,7 @@
     return "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/" + z + "/" + y + "/" + x;
   }
 
+
   function getDemTileUrl(z, x, y) {
     var dz = Math.min(z, 14);
     var shift = z - dz;
@@ -646,14 +333,16 @@
     return "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/" + dz + "/" + dx + "/" + dy + ".png";
   }
 
-  // WebGL Setup
+
   var gl = canvas.getContext("webgl", { antialias: true, alpha: false }) ||
            canvas.getContext("experimental-webgl", { antialias: true, alpha: false });
+
 
   if (!gl) {
     statusPill.textContent = "WebGL unavailable on this browser";
     return;
   }
+
 
   var vsSource = [
     "attribute vec2 aGrid;",
@@ -679,6 +368,7 @@
     "}"
   ].join("\n");
 
+
   var fsSource = [
     "precision mediump float;",
     "uniform sampler2D uTex;",
@@ -701,6 +391,7 @@
     "}"
   ].join("\n");
 
+
   function compileShader(type, src) {
     var s = gl.createShader(type);
     gl.shaderSource(s, src);
@@ -714,9 +405,11 @@
     return s;
   }
 
+
   var vs = compileShader(gl.VERTEX_SHADER, vsSource);
   var fs = compileShader(gl.FRAGMENT_SHADER, fsSource);
   if (!vs || !fs) return;
+
 
   var prog = gl.createProgram();
   gl.attachShader(prog, vs);
@@ -728,6 +421,7 @@
     return;
   }
   gl.useProgram(prog);
+
 
   var aGridLoc = gl.getAttribLocation(prog, "aGrid");
   var aElevLoc = gl.getAttribLocation(prog, "aElev");
@@ -742,16 +436,18 @@
   var uHasTexLoc = gl.getUniformLocation(prog, "uHasTex");
   var uFogDistLoc = gl.getUniformLocation(prog, "uFogDist");
 
-  // Shared 32x32 Grid + Perimeter Skirt Geometry
+
   var GRID_N = 32;
   var mainVertsPerRow = GRID_N + 1;
   var mainVertCount = mainVertsPerRow * mainVertsPerRow;
   var skirtVertCount = mainVertsPerRow * 4;
   var totalVerts = mainVertCount + skirtVertCount;
 
+
   var gridCoords = new Float32Array(totalVerts * 2);
   var gridMainIndex = new Int32Array(totalVerts);
   var isSkirtFlag = new Uint8Array(totalVerts);
+
 
   var ptr = 0;
   for (var r = 0; r <= GRID_N; r++) {
@@ -792,6 +488,7 @@
     ptr++;
   }
 
+
   var indices = [];
   for (var r4 = 0; r4 < GRID_N; r4++) {
     for (var c4 = 0; c4 < GRID_N; c4++) {
@@ -814,14 +511,17 @@
     }
   }
 
+
   var gridBuf = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, gridBuf);
   gl.bufferData(gl.ARRAY_BUFFER, gridCoords, gl.STATIC_DRAW);
+
 
   var idxBuf = gl.createBuffer();
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idxBuf);
   gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
   var indexCount = indices.length;
+
 
   var flatElevData = new Float32Array(totalVerts);
   for (var fi = 0; fi < totalVerts; fi++) {
@@ -831,13 +531,12 @@
   gl.bindBuffer(gl.ARRAY_BUFFER, flatElevBuf);
   gl.bufferData(gl.ARRAY_BUFFER, flatElevData, gl.STATIC_DRAW);
 
-  // =========================================================================
-  // 1. MULTI-THREADED BACKGROUND DEM DECODING (WEB WORKER POOL + SAFE FALLBACK)
-  // =========================================================================
+
   var pendingDemCallbacks = new Map();
   var workerPool = [];
   var nextWorkerIdx = 0;
   var demReqSeq = 1;
+
 
   function decodeDemOnMainThread(pixels, subOffX, subOffY, subScale) {
     var elevArr = new Float32Array(totalVerts);
@@ -857,6 +556,7 @@
     }
     return elevArr;
   }
+
 
   (function initWorkerPool() {
     if (typeof Worker === "undefined" || typeof Blob === "undefined") return;
@@ -888,6 +588,7 @@
       "};"
     ].join("\n");
 
+
     try {
       var blob = new Blob([workerCode], { type: "application/javascript" });
       var url = URL.createObjectURL(blob);
@@ -910,24 +611,24 @@
     }
   })();
 
-  // =========================================================================
-  // 2. PRIORITY TILE DOWNLOAD QUEUE & DEDUPLICATED PENDING FETCH GUARDS
-  // =========================================================================
+
   var textureCache = new Map();
   var demCache = new Map();
-  var pendingFetches = new Set(); // <--- Prevents duplicate concurrent fetches
-  var MAX_CACHE_TILES = 180;
-  var MAX_CONCURRENT_IMG = 8;
-  var MAX_CONCURRENT_DEM = 6;
+  var pendingFetches = new Set();
+  var MAX_CACHE_TILES = 120;
+  var MAX_CONCURRENT_IMG = 4;
+  var MAX_CONCURRENT_DEM = 3;
   var activeImgLoads = 0;
   var activeDemLoads = 0;
   var imgQueue = [];
   var demQueue = [];
 
+
   var offCanvas = document.createElement("canvas");
   offCanvas.width = 256;
   offCanvas.height = 256;
   var offCtx = offCanvas.getContext("2d", { willReadFrequently: true });
+
 
   function pruneCache(cacheMap, isTex) {
     if (cacheMap.size <= MAX_CACHE_TILES) return;
@@ -947,11 +648,13 @@
     }
   }
 
+
   function pumpImgQueue() {
     while (activeImgLoads < MAX_CONCURRENT_IMG && imgQueue.length > 0) {
       imgQueue.sort(function(a, b) { return a.dist - b.dist; });
       var job = imgQueue.shift();
       if (!job || job.entry.cancelled) continue;
+
 
       activeImgLoads++;
       (function(j) {
@@ -986,6 +689,7 @@
     }
   }
 
+
   function getTileTexture(layer, z, x, y, distSq) {
     var key = layer + "/" + z + "/" + x + "/" + y;
     var entry = textureCache.get(key);
@@ -993,25 +697,28 @@
       entry.lastUsed = performance.now();
       return entry;
     }
-    // Deduplication guard: if already in flight, return placeholder immediately without duplicate request
     if (pendingFetches.has(key)) {
       return { tex: null, ready: false, loading: true };
     }
 
+
     entry = { tex: null, ready: false, loading: true, lastUsed: performance.now() };
     textureCache.set(key, entry);
     pendingFetches.add(key);
+
 
     imgQueue.push({ entry: entry, key: key, layer: layer, z: z, x: x, y: y, dist: distSq || 0 });
     pumpImgQueue();
     return entry;
   }
 
+
   function pumpDemQueue() {
     while (activeDemLoads < MAX_CONCURRENT_DEM && demQueue.length > 0) {
       demQueue.sort(function(a, b) { return a.dist - b.dist; });
       var job = demQueue.shift();
       if (!job) continue;
+
 
       activeDemLoads++;
       (function(j) {
@@ -1020,6 +727,7 @@
         var subScale = 1.0 / (1 << shift);
         var subOffX = (j.x - ((j.x >> shift) << shift)) * subScale;
         var subOffY = (j.y - ((j.y >> shift) << shift)) * subScale;
+
 
         var img = new Image();
         img.crossOrigin = "anonymous";
@@ -1031,6 +739,7 @@
             offCtx.drawImage(img, 0, 0, 256, 256);
             var imgData = offCtx.getImageData(0, 0, 256, 256);
 
+
             var finishBuffer = function(elevArr) {
               var vbo = gl.createBuffer();
               gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
@@ -1041,6 +750,7 @@
               pruneCache(demCache, false);
               markDirty();
             };
+
 
             if (workerPool.length > 0) {
               var wk = workerPool[nextWorkerIdx];
@@ -1062,9 +772,7 @@
             } else {
               finishBuffer(decodeDemOnMainThread(imgData.data, subOffX, subOffY, subScale));
             }
-          } catch (err) {
-            // Keep flatElevBuf on error
-          }
+          } catch (err) {}
           pumpDemQueue();
         };
         img.onerror = function() {
@@ -1077,6 +785,7 @@
     }
   }
 
+
   function getTileDem(z, x, y, distSq) {
     var key = "dem/" + z + "/" + x + "/" + y;
     var entry = demCache.get(key);
@@ -1088,16 +797,18 @@
       return { buf: flatElevBuf, ready: false };
     }
 
+
     entry = { buf: flatElevBuf, ready: false, lastUsed: performance.now() };
     demCache.set(key, entry);
     pendingFetches.add(key);
+
 
     demQueue.push({ entry: entry, key: key, z: z, x: x, y: y, dist: distSq || 0 });
     pumpDemQueue();
     return entry;
   }
 
-  // Matrix Math Utilities
+
   function perspectiveMat(fovyRad, aspect, near, far) {
     var f = 1.0 / Math.tan(fovyRad * 0.5);
     var nf = 1.0 / (near - far);
@@ -1109,10 +820,12 @@
     ]);
   }
 
+
   function lookAtMat(eye, target, up) {
     var zx = eye[0] - target[0], zy = eye[1] - target[1], zz = eye[2] - target[2];
     var zLen = Math.hypot(zx, zy, zz) || 1.0;
     zx /= zLen; zy /= zLen; zz /= zLen;
+
 
     var xx = up[1] * zz - up[2] * zy;
     var xy = up[2] * zx - up[0] * zz;
@@ -1120,9 +833,11 @@
     var xLen = Math.hypot(xx, xy, xz) || 1.0;
     xx /= xLen; xy /= xLen; xz /= xLen;
 
+
     var yx = zy * xz - zz * xy;
     var yy = zz * xx - zx * xz;
     var yz = zx * xy - zy * xx;
+
 
     return new Float32Array([
       xx, yx, zx, 0,
@@ -1134,6 +849,7 @@
       1
     ]);
   }
+
 
   function resizeCanvas() {
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -1149,11 +865,12 @@
   window.addEventListener("resize", resizeCanvas);
   resizeCanvas();
 
-  // Render Loop (On-Demand + Smooth Fly/Orbit)
+
   var lastFrameTime = performance.now();
   function render(now) {
     var dt = Math.min((now - lastFrameTime) * 0.001, 0.1);
     lastFrameTime = now;
+
 
     if (flyAnim) {
       var t = clamp((now - flyAnim.startTime) / flyAnim.duration, 0, 1);
@@ -1165,22 +882,27 @@
       syncSliders();
     }
 
+
     if (state.autoOrbit) {
       state.bearing = (state.bearing + 10.0 * dt);
       syncSliders();
     }
 
+
     if (state.dirty) {
       state.dirty = false;
+
 
       gl.clearColor(0.04, 0.07, 0.12, 1.0);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       gl.enable(gl.DEPTH_TEST);
 
+
       var zInt = Math.round(clamp(state.zoom, 2, 16));
       var numTiles = 1 << zInt;
       var centerMX = lonToMercX(state.lon) * numTiles;
       var centerMY = latToMercY(state.lat) * numTiles;
+
 
       var zoomFrac = state.zoom - zInt;
       var tileWorldSize = Math.pow(2.0, zoomFrac);
@@ -1188,22 +910,27 @@
       var pitchRad = state.pitch * Math.PI / 180.0;
       var bearRad = state.bearing * Math.PI / 180.0;
 
+
       var horizDist = Math.sin(pitchRad) * camDist;
       var vertDist = Math.cos(pitchRad) * camDist;
       var eyeX = -Math.sin(bearRad) * horizDist;
       var eyeY = -Math.cos(bearRad) * horizDist;
       var eyeZ = Math.max(0.25, vertDist);
 
+
       var upVec = state.pitch < 1.0
         ? [Math.sin(bearRad), Math.cos(bearRad), 0.0]
         : [0.0, 0.0, 1.0];
+
 
       var aspect = (canvas.width || 1) / (canvas.height || 1);
       var proj = perspectiveMat(45.0 * Math.PI / 180.0, aspect, 0.05, 80.0);
       var view = lookAtMat([eyeX, eyeY, eyeZ], [0.0, 0.0, 0.0], upVec);
 
+
       gl.uniformMatrix4fv(uProjLoc, false, proj);
       gl.uniformMatrix4fv(uViewLoc, false, view);
+
 
       var latRad = state.lat * Math.PI / 180.0;
       var metersPerTile = (40075016.686 * Math.cos(latRad)) / numTiles;
@@ -1211,14 +938,17 @@
       gl.uniform1f(uElevScaleLoc, elevScale);
       gl.uniform1f(uFogDistLoc, 16.0);
 
+
       gl.bindBuffer(gl.ARRAY_BUFFER, gridBuf);
       gl.enableVertexAttribArray(aGridLoc);
       gl.vertexAttribPointer(aGridLoc, 2, gl.FLOAT, false, 0, 0);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idxBuf);
 
+
       var baseTileX = Math.floor(centerMX);
       var baseTileY = Math.floor(centerMY);
-      var radius = state.pitch > 35 ? 3 : 2;
+      var radius = state.pitch > 35 ? 2 : 2;
+
 
       var tileList = [];
       for (var dy = -radius; dy <= radius; dy++) {
@@ -1232,22 +962,27 @@
       }
       tileList.sort(function(a, b) { return a.distSq - b.distSq; });
 
+
       for (var ti = 0; ti < tileList.length; ti++) {
         var item = tileList[ti];
         var tx = ((item.rawTx % numTiles) + numTiles) % numTiles;
         var ty2 = item.ty;
 
+
         var originX = (item.rawTx - centerMX) * tileWorldSize;
         var originY = -(ty2 - centerMY) * tileWorldSize;
+
 
         var demEntry = getTileDem(zInt, tx, ty2, item.distSq);
         gl.bindBuffer(gl.ARRAY_BUFFER, demEntry.buf);
         gl.enableVertexAttribArray(aElevLoc);
         gl.vertexAttribPointer(aElevLoc, 1, gl.FLOAT, false, 0, 0);
 
+
         var texEntry = getTileTexture(state.layer, zInt, tx, ty2, item.distSq);
         var uvOffX = 0.0, uvOffY = 0.0, uvScale = 1.0;
         var activeTex = null;
+
 
         if (texEntry.ready) {
           activeTex = texEntry.tex;
@@ -1269,10 +1004,12 @@
           }
         }
 
+
         gl.uniform2f(uTileOriginLoc, originX, originY);
         gl.uniform1f(uTileSizeLoc, tileWorldSize);
         gl.uniform2f(uUvOffsetLoc, uvOffX, uvOffY);
         gl.uniform1f(uUvScaleLoc, uvScale);
+
 
         if (activeTex) {
           gl.activeTexture(gl.TEXTURE0);
@@ -1283,18 +1020,21 @@
           gl.uniform1f(uHasTexLoc, 0.0);
         }
 
+
         gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
       }
+
 
       var modeLabel = state.workerActive ? "MT-WebGL" : "WebGL";
       statusPill.textContent =
         modeLabel + " \u2022 Tiles: " + state.imgLoadedCount + " | DEM: " + state.demLoadedCount;
     }
 
+
     requestAnimationFrame(render);
   }
 
-  // Panning & Camera Helpers
+
   function panByPixels(dxPx, dyPx) {
     flyAnim = null;
     var zInt = Math.round(clamp(state.zoom, 2, 16));
@@ -1303,23 +1043,29 @@
     var tileWorldSize = Math.pow(2.0, zoomFrac);
     var scale = 0.0055 / tileWorldSize;
 
+
     var bearRad = state.bearing * Math.PI / 180.0;
     var cosB = Math.cos(bearRad);
     var sinB = Math.sin(bearRad);
 
+
     var dRight = -dxPx * scale;
     var dForward = dyPx * scale;
+
 
     var dMercX = (dRight * cosB + dForward * sinB) / numTiles;
     var dMercY = (-dRight * sinB + dForward * cosB) / numTiles;
 
+
     var mx = (lonToMercX(state.lon) + dMercX + 1.0) % 1.0;
     var my = clamp(latToMercY(state.lat) - dMercY, 0.001, 0.999);
+
 
     state.lon = mercXToLon(mx);
     state.lat = mercYToLat(my);
     syncSliders();
   }
+
 
   function applyZoom(delta) {
     flyAnim = null;
@@ -1327,12 +1073,14 @@
     syncSliders();
   }
 
-  // Mouse Controls
+
   var isDragging = false;
   var dragButton = 0;
   var lastMouseX = 0, lastMouseY = 0;
 
+
   canvas.addEventListener("contextmenu", function(e) { e.preventDefault(); });
+
 
   canvas.addEventListener("mousedown", function(e) {
     isDragging = true;
@@ -1344,12 +1092,14 @@
     syncSliders();
   });
 
+
   window.addEventListener("mousemove", function(e) {
     if (!isDragging) return;
     var dx = e.clientX - lastMouseX;
     var dy = e.clientY - lastMouseY;
     lastMouseX = e.clientX;
     lastMouseY = e.clientY;
+
 
     if (dragButton === 2 || e.shiftKey) {
       state.bearing += dx * 0.35;
@@ -1360,25 +1110,29 @@
     }
   });
 
+
   window.addEventListener("mouseup", function() {
     isDragging = false;
   });
+
 
   canvas.addEventListener("wheel", function(e) {
     e.preventDefault();
     applyZoom(e.deltaY < 0 ? 0.35 : -0.35);
   }, { passive: false });
 
-  // Multi-Touch Mobile Controls
+
   var touchMode = "none";
   var prevTouchX = 0, prevTouchY = 0;
   var prevPinchDist = 0, prevPinchAngle = 0;
+
 
   canvas.addEventListener("touchstart", function(e) {
     e.preventDefault();
     state.autoOrbit = false;
     flyAnim = null;
     syncSliders();
+
 
     if (e.touches.length === 1) {
       touchMode = "pan";
@@ -1393,6 +1147,7 @@
       prevPinchAngle = Math.atan2(t1.clientY - t0.clientY, t1.clientX - t0.clientX);
     }
   }, { passive: false });
+
 
   canvas.addEventListener("touchmove", function(e) {
     e.preventDefault();
@@ -1409,14 +1164,17 @@
       var dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY) || 1;
       var angle = Math.atan2(t1.clientY - t0.clientY, t1.clientX - t0.clientX);
 
+
       if (touchMode === "gesture") {
         var zoomDelta = Math.log2(dist / prevPinchDist) * 1.4;
         state.zoom = clamp(state.zoom + zoomDelta, 2.0, 16.0);
+
 
         var angDiff = (angle - prevPinchAngle) * 180.0 / Math.PI;
         if (angDiff > 180) angDiff -= 360;
         if (angDiff < -180) angDiff += 360;
         state.bearing -= angDiff;
+
 
         var dyMid = midY - prevTouchY;
         state.pitch = clamp(state.pitch - dyMid * 0.28, 0.0, 72.0);
@@ -1430,6 +1188,7 @@
     }
   }, { passive: false });
 
+
   canvas.addEventListener("touchend", function(e) {
     if (e.touches.length === 1) {
       touchMode = "pan";
@@ -1440,14 +1199,16 @@
     }
   });
 
-  // UI Control Bindings
+
   zoomInBtn.addEventListener("click", function() { applyZoom(0.6); });
   zoomOutBtn.addEventListener("click", function() { applyZoom(-0.6); });
+
 
   quickTiltBtn.addEventListener("click", function() {
     state.pitch = state.pitch >= 5 ? 0 : 54;
     syncSliders();
   });
+
 
   btn2D.addEventListener("click", function() {
     state.pitch = 0;
@@ -1455,10 +1216,12 @@
     syncSliders();
   });
 
+
   btn3D.addEventListener("click", function() {
     state.pitch = 54;
     syncSliders();
   });
+
 
   btnOrbit.addEventListener("click", function() {
     state.autoOrbit = !state.autoOrbit;
@@ -1466,10 +1229,12 @@
     syncSliders();
   });
 
+
   pitchSlider.addEventListener("input", function() {
     state.pitch = parseFloat(pitchSlider.value);
     syncSliders();
   });
+
 
   bearingSlider.addEventListener("input", function() {
     state.bearing = parseFloat(bearingSlider.value);
@@ -1477,15 +1242,18 @@
     syncSliders();
   });
 
+
   exagSlider.addEventListener("input", function() {
     state.exag = parseFloat(exagSlider.value);
     syncSliders();
   });
 
+
   layerSelect.addEventListener("change", function() {
     state.layer = layerSelect.value;
     markDirty();
   });
+
 
   var chips = document.querySelectorAll(".btn-chip");
   for (var ci = 0; ci < chips.length; ci++) {
@@ -1499,9 +1267,7 @@
     });
   }
 
-  // =========================================================================
-  // 3. TOKEN-FREE MULTI-PROVIDER GLOBAL GEOCODING SEARCH
-  // =========================================================================
+
   function zoomForPlaceType(type, cls) {
     if (cls === "boundary" && (type === "administrative" || type === "country")) return 6.0;
     if (type === "country") return 5.5;
@@ -1511,6 +1277,7 @@
     if (type === "peak" || type === "volcano" || type === "mountain_range") return 11.8;
     return 11.5;
   }
+
 
   function showSearchSuggestions(items) {
     searchResults.innerHTML = "";
@@ -1537,6 +1304,7 @@
     });
     searchResults.style.display = "flex";
   }
+
 
   function searchPhoton(q) {
     return fetch("https://photon.komoot.io/api/?limit=5&q=" + encodeURIComponent(q))
@@ -1565,6 +1333,7 @@
       });
   }
 
+
   function searchOpenMeteo(q) {
     return fetch("https://geocoding-api.open-meteo.com/v1/search?count=5&language=en&format=json&name=" + encodeURIComponent(q))
       .then(function(r) {
@@ -1588,6 +1357,7 @@
       });
   }
 
+
   function searchArcGis(q) {
     var url = "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&maxLocations=5&SingleLine=" + encodeURIComponent(q);
     return fetch(url)
@@ -1609,10 +1379,12 @@
       });
   }
 
+
   function runSearch() {
     var q = searchInput.value.trim();
     if (!q) return;
     searchResults.style.display = "none";
+
 
     var parts = q.split(",");
     if (parts.length === 2) {
@@ -1624,7 +1396,9 @@
       }
     }
 
+
     statusPill.textContent = "Searching: " + q + "...";
+
 
     searchPhoton(q)
       .catch(function() { return []; })
@@ -1642,12 +1416,13 @@
           if (results.length > 1) {
             showSearchSuggestions(results);
           }
-          statusPill.textContent = "Found: " + results[0].name;
+            statusPill.textContent = "Found: " + results[0].name;
         } else {
           statusPill.textContent = "No match for: " + q;
         }
       });
   }
+
 
   searchBtn.addEventListener("click", runSearch);
   searchInput.addEventListener("keydown", function(e) {
@@ -1657,15 +1432,19 @@
     }
   });
 
+
   window.addEventListener("keydown", function(e) {
     if (document.activeElement === searchInput) return;
     if (e.key === "+" || e.key === "=") applyZoom(0.5);
     if (e.key === "-" || e.key === "_") applyZoom(-0.5);
   });
 
+
   syncSliders();
   requestAnimationFrame(render);
 })();
 </script>
+
+
 </body>
 </html>
