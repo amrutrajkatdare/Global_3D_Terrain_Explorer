@@ -163,6 +163,17 @@ async function waitFor(predicate, timeout = 20000, interval = 250) {
     }, 5000);
     check("Saved place selection starts fly-to", !!oxfordHud, oxfordHud || await page.locator("#coordHud").textContent());
 
+    // Featured-location dropdown contains the requested destinations.
+    const savedPlaces = await page.locator("#savedLocationSelect option").allTextContents();
+    const expectedPlaces = [
+      "Andaman Islands", "Maldives · Malé", "Lake Chad", "Eye of Sahara",
+      "Yatan Qitahe", "Gangotri Glacier · Ganges", "Yamunotri Glacier · Yamuna",
+      "University of Oxford", "Statue of Unity · Gujarat", "Statue of Liberty"
+    ];
+    check("Featured locations dropdown includes requested destinations",
+      expectedPlaces.every(name => savedPlaces.includes(name)),
+      "Missing: " + expectedPlaces.filter(name => !savedPlaces.includes(name)).join(", "));
+
     // Global search test. Search should resolve a non-preset city.
     await page.locator("#searchInput").fill("Paris");
     await page.locator("#searchBtn").click();
