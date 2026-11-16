@@ -122,8 +122,8 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
   <div class="section-box">
     <span class="section-label">Camera &amp; Perspective</span>
     <div class="btn-row-3">
-      <button id="btn2D" class="btn-mode" type="button">2D Top</button>
-      <button id="btn3D" class="btn-mode active" type="button">3D Tilt</button>
+      <button id="btn2D" class="btn-mode active" type="button">2D Top</button>
+      <button id="btn3D" class="btn-mode" type="button">3D Tilt</button>
       <button id="btnOrbit" class="btn-mode" type="button">Auto-Orbit</button>
     </div>
 
@@ -131,9 +131,9 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
 <div class="slider-group">
   <div class="slider-header">
     <span>Camera Tilt (Pitch)</span>
-    <span id="pitchVal" class="slider-val">52&deg;</span>
+    <span id="pitchVal" class="slider-val">0&deg;</span>
   </div>
-  <input id="pitchSlider" type="range" min="0" max="72" step="1" value="52">
+  <input id="pitchSlider" type="range" min="0" max="72" step="1" value="0">
 </div>
 
 
@@ -168,7 +168,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
 <div id="quickDock" aria-label="Quick Zoom and 3D Controls">
   <button id="zoomInBtn" class="dock-btn" type="button" title="Zoom In (+)">+</button>
   <button id="zoomOutBtn" class="dock-btn" type="button" title="Zoom Out (-)">&minus;</button>
-  <button id="quickTiltBtn" class="dock-btn small-text" type="button" title="Toggle 2D / 3D Tilt">3D</button>
+  <button id="quickTiltBtn" class="dock-btn small-text" type="button" title="Switch to 3D terrain view">3D</button>
 </div>
 
 
@@ -231,7 +231,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
     lat: 21.1147,
     lon: -11.3942,
     zoom: 11.2,
-    pitch: 52.0,
+    pitch: 0.0,
     bearing: 0.0,
     exag: 2.4,
     layer: "esri_topo",
@@ -469,9 +469,8 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
       startTime: performance.now(),
       duration: 850
     };
-    if (state.pitch < 15) {
-      state.pitch = 50;
-    }
+    // Navigating to any destination stays in 2D until the user explicitly enables 3D.
+    state.pitch = 0;
     state.autoOrbit = false;
     syncSliders();
   }
@@ -1474,6 +1473,7 @@ select, input[type="text"] { width: 100%; background: #0f172a; color: #f1f5f9; b
 
   quickTiltBtn.addEventListener("click", function() {
     state.pitch = state.pitch >= 5 ? 0 : 54;
+    state.autoOrbit = false;
     syncSliders();
   });
 
